@@ -30,21 +30,21 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
 from scipy import linalg
-import colorlog
+import colorlog #-> this is not available in HPC of UGhent
 
 os_name = platform.system()
 
 # Package logger
-my_log_formatter = colorlog.ColoredFormatter(
+my_log_formatter = colorlog.ColoredFormatter( #logging.Formatter(
     '%(log_color)s %(asctime)s %(message)s',
     datefmt='%d/%m/%Y %H:%M:%S:',
     reset=True,
     log_colors={
-        'DEBUG': 'green',
-        'INFO': 'white',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
+       'DEBUG': 'green',
+       'INFO': 'white',
+       'WARNING': 'yellow',
+       'ERROR': 'red',
+       'CRITICAL': 'red,bg_white',
     },
     style='%')
 
@@ -57,10 +57,10 @@ def setHandler(logger, handler):
 
 
 def setLogger(name, formatter):
-    handler = colorlog.StreamHandler()
+    handler = colorlog.StreamHandler() #logging.StreamHandler()
     handler.setFormatter(formatter)
     handler.stream = sys.stdout
-    logger = colorlog.getLogger(name)
+    logger = colorlog.getLogger(name) #logging.getLogger(name)
     logger.addHandler(handler)
     return logger
 

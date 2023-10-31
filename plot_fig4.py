@@ -60,9 +60,9 @@ def suprathr(x):
 
 
 figindex = 4
-fs = 12
-lw = 2
-ps = 15
+# fs = 12
+# lw = 2
+# ps = 15
 figs = {}
 
 
@@ -75,11 +75,11 @@ Adrive = 50e3  # Pa
 fig = plotEffectiveVariables(pneuron, a=a, f=Fdrive, cmap='Oranges', zscale='log')
 figs['a'] = fig
 
-fig = plotEffectiveVariables(pneuron, a=a, A=Adrive, cmap='Greens', zscale='log')
-figs['b'] = fig
+# fig = plotEffectiveVariables(pneuron, a=a, A=Adrive, cmap='Greens', zscale='log')
+# figs['b'] = fig
 
-fig = plotEffectiveVariables(pneuron, f=Fdrive, A=Adrive, cmap='Blues', zscale='log')
-figs['c'] = fig
+# fig = plotEffectiveVariables(pneuron, f=Fdrive, A=Adrive, cmap='Blues', zscale='log')
+# figs['c'] = fig
 
 plt.show()
 saveFigsAsPDF(figs, figindex,pneur_name)

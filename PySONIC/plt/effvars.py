@@ -147,7 +147,9 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
     del keys[keys.index('Cm')]
     del keys[keys.index('Vm')]
     keys = ['Cm', 'Vm'] + keys
-
+    keys = keys[:4] # to show only a part of the variables on the plot
+    #print(keys)
+    
     # Get reference US-OFF lookups (1D)
     lookupsoff = lkp.projectOff()
 
@@ -188,7 +190,9 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
     xvar = pltvars['Qm']
     Qbounds = np.array([Qref.min(), Qref.max()]) * xvar['factor']
 
-    fig, _ = plt.subplots(figsize=(3.5 * ncols, 1 * nrows), squeeze=False)
+    fig, ax = plt.subplots(figsize=(3.5 * ncols, 1 * nrows), squeeze=False)
+    plt.xticks([]) #this is added to remove
+    plt.yticks([]) #the annoying ticks that go from 0 to 1
     for j, key in enumerate(keys):
         ax = plt.subplot2grid((nrows, ncols), (j // ncols, j % ncols))
         for s in ['right', 'top']:
@@ -200,7 +204,7 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
         else:
             ax.set_xticks([])
             ax.spines['bottom'].set_visible(False)
-
+        ax.yaxis.tick_right()
         ax.xaxis.set_label_coords(0.5, -0.1)
         ax.yaxis.set_label_coords(-0.02, 0.5)
 
@@ -220,7 +224,7 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
             ymin = min(ymin, y.min())
             ymax = max(ymax, y.max())
 
-        # Plot reference variable
+        # Plot reference variable (the original non-modulated variables -> without the acoustic perturbation)
         ax.plot(Qref * xvar.get('factor', 1), y0 * yvar.get('factor', 1), '--', c='k')
         ymax = max(ymax, y0.max())
         ymin = min(ymin, y0.min())
@@ -237,11 +241,12 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
             ylim = [np.floor(ylim[0] * factor) / factor, np.ceil(ylim[1] * factor) / factor]
         ax.set_yticks(ylim)
         ax.set_ylim(ylim)
+        var, suff = yvar["label"].split('_',1)
+        yvar["label"] = var+"_"+suff.replace('_',',')
         ax.set_ylabel('$\\rm {}\ ({})$'.format(yvar["label"], yvar["unit"]),
                       fontsize=fs, rotation=0, ha='right', va='center')
 
     fig.suptitle(f'{pneuron.name} neuron: {zvar["label"]} \n modulated effective variables')
-
     # Adjust colorbar factor and unit prefix if zvar is US frequency of amplitude
     zfactor, zprefix = getSIpair(zref, scale=zscale)
     zvar['unit'] = zprefix + zvar['unit']

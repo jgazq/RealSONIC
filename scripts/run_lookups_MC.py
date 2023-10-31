@@ -12,9 +12,11 @@ import itertools
 import logging
 import numpy as np
 import sys
+sys.path.append(os.path.abspath(\
+os.path.split(__file__)[0].split('RealSONIC')[0]+'\\RealSONIC'))
 
-from neuron import h, gui
-h.load_file('init.hoc')
+# from neuron import h, gui
+# h.load_file('init.hoc')
 
 from PySONIC.utils import logger, isIterable
 from PySONIC.core import NeuronalBilayerSonophore, Batch, Lookup, AcousticDrive
@@ -22,11 +24,10 @@ from PySONIC.parsers import MechSimParser
 from PySONIC.neurons import getDefaultPassiveNeuron
 from PySONIC.constants import DQ_LOOKUP
 
-sys.path.append("c:\\users\\jgazquez\\RealSONIC")
-import tempFunctions as tf
-import tempConstants as tc
-import prev.functions as fs
-import prev.Interp3Dfield as tt
+# import tempFunctions as tf
+# import tempConstants as tc
+# import prev.functions as fs
+# import prev.Interp3Dfield as tt
 
 
 def computeAStimLookup(pneuron, aref, fref, Aref, fsref, Qref, novertones=0,
@@ -185,9 +186,9 @@ def computeAStimLookup(pneuron, aref, fref, Aref, fsref, Qref, novertones=0,
 
 def main():
 
-    cell_nr = 7
-    h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
-    h.cell_chooser(cell_nr)
+    # cell_nr = 7
+    # h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
+    # h.cell_chooser(cell_nr)
 
     # cell_folder = "L23_PC_cADpyr229_2" #"L4_LBC_cACint209_2" #input("Give folder name of BBP cell:")
     # mech_folder = "cells/"+cell_folder+"/mechanisms/"

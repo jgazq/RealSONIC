@@ -4,6 +4,7 @@
 
 import numpy as np
 from neuron import h
+import shutil
 import sys
 sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
 import tempFunctions as tf
@@ -25,8 +26,6 @@ for i,e in enumerate(mod_names):
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
-print(mod_names)
-print(states)
 
 
 with open('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\neurons\\real_neuron.py','w') as filenaam:
@@ -168,3 +167,6 @@ class RealisticNeuron(PointNeuron):
         return {""")
     filenaam.write(currents_dict)
     filenaam.write('\n        }')
+
+# copy the file from PySONIC/PySONIC to RealSONIC/PySONIC so both contain the correct real_neuron.py file
+shutil.copy('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\neurons\\real_neuron.py','C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\neurons\\real_neuron.py')
