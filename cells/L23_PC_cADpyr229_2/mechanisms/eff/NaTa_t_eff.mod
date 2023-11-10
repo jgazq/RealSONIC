@@ -4,6 +4,8 @@ NEURON	{
 	SUFFIX NaTa_t
 	USEION na READ ena WRITE ina
 	RANGE gNaTa_tbar, gNaTa_t, ina
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 UNITS	{
@@ -13,11 +15,16 @@ UNITS	{
 }
 
 PARAMETER	{
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
 	gNaTa_tbar = 0.00001 (S/cm2)
 }
 
 ASSIGNED	{
-	v	(mV)
+	v (nC/cm2)
+	Vm (mV)
 	ena	(mV)
 	ina	(mA/cm2)
 	gNaTa_t	(S/cm2)
@@ -29,7 +36,17 @@ ASSIGNED	{
 	hTau
 	hAlpha
 	hBeta
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_NaTat(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE betam_NaTat(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alphah_NaTat(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE betah_NaTat(A(kPa), Q(nC/cm2)) (mV)
 
 STATE	{
 	m
@@ -37,25 +54,20 @@ STATE	{
 }
 
 BREAKPOINT	{
+	update()
 	SOLVE states METHOD cnexp
 	gNaTa_t = gNaTa_tbar*m*m*m*h
-	ina = gNaTa_t*(v-ena)
+	ina = gNaTa_t*(Vm-ena)
 }
 
 DERIVATIVE states	{
-	rates()
-	m' = (mInf-m)/mTau
-	h' = (hInf-h)/hTau
+	m' = alpham_NaTat(A_t, y) * (1 - m) - betam_NaTat(A_t, y) * m
+	h' = alphah_NaTat(A_t, y) * (1 - h) - betah_NaTat(A_t, y) * h
 }
 
 INITIAL{
-	rates()
-	m = mInf
-	h = hInf
+	update()
+	m = alpham_NaTat(A_t, y) / alpham_NaTat(A_t, y) + betam_NaTat(A_t, y)
+	h = alphah_NaTat(A_t, y) / alphah_NaTat(A_t, y) + betah_NaTat(A_t, y)
 }
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_NaTa_t(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE betam_NaTa_t(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alphah_NaTa_t(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE betah_NaTa_t(A(kPa), Q(nC/cm2)) (mV)

@@ -1,4 +1,6 @@
 import numpy as np
+
+
 "-----CONSTANTS-----"
 RHO = 1e3 #medium density (kg/m3)
 C = 1490.0 #medium speed of sound (m)

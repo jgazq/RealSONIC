@@ -3,17 +3,17 @@
 
 "-----IMPORTS-----"
 
-import numpy as np
+# import numpy as np
 #import time
 #import datetime
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 #import scipy.io as sio
-import os
+# import os
 #import sys
 #import math
 #import seaborn as sns
 #import logging
-import re
+# import re
 #from scipy.interpolate import griddata, interpn
 #nrn_options = "-NSTACK 10000 -NFRAME 525"
 #Aberra recommends: -NSTACK 100000 -NFRAME 20000
@@ -25,12 +25,12 @@ h.load_file('init.hoc')
 #h.load_file('get_es2.hoc') #for TMS
 #h.load_file('interp_coordinates.hoc') #for TMS (to calc Dx,Dy and Dz)
 
-import tempConstants as tc
+# import tempConstants as tc
 import tempFunctions as tf
-import prev.functions as fs
-import prev.Interp3Dfield as tt
-import PySONIC as ps
-import MorphoSONIC as ms
+# import prev.functions as fs
+# import prev.Interp3Dfield as tt
+# import PySONIC as ps
+# import MorphoSONIC as ms
 
 '''NEURON translator of Lemaire (2021)'''
 # from PySONIC.core import PointNeuron

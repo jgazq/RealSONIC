@@ -281,7 +281,7 @@ def plotConvergenceResults(df, inkey, outkeys, rel_eps_thr_Ithr=0.05, rel_eps_th
 
 def plotFiberXCoords(fiber, fs=12):
     ''' Plot the x coordinates of a fiber model, per section type. '''
-    fig, ax = plt.subplots(figsize=(12, 2))
+    fig, ax = plt.subplots(figsize=(12, 4))
     sns.despine(ax=ax)
     ax.set_title(f'{fiber} - x-coordinates per section type', fontsize=fs)
     ax.set_xlabel('section mid-point x-coordinate (mm)', fontsize=fs)

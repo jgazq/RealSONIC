@@ -1,4 +1,4 @@
-"""" this file writes all the necessary code to PySONIC/PySONIC/neurons/real_neuron.py to create the RealisticNeuron class
+"""" this file writes all the necessary code to PySONIC/PySONIC/neurons/real_neuron.py and RealSONIC/PySONIC/neurons/real_neuron.py to create the RealisticNeuron class
     in order to create the LUT for all the different mechanisms"""
 
 
@@ -6,7 +6,8 @@ import numpy as np
 from neuron import h
 import shutil
 import sys
-sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
+import os
+#sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
 import tempFunctions as tf
 
 """"--------------- INPUTS ---------------"""
@@ -27,12 +28,12 @@ l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
 
-
-with open('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\neurons\\real_neuron.py','w') as filenaam:
+path = os. getcwd() + "\\PySONIC\\neurons\\real_neuron.py"
+with open(path,'w') as filenaam:
 
 # write header of the file and imports
- 
-    filenaam.write("""# -*- coding: utf-8 -*-
+    path2 = os.getcwd().replace('\\','\\\\')
+    filenaam.write(f"""# -*- coding: utf-8 -*-
 # @Author: Theo Lemaire
 # @Email: theo.lemaire@epfl.ch
 # @Date:   2019-06-11 15:58:38
@@ -42,7 +43,7 @@ with open('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\neurons\\real_neuron.py','w') 
 import numpy as np
 from neuron import h
 import sys
-sys.path.append("C:\\\\Users\\\\jgazquez\\\\RealSONIC")
+sys.path.append("{path2}")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures\n\n""")
@@ -147,18 +148,19 @@ class RealisticNeuron(PointNeuron):
                     current_var += f'x[\'{gating_param}\'], '
                     x_actual.append(x)
             if gating_var != '':
-                """x_dict = {{'e': e for e in [{gating_var[:-1]}]}}
-                variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[{mod_number}], mod_name='{f}', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "{sec_type}")
-                currents = [e for e in variables.keys() if (e.startswith(\'i\') or e.startswith(\'I\'))]
-                print(currents)
-                if currents:
-                    return variables[currents[0]]
-                else:
-                    return 0"""
+                #code between quotation marks is original code but has been replaced with single line code
+                """return cls.g_{name_mod}*Vm \n\n"""
                 filenaam.write(f"""    @classmethod
     def i_{name_mod}(cls,{gating_var}Vm):
         ''' i{name_mod} current '''
-        return cls.g_{name_mod}*Vm \n\n""")
+        x_dict = {{'e': e for e in [{gating_var[:-1]}]}}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[{mod_number}], mod_name='{f}', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "{sec_type}")
+        currents = [e for e in variables.keys() if (e.startswith(\'i\') or e.startswith(\'I\'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0\n\n""")
                 currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x: cls.i_{name_mod}({current_var}Vm),'
             
         mod_number += 1 
@@ -168,5 +170,5 @@ class RealisticNeuron(PointNeuron):
     filenaam.write(currents_dict)
     filenaam.write('\n        }')
 
-# copy the file from PySONIC/PySONIC to RealSONIC/PySONIC so both contain the correct real_neuron.py file
-shutil.copy('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\neurons\\real_neuron.py','C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\neurons\\real_neuron.py')
+# copy the file from RealSONIC/PySONIC to PySONIC/PySONIC so both contain the correct real_neuron.py file
+shutil.copy(path, os. getcwd().replace('RealSONIC','PySONIC') + "\\PySONIC\\neurons\\real_neuron.py")

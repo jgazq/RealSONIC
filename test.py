@@ -35,6 +35,6 @@ import argparse
 # if __name__ == "__main__":
 #     main()
 
-a = "/expanse/projects/nsg/home/nsguser/ngbw.expanse.nsgprod/workspace/NGBW-JOB-PY_CRI_SIMULATOR_EXPANSE-34C2320845C24688A2DE138C312D5A18/RealSIM/scripts"
-b = a.split("RealSIM")[0]+"/RealSIM"
-print(b)
+a = "teste"
+b = a.count("e")
+print(a,b)

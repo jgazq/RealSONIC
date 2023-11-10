@@ -5,6 +5,8 @@ NEURON	{
 	SUFFIX SKv3_1
 	USEION k READ ek WRITE ik
 	RANGE gSKv3_1bar, gSKv3_1, ik 
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 UNITS	{
@@ -14,39 +16,48 @@ UNITS	{
 }
 
 PARAMETER	{
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
 	gSKv3_1bar = 0.00001 (S/cm2) 
 }
 
 ASSIGNED	{
-	v	(mV)
+	v (nC/cm2)
+	Vm (mV)
 	ek	(mV)
 	ik	(mA/cm2)
 	gSKv3_1	(S/cm2)
 	mInf
 	mTau
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_SKv31(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE betam_SKv31(A(kPa), Q(nC/cm2)) (mV)
 
 STATE	{ 
 	m
 }
 
 BREAKPOINT	{
+	update()
 	SOLVE states METHOD cnexp
 	gSKv3_1 = gSKv3_1bar*m
-	ik = gSKv3_1*(v-ek)
+	ik = gSKv3_1*(Vm-ek)
 }
 
 DERIVATIVE states	{
-	rates()
-	m' = (mInf-m)/mTau
+	m' = alpham_SKv31(A_t, y) * (1 - m) - betam_SKv31(A_t, y) * m
 }
 
 INITIAL{
-	rates()
-	m = mInf
+	update()
+	m = alpham_SKv31(A_t, y) / alpham_SKv31(A_t, y) + betam_SKv31(A_t, y)
 }
 
-
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_SKv3_1(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE betam_SKv3_1(A(kPa), Q(nC/cm2)) (mV)

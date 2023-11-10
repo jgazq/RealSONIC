@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # import PySONIC as ps
 # import MorphoSONIC as ms
 import numpy as np
-import pickle
+# import pickle
 import pandas as pd
 from neuron import h
 import re
@@ -134,16 +134,45 @@ def sec_mechs():
         prev = sec
     return d_sec
 
+#prints the distance to the soma for all segments
 def dist_sec_soma():
     i = 0
     for sec in h.allsec():
         for seg in sec:
-            seg_mech = []
-            for mech in seg:
-                seg_mech.append(mech)
-            x_SOM,y_SOM,z_SOM = tt.findSOMA()
-            dist_2_soma = np.sqrt((seg.x_xtra-x_SOM)**2 + (seg.y_xtra-y_SOM)**2 + (seg.z_xtra-z_SOM)**2)
-            print(seg,dist_2_soma)
+            if "Scale" not in str(sec) and "Elec" not in str(sec):
+                x_SOM,y_SOM,z_SOM = tt.findSOMA()
+                dist_2_soma = np.sqrt((seg.x_xtra-x_SOM)**2 + (seg.y_xtra-y_SOM)**2 + (seg.z_xtra-z_SOM)**2)
+                print(seg,dist_2_soma)
+
+#returns a dict with all segments containing their 3D position
+def coord_dict():
+    i = 0
+    dict = {}
+    for sec in h.allsec():
+        for seg in sec:
+            if "Scale" not in str(sec) and "Elec" not in str(sec):
+                dict[str(seg)] = (seg.x_xtra, seg.y_xtra, seg.z_xtra)
+    return dict
+
+
+#returns a dict with each type of segment containing all the segments and their locations
+def coord_dict_type():
+    i = 0
+    dict = {}
+    for sec in h.allsec():
+        for seg in sec:
+            replace_sec = re.findall('\[[0-9]*\]',str(sec))
+            sec_repl = str(sec)
+            for e in replace_sec:
+                sec_repl = sec_repl.replace(e,'')
+            sec_type = 'soma' if 'soma' in sec_repl else 'apical' if 'apic' in sec_repl\
+            else 'basal' if 'dend' in sec_repl else 'axon' if 'axon' in sec_repl else sec_repl.lower()
+            if "Scale" not in str(sec) and "Elec" not in str(sec):
+                if sec_type not in dict.keys():
+                    dict[str(sec_type)] = {str(seg) : (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6)} #um to m
+                else:
+                    dict[str(sec_type)][str(seg)] = (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6) #um to m           
+    return dict
 
 #read all .mod files in a directory and put them into a 2D-list
 def read_mod(mech_folder, restrictions = None):
@@ -424,6 +453,7 @@ def derstates_from_gating(states,gating_states_kinetics,x_dict):
             derstates[e] = (mech_var[activ+'inf']-x_dict[e])/mech_var[activ+'tau']
     return derstates
 
+#parses an equation and puts the excecuted RHS into the variable of the LHS
 def calc_eq(e,var_pattern,math_pattern,equation_pattern,variables_dict):
     LHS,RHS = e.split("=")
     variable = re.search(var_pattern,LHS).group()
@@ -438,6 +468,7 @@ def calc_eq(e,var_pattern,math_pattern,equation_pattern,variables_dict):
     except: 
         print(f"{tc.bcolors.OKCYAN}LOG: \t didn't work to compute: {equation}{tc.bcolors.ENDC}")
 
+# a recursive functions which handels executing if-statements encountered in a MODL file
 def if_recursive(list_mod,if_stat,variables_dict,offset):
     var_pattern = "[a-zA-Z_][a-zA-Z0-9_]*"
     math_pattern = "[0-9\.\+\-\*/\(\)a-zA-Z][ 0-9\.\+\-\*/\(\)a-zA-Z^_]*[0-9\.\+\-\*/\(\)a-zA-Z]" #removal of \t, \n and spaces around the formula
@@ -549,7 +580,7 @@ def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_e
         del variables_reduced[e]
     return variables_dict, variables_reduced
 
-#reduce the number of underscores in a name to 1
+#reduce the number of underscores in a name/string to 1
 def rm_us(e): 
     while e.count('_') > 0:
         suf,pre = e[::-1].split('_',1) # reverse the string and remove the first underscore

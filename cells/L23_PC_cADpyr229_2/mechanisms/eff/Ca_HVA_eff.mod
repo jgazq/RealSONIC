@@ -5,6 +5,8 @@ NEURON	{
 	SUFFIX Ca_HVA
 	USEION ca READ eca WRITE ica
 	RANGE gCa_HVAbar, gCa_HVA, ica 
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 UNITS	{
@@ -14,11 +16,16 @@ UNITS	{
 }
 
 PARAMETER	{
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
 	gCa_HVAbar = 0.00001 (S/cm2) 
 }
 
 ASSIGNED	{
-	v	(mV)
+	v (nC/cm2)
+	Vm (mV)
 	eca	(mV)
 	ica	(mA/cm2)
 	gCa	(S/cm2)
@@ -30,7 +37,17 @@ ASSIGNED	{
 	hTau
 	hAlpha
 	hBeta
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_CaHVA(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE betam_CaHVA(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alphah_CaHVA(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE betah_CaHVA(A(kPa), Q(nC/cm2)) (mV)
 
 STATE	{ 
 	m
@@ -38,25 +55,20 @@ STATE	{
 }
 
 BREAKPOINT	{
+	update()
 	SOLVE states METHOD cnexp
 	gCa = gCa_HVAbar*m*m*h
-	ica = gCa*(v-eca)
+	ica = gCa*(Vm-eca)
 }
 
 DERIVATIVE states	{
-	rates()
-	m' = (mInf-m)/mTau
-	h' = (hInf-h)/hTau
+	m' = alpham_CaHVA(A_t, y) * (1 - m) - betam_CaHVA(A_t, y) * m
+	h' = alphah_CaHVA(A_t, y) * (1 - h) - betah_CaHVA(A_t, y) * h
 }
 
 INITIAL{
-	rates()
-	m = mInf
-	h = hInf
+	update()
+	m = alpham_CaHVA(A_t, y) / alpham_CaHVA(A_t, y) + betam_CaHVA(A_t, y)
+	h = alphah_CaHVA(A_t, y) / alphah_CaHVA(A_t, y) + betah_CaHVA(A_t, y)
 }
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_Ca_HVA(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE betam_Ca_HVA(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alphah_Ca_HVA(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE betah_Ca_HVA(A(kPa), Q(nC/cm2)) (mV)

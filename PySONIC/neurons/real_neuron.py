@@ -6,7 +6,7 @@
 # @Last Modified time: 2023-24-10
                    
 import numpy as np
-# from neuron import h
+from neuron import h
 import sys
 sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
 import tempFunctions as tf
@@ -323,52 +323,122 @@ class RealisticNeuron(PointNeuron):
     @classmethod
     def i_CaHVA(cls,m_CaHVA,h_CaHVA,Vm):
         ''' iCaHVA current '''
-        return cls.g_CaHVA*Vm 
+        x_dict = {'e': e for e in [m_CaHVA,h_CaHVA]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[1], mod_name='CaHVA', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_CaLVAst(cls,m_CaLVAst,h_CaLVAst,Vm):
         ''' iCaLVAst current '''
-        return cls.g_CaLVAst*Vm 
+        x_dict = {'e': e for e in [m_CaLVAst,h_CaLVAst]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[2], mod_name='CaLVAst', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_Ih(cls,m_Ih,Vm):
         ''' iIh current '''
-        return cls.g_Ih*Vm 
+        x_dict = {'e': e for e in [m_Ih]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[3], mod_name='Ih', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_Im(cls,m_Im,Vm):
         ''' iIm current '''
-        return cls.g_Im*Vm 
+        x_dict = {'e': e for e in [m_Im]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[4], mod_name='Im', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_KPst(cls,m_KPst,h_KPst,Vm):
         ''' iKPst current '''
-        return cls.g_KPst*Vm 
+        x_dict = {'e': e for e in [m_KPst,h_KPst]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[5], mod_name='KPst', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_KTst(cls,m_KTst,h_KTst,Vm):
         ''' iKTst current '''
-        return cls.g_KTst*Vm 
+        x_dict = {'e': e for e in [m_KTst,h_KTst]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[6], mod_name='KTst', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_NapEt2(cls,m_NapEt2,h_NapEt2,Vm):
         ''' iNapEt2 current '''
-        return cls.g_NapEt2*Vm 
+        x_dict = {'e': e for e in [m_NapEt2,h_NapEt2]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[7], mod_name='NapEt2', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_NaTat(cls,m_NaTat,h_NaTat,Vm):
         ''' iNaTat current '''
-        return cls.g_NaTat*Vm 
+        x_dict = {'e': e for e in [m_NaTat,h_NaTat]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[8], mod_name='NaTat', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_NaTs2t(cls,m_NaTs2t,h_NaTs2t,Vm):
         ''' iNaTs2t current '''
-        return cls.g_NaTs2t*Vm 
+        x_dict = {'e': e for e in [m_NaTs2t,h_NaTs2t]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[9], mod_name='NaTs2t', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def i_SKv31(cls,m_SKv31,Vm):
         ''' iSKv31 current '''
-        return cls.g_SKv31*Vm 
+        x_dict = {'e': e for e in [m_SKv31]}
+        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[12], mod_name='SKv31', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "somatic")
+        currents = [e for e in variables.keys() if (e.startswith('i') or e.startswith('I'))]
+        print(currents)
+        if currents:
+            return variables[currents[0]]
+        else:
+            return 0
 
     @classmethod
     def currents(cls):

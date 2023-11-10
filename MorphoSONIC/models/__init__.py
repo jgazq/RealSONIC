@@ -13,6 +13,7 @@ from .radial_model import *
 from .single_cable import *
 from .double_cable import *
 from .network import *
+from .zreal_model import *
 
 
 def getModelsDict():
