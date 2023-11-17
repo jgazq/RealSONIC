@@ -9,15 +9,16 @@ import sys
 import os
 #sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
 import tempFunctions as tf
+h.load_file("init.hoc")
 
 """"--------------- INPUTS ---------------"""
 cell_nr = 7
-cell_folder = "L23_PC_cADpyr229_2"
 sec_type = 'somatic'
 dist_2_soma = 20 #um
 
 """"--------------------------------------"""
 
+cell_folder = h.cell_names[cell_nr-1].s #OR h.cell_names.o(cell_nr-1).s        (cell_folder = "L23_PC_cADpyr229_2")
 mech_folder = "cells/"+cell_folder+"/mechanisms/"
 mod_files, mod_names = tf.read_mod(mech_folder)
 

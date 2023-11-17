@@ -12,8 +12,11 @@ import itertools
 import logging
 import numpy as np
 import sys
+import datetime
 sys.path.append(os.path.abspath(\
 os.path.split(__file__)[0].split('RealSONIC')[0]+'\\RealSONIC'))
+current_time = datetime.datetime.now()
+now = datetime.datetime.strftime(current_time,'%d_%m_%Y_%H_%M_%S')
 
 # from neuron import h, gui
 # h.load_file('init.hoc')
@@ -224,6 +227,8 @@ def main():
         fname_args = {k: v[0] if v.size == 1 else None for k, v in input_args.items()}
         fname_args['novertones'] = novertones
         lookup_fpath = NeuronalBilayerSonophore(32e-9, pneuron).getLookupFilePath(**fname_args)
+        fcode, fext = os.path.splitext(lookup_fpath)
+        lookup_fpath = f'{fcode}_{now}{fext}' #add tine to make each lookup calculation unique
 
         # Combine inputs into single list
         inputs = [args[x] for x in ['radius', 'freq', 'amp', 'fs']] + [charges]

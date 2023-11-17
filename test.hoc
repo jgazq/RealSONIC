@@ -1,0 +1,6 @@
+load_file("init.hoc")
+strdef new_dir
+sprint(new_dir,"%s%s%s",getcwd(),"cells/",cell_names.o(7-1).s)
+print new_dir
+chdir(new_dir)
+print getcwd()

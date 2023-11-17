@@ -65,6 +65,7 @@ class MRGFiber(FiberNeuronModel):
             :param correction_level: level at which model properties are adjusted to ensure correct
                 myelin representation with the extracellular mechanism ('myelin' or 'axoplasm')
         '''
+        print("MRGFiber init")
         self.correction_level = correction_level
         for k, v in mrg_lkp.project('fiberD', fiberD).items():
             setattr(self, k, v)

@@ -25,7 +25,7 @@ def addSonicFeatures(Base):
     assert issubclass(Base, NeuronModel), 'Base class must inherit from "NeuronModel" class'
 
     class SonicBase(Base):
-        ''' Generic class inheriting from a NeuronModel class and adding gneric SONIC features. '''
+        ''' Generic class inheriting from a NeuronModel class and adding generic SONIC features. '''
 
         passive_mechname = CUSTOM_PASSIVE_MECHNAME
 
@@ -36,6 +36,7 @@ def addSonicFeatures(Base):
                 :param fs: sonophore membrane coverage fraction (-)
                 :param d: embedding depth (m)
             '''
+            print('SonicBase init')
             # Set point neuron attribute
             try:
                 # Retrieve class default pneuron if existing
@@ -237,6 +238,7 @@ def addSonicFeatures(Base):
     class SonicMorpho(SonicBase):
 
         def __init__(self, *args, inter_fs=1., **kwargs):
+            print('SonicMorpho init')
             self.network = None
             if not hasattr(self, 'use_explicit_iax'):
                 self.use_explicit_iax = False
@@ -244,6 +246,7 @@ def addSonicFeatures(Base):
                 self.gmax = None
             self.inter_fs = inter_fs
             self.inter_pylkp = None
+            print(super())
             super().__init__(*args, **kwargs)
 
         @property

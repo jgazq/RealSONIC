@@ -6,9 +6,13 @@ import copy
 import os
 import sys
 import argparse
+from MorphoSONIC.models import NeuronModel, SpatiallyExtendedNeuronModel, FiberNeuronModel, SingleCableFiber, MRGFiber
+from MorphoSONIC.models import SennFiber, Realnrn
+#from neuron import h
 # import tempFunctions as tf
 # import PySONIC as ps
 
+"""to test a parsing function"""
 #     parser example
 # def main():
 #     # Create an ArgumentParser object
@@ -34,7 +38,38 @@ import argparse
 
 # if __name__ == "__main__":
 #     main()
+# increases the stack in able to load cell_nr = 6
+# import subprocess
+# import neuron
+# subprocess.run('neuron',shell=True)
+# subprocess.run('nrngui -NSTACK 100000 -NFRAME 20000 init.hoc',shell=True)
 
-a = "teste"
-b = a.count("e")
-print(a,b)
+# nrn_options = "-NSTACK 100000 -NFRAME 20000"
+# # nrn_options = "-nogui -NSTACK 3000 -NFRAME 525"
+# os.environ["NEURON_MODULE_OPTIONS"] = nrn_options
+# from neuron import h, gui
+
+# #h("NSTACK_size = 10000")
+# h("nrngui -NSTACK 100000 -NFRAME 20000 init.hoc ")
+
+#h.load_file('init.hoc')
+
+# cell_nr = 6
+# h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
+# h.cell_chooser(cell_nr)
+
+# Create an instance of the template
+#cell = h.cADpyr229_L23_PC_5ecbf9b163(0)
+
+""""to test test.hoc"""
+# from neuron import h,gui
+# h.load_file('test.hoc')
+
+print(f"{'-'*10}Fiber{'-'*10}")
+Fiber = SennFiber(2,2)
+print(f"{'-'*10}MRG{'-'*10}")
+MRG = MRGFiber(fiberD = 2, nnodes = 2)
+print(f"{'-'*10}Realnrn{'-'*10}")
+realnrn = Realnrn(cell_nr=7,se=0)  
+
+print(list(set(dir(Fiber)) & set(dir(MRG))))

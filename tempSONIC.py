@@ -48,10 +48,7 @@ cell_nr = 7
 h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
 h.cell_chooser(cell_nr)
 #get cell name folder based on the cell that has been chosen
-# print(h.cell_names)
-# for e in h.cell_names:
-#     a = str(e)
-#     print(a.len())
+cell_name = h.cell_names[cell_nr].s
 #print(h.topology()) #print this to decide the code for the cell below
 if cell_nr == 2:
     cell = h.bNAC219_L1_NGCDA_e7cec642c3[0] # for cell = 2
