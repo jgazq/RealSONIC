@@ -33,7 +33,7 @@ func_tables = pkl_txt['tables'].keys() #this returns all the gating state kineti
 # print(func_tables)
 # [print(e) for e in func_tables]
 
-tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones
+tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones -> this is only used to see git changes
 
 mod_files = []
 mod_names = []

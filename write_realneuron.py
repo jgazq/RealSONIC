@@ -25,7 +25,6 @@ mod_files, mod_names = tf.read_mod(mech_folder)
 
 for i,e in enumerate(mod_names):
     mod_names[i] = tf.rm_us(e)
-print(mod_names);quit()
 
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless

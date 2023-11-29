@@ -290,6 +290,9 @@ def mod_duplicate(mech_folder, restrictions = None):
                 if file.endswith(".mod") and not file.endswith("_eff.mod") and (file.replace(".mod","") in restrictions or rm_us(file.replace(".mod","")) in restrictions):
                     file_dupl = file.replace(".mod","_eff.mod") #create a new file with _eff at the end
                     shutil.copyfile(os.path.join(root,file),os.path.join(root,"eff",file_dupl)) #and copy the original file into the newly created file
+                else:
+                    file_dupl = file #create a new file with _eff at the end
+                    shutil.copyfile(os.path.join(root,file),os.path.join(root,"eff",file_dupl)) #and copy the original file into the newly created file                    
             elif not file.endswith("_eff.mod"):
                 if file.endswith(".mod"):
                     file_dupl = file.replace(".mod","_eff.mod")
