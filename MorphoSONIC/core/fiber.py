@@ -31,7 +31,7 @@ class FiberNeuronModel(SpatiallyExtendedNeuronModel):
             :param nnodes: number of nodes
             :param fiberL: length of fiber (m)
         '''
-        print("FiberNeuronModel init")
+        print(f"FiberNeuronModel init: {super()}")
         self.fiberD = fiberD
         self.checkInitArgs(nnodes, fiberL)
         # Compute number of nodes from fiberL if not explicited

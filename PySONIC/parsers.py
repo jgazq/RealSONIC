@@ -16,7 +16,7 @@ from .utils import Intensity2Pressure, selectDirDialog, OpenFilesDialog, isItera
 from .neurons import getPointNeuron, CorticalRS, getDefaultPassiveNeuron
 from .plt import GroupedTimeSeries, CompTimeSeries
 
-DEFAULT_OUTPUT_FOLDER = os.path.abspath(os.path.split(__file__)[0] + '../../../../dump')
+DEFAULT_OUTPUT_FOLDER = os.path.abspath(os.path.split(__file__)[0] + '/dump')
 
 
 class Parser(ArgumentParser):

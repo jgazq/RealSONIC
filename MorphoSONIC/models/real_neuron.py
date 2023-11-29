@@ -10,19 +10,23 @@ from PySONIC.neurons import getPointNeuron
 from MorphoSONIC.core import SpatiallyExtendedNeuronModel, addSonicFeatures #, FiberNeuronModel
 
 
-class nrn(SpatiallyExtendedNeuronModel):
+class nrn():
     """ Neuron class with methods for E-field stimulation """
 
     simkey = 'realistic_cort'
     _pneuron = getPointNeuron('realneuron')
+    #cell = 0
 
-    #TT -> this function gives problems without errors, when assigning or calling variables in SonicMorpho __init__, code "crashes"
-    # def __getattr__(self, attr):
-    #     # Pass neuron hoc attributes to the Python nrn class
-    #     if hasattr(self.cell, attr):
-    #         return getattr(self.cell, attr)
-    #     else:
-    #         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{attr}'")
+    # TT -> this function gives problems without errors, when assigning or calling variables in SonicMorpho __init__, code "crashes"
+    def __getattr__(self, attr):
+        # Pass neuron hoc attributes to the Python nrn class
+        if attr != "cell":
+            if hasattr(self.cell, attr):
+                return getattr(self.cell, attr)
+            else:
+                raise AttributeError(f"'{type(self).__name__}' object has no attribute '{attr}'")
+
+    #def __setattr__():
         
     #TT   
     def __dell__(self):
@@ -42,8 +46,8 @@ class nrn(SpatiallyExtendedNeuronModel):
     #TT
     @property
     def internode(self):
-        return [self.cell.internode[i] for i in range(self.numberNodes-1)]   # number internodes = number nodes - 
-    1
+        return [self.cell.internode[i] for i in range(self.numberNodes-1)]   # number internodes = number nodes - 1
+    
     #TT
     def inactivateTerminal(self):
         "Method of Aberra et al. (2020) to inactivate axon at the terminal"
@@ -90,16 +94,16 @@ class nrn(SpatiallyExtendedNeuronModel):
         self.set_pt3d_coordinates(track_group,track,axonCoords)
         self.interp2hoc_Efield(track_group,track,Efield_int)
 
-    #print all attributes of a class instance, both the ones defined in this file as the ones defined in the template.hoc file
     def print_attr(self):
+        """print all attributes of a class instance, both the ones defined in this file as the ones defined in the template.hoc file"""
         print(f"\n{'-'*75} python attributes {'-'*75}\n")
         print(*dir(self),sep=',\t')
         print(f"\n{'-'*75} hoc attributes {'-'*75}\n")
         print(*dir(self.cell),sep=',\t')
         print(f"\n{'-'*75}-----------------{'-'*75}")
 
-    #case insensitive search for attributes 
     def search_attr(self,query):
+        """case insensitive search for attributes"""
         hits = []
         query = query.lower()
         for e in dir(self):
@@ -112,10 +116,10 @@ class nrn(SpatiallyExtendedNeuronModel):
     
     #def clearSections, createSections, nonlinear_sections, refsection, seclist, simkey #NeuronModel
 
-    #def getMetaArgs, meta #SENM
+    #def getMetaArgs, meta #SENM -> added by addSonicFeatures decorator/wrapper
 
-    #create sections by choosing the given cell and put the cell defined in hoc in the variable 'cell' of the class
     def createSections(self):
+        """create sections by choosing the given cell and put the cell defined in hoc in the variable 'cell' of the class"""
         print('creating sections in nrn')
         h.setParamsAdultHuman()
         h.cell_chooser(self.cell_nr); print('')
@@ -123,27 +127,48 @@ class nrn(SpatiallyExtendedNeuronModel):
         # new_dir = h.getcwd()+"cells/"+h.cell_names[cell_nr-1].s #to change the directory in the morphology file -> doesn't work
         # h(f"chdir({new_dir})") #change directory
         #self.cell = h.cADpyr229_L23_PC_8ef1aa6602(se) #class object based on defined template
-        self.cell = 2#h.cell
+        self.cell = h.cell
     
     def clearSections(self):
+        """necessary"""
         self.__dell__()
         del self.cell #alternative: self.cell = None
 
+    @property
     def nonlinear_sections(self):
-        return self.allsec() #or self.all
+        """necessary"""
+        return {re.findall('[a-zA-Z]*\[[0-9]*\]',str(e))[-1] : e for e in self.cell.all} #or self.all
     
+
+    @property
     def refsection(self):
-        return 1
+        """necessary"""
+        for e in self.cell.all:
+            if 'soma' in str(e):
+                return e
+            
+    @property
     def seclist(self):
-        return 1
+        """necessary"""
+        return list(self.nonlinear_sections().values())
+    
+    @property
+    def central_ID(self):
+        "return the soma when asked for the central section"
+        return self.refsection()
+    def getMetaArgs():
+        return None
+    def meta():
+        return None
 
 
-@addSonicFeatures
+#@addSonicFeatures
 class Realnrn(nrn):
     """ Realistic Cortical Neuron class - python wrapper around the BBP_neuron hoc-template"""
 
     def __init__(self,cell_nr,se,**kwargs):
-        print('Realnrn init')
+        print("test")
+        print(f'Realnrn init: {super()}')
         self.synapses_enabled = se
         self.cell_nr = cell_nr
         #h("strdef cell_name") #variable is defined to get assigned below
@@ -151,11 +176,10 @@ class Realnrn(nrn):
         #h(f"cell_name = \"{h.cell_names[cell_nr-1].s}\"") #this variable is unfortunately not recognized in the morphology.hoc file
         self.createSections()
         #self.inactivateTerminal() #TT
-        print(getattr(h, f'table_V_Ca_HVA'))
-        super().__init__(**kwargs)
+        #print(getattr(h, f'table_V_Ca_HVA')) #test if this attribute can be accessed -> OK
 
 """"TESTING"""
-#realnrn = Realnrn()#(cell_nr=7,se=0)      
+realnrn = Realnrn(cell_nr=7,se=0)      
 
 #---search for a certain attribute
 # realnrn.search_attr('bio')

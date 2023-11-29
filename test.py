@@ -6,10 +6,10 @@ import copy
 import os
 import sys
 import argparse
-from MorphoSONIC.models import NeuronModel, SpatiallyExtendedNeuronModel, FiberNeuronModel, SingleCableFiber, MRGFiber
-from MorphoSONIC.models import SennFiber, Realnrn
+#from MorphoSONIC.models import NeuronModel, SpatiallyExtendedNeuronModel, FiberNeuronModel, SingleCableFiber, MRGFiber
+# from MorphoSONIC.models import SennFiber, Realnrn
 #from neuron import h
-# import tempFunctions as tf
+import tempFunctions as tf
 # import PySONIC as ps
 
 """to test a parsing function"""
@@ -44,18 +44,19 @@ from MorphoSONIC.models import SennFiber, Realnrn
 # subprocess.run('neuron',shell=True)
 # subprocess.run('nrngui -NSTACK 100000 -NFRAME 20000 init.hoc',shell=True)
 
-# nrn_options = "-NSTACK 100000 -NFRAME 20000"
-# # nrn_options = "-nogui -NSTACK 3000 -NFRAME 525"
+""""to import a cell with a larger stack size"""
+# nrn_options = "-NSTACK 100000 -NFRAME 0"
+# nrn_options = "-nogui -NSTACK 3000 -NFRAME 525"
 # os.environ["NEURON_MODULE_OPTIONS"] = nrn_options
 # from neuron import h, gui
 
-# #h("NSTACK_size = 10000")
-# h("nrngui -NSTACK 100000 -NFRAME 20000 init.hoc ")
+#h("NSTACK_size = 10000")
+#h("nrngui -NSTACK 100000 -NFRAME 20000 init.hoc ")
 
-#h.load_file('init.hoc')
+# h.load_file('init.hoc')
 
 # cell_nr = 6
-# h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
+# h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference -> this also sets myelinate_axon = 1
 # h.cell_chooser(cell_nr)
 
 # Create an instance of the template
@@ -65,11 +66,23 @@ from MorphoSONIC.models import SennFiber, Realnrn
 # from neuron import h,gui
 # h.load_file('test.hoc')
 
-print(f"{'-'*10}Fiber{'-'*10}")
-Fiber = SennFiber(2,2)
-print(f"{'-'*10}MRG{'-'*10}")
-MRG = MRGFiber(fiberD = 2, nnodes = 2)
-print(f"{'-'*10}Realnrn{'-'*10}")
-realnrn = Realnrn(cell_nr=7,se=0)  
+"""to compare the different models"""
 
-print(list(set(dir(Fiber)) & set(dir(MRG))))
+# print(f"{'-'*10}Fiber{'-'*10}")
+# Fiber = SennFiber(2,2)
+# print(f"{'-'*10}MRG{'-'*10}")
+# MRG = MRGFiber(fiberD = 2, nnodes = 2)
+# print(Fiber.nodes)
+
+# print(f"{'-'*10}Realnrn{'-'*10}")
+# realnrn = Realnrn(cell_nr=7,se=0)  
+# print(realnrn.seclist())
+
+#print(list(set(dir(Fiber)) & set(dir(MRG))))
+
+"""to read a pickle file"""
+# tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','MRGnode_lookups_fs1.00.pkl')
+
+a = 'b'
+for e in a:
+    print(e)

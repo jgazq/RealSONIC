@@ -147,7 +147,7 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
     del keys[keys.index('Cm')]
     del keys[keys.index('Vm')]
     keys = ['Cm', 'Vm'] + keys
-    keys = keys[:5] # to show only a part of the variables on the plot
+    keys = keys[:] # to show only a part of the variables on the plot
     #print(keys)
     
     # Get reference US-OFF lookups (1D)

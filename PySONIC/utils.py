@@ -79,7 +79,7 @@ class TqdmHandler(logging.StreamHandler):
 logger = setLogger('PySONIC', my_log_formatter)
 
 
-LOOKUP_DIR = os.path.abspath(os.path.split(__file__)[0] + "/lookups/test_joa/") #adapted by joa
+LOOKUP_DIR = os.path.abspath(os.path.split(__file__)[0] + "/lookups")#/test_joa/") #adapted by joa
 
 
 def fillLine(text, char='-', totlength=None):

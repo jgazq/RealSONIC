@@ -16,7 +16,7 @@ h.load_file("init.hoc")
 """"--------------- INPUTS ---------------"""
 cell_nr = 7
 sec_type = 'somatic'
-pickle_folder = "c:\\users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\test_joa\\"
+pickle_folder = "c:\\users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
 
 """"--------------------------------------"""
@@ -30,8 +30,10 @@ states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless,
 #pkl_txt = tf.read_pickle(pickle_folder,pickle_file)
 pkl_txt = pd.read_pickle(pickle_folder+pickle_file) #read pickle file
 func_tables = pkl_txt['tables'].keys() #this returns all the gating state kinetics, as can be seen in PySONIC\neurons\real_neuron.py
-# for e in func_tables:
-#     print(e)
+# print(func_tables)
+# [print(e) for e in func_tables]
+
+tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones
 
 mod_files = []
 mod_names = []
@@ -43,26 +45,34 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             block = None #block keeps track in which BLOCK the writer is at the moment
             mod_eff = False #only remove and add blocks if the mechanic is voltage dependent, otherwise just copy
             for e in func_tables:
-                if file_repl in e:
+                if e.endswith(file_repl):
                     mod_eff = True #the mechanic is voltage dependent and needs an effective duplicate
             file_dupl = file.replace(".mod","_eff.mod") if mod_eff else file #we create the effective 'duplicate'which is currently empty
 
-            """"the mechanisms where there are no computed effective variables and function tables also need some modifications for the recasting"""
+            """"the mechanisms, where there are no computed effective variables and function tables, also need some modifications for the recasting"""
+            """except xtra.mod?"""
+            if 'xtra' in file_repl:
+                shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
+                continue    
             # if not mod_eff: #just copy the file if the mechanism is not voltage dependent and go to the next mechanism (hence the continue)
             #     shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
-            #     continue
-            shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
-            continue            
+            #     continue      
+  
             #start writing to the new file
             with open (root+file) as f, open(root+"eff\\"+file_dupl,'w') as dupl: #now the effective (still empty) duplicate will copy everything except the PROCEDURE block
                 flist = list(f)
                 for i, line in enumerate(flist):
-                    if re.search('v.*\(m[Vv]\)',line): #line needs to be replaced #for both noneff and eff
-                        print(file_repl)
+                    if block == "PROCEDURE": #do not copy the PROCEDURE block or the rates() function caller -> is replaced with FUNCTION TABLES and called as can be seen above in the INITIAL and DERIVATIVE blocks
+                        if mod_eff:
+                            continue
+                        else:
+                            dupl.write(line)
+                            continue
+                    elif re.search(tc.neuronvoltage_pattern,line) and re.findall(tc.vsecluded_pattern,line): #line needs to be replaced #for both noneff and eff
                         dupl.write('\tv (nC/cm2)\n\tVm (mV)\n') #add/replace specific lines -> recast
                         continue
-                    elif re.search('i.*\=.*v',line): #line needs to be replaced #for both
-                        voltages_hits = re.findall('\Wv\W',line) #\W means: "no word" do v cannot be preceded or followed by a combination of letters
+                    elif re.search(tc.vRHS_pattern,line) and re.findall(tc.vsecluded_pattern,line):#elif re.search('i.*\=.*v',line): #line needs to be replaced #for both
+                        voltages_hits = re.findall(tc.vsecluded_pattern,line) #\W means: "no word" do v cannot be preceded or followed by a combination of letters
                         if len(voltages_hits) > 1:
                             print(f'{tc.bcolors.OKCYAN} replaced more than 1 time v by Vm in {file}\n -> {line} {tc.bcolors.ENDC}')
                         for e in voltages_hits:
@@ -71,22 +81,22 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         continue
                     elif (block == "INITIAL" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
-                        var = re.findall('[a-zA-Z]',LHS)[0]
+                        var = re.findall(tc.state_pattern,LHS)[0]
                         alph = f"alpha{var}_{file_repl}(A_t, y)"
                         bet = f"beta{var}_{file_repl}(A_t, y)"
-                        dupl.write(f"{LHS}= {alph} / {alph} + {bet}\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
+                        dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
                         continue
                     elif (block == "DERIVATIVE" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
-                        var = re.findall('[a-zA-Z]\'',LHS)[0][:-1] #here we remove the differential ' from the actual variable
+                        var = re.findall(tc.stateder_pattern,LHS)[0][:-1] #here we remove the differential ' from the actual variable
                         alph = f"alpha{var}_{file_repl}(A_t, y)"
                         bet = f"beta{var}_{file_repl}(A_t, y)"
                         dupl.write(f"{LHS}= {alph} * (1 - {var}) - {bet} * {var}\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in derStates
                         continue
-                    if re.search('^[A-Z][A-Z]*.*\{',line): #do determine if we are in a specific block or not
-                        block = re.search('^[A-Z][A-Z]*',(re.search('^[A-Z][A-Z]*.*\{',line).group(0))).group(0) #first look if we are in a BLOCK initiation line and then extract the actual block
+                    if re.search(tc.block_init_pattern,line): #do determine if we are in a specific block or not
+                        block = re.search(tc.block_pattern,(re.search(tc.block_init_pattern,line).group(0))).group(0) #first look if we are in a BLOCK initiation line and then extract the actual block
                         #print(block)
-                    if (block == "PROCEDURE" or re.search('rates()',line)) and mod_eff: #do not copy the PROCEDURE block or the rates() function caller -> is replaced with FUNCTION TABLES and called as can be seen above in the INITIAL and DERIVATIVE blocks
+                    if re.search('rates()',line) and mod_eff: #do not copy the PROCEDURE block or the rates() function caller -> is replaced with FUNCTION TABLES and called as can be seen above in the INITIAL and DERIVATIVE blocks
                         continue
                     dupl.write(line) #copy line if all cases above are not the case
                 
@@ -100,18 +110,20 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         dupl.write("\tupdate()\n") #add specific line
                         
                     if line.startswith('}'):
-                        if block == "ASSIGNED": #put the include and the FUNCTION TABLES after the assigned
+                        if block == "ASSIGNED" and mod_eff: #put the include and the FUNCTION TABLES after the assigned
                             dupl.write("\nINCLUDE \"update.inc\"\n")  #include this file
-                            if not mod_eff:
-                                continue
                             dupl.write("\n")
                             for e in func_tables: #check if it is an effective 'duplicate'
-                                if len(e) <= 2 or e.endswith(file_repl): # 'if len(e) <= 2' is used to always include V (which is only 1 char)
+                                volt = len(e) <= 2
+                                alphbet = e.endswith(file_repl)
+                                if volt or alphbet: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
                                                                                                 # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
                                     # then we append the FUNCTION TABLE lines/blocks
                                     dupl.write("FUNCTION_TABLE ")
                                     dupl.write(e)
-                                    dupl.write("(A(kPa), Q(nC/cm2)) (mV)\n")    
+                                    dupl.write("(A(kPa), Q(nC/cm2)) (mV)\n") if volt else dupl.write("(A(kPa), Q(nC/cm2)) (/ms)\n")
+                        elif block == "ASSIGNED" and 'xtra' not in file_repl:
+                             dupl.write("\nINCLUDE \"update_bis.inc\"\n")  #include this file
                         block = None
 
 

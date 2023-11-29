@@ -33,17 +33,17 @@ San Francisco, California, 94105, USA.
 
 begintemplate morphology_8ef1aa6602
 public morphology
-strdef cell_name
+//strdef cell_name \\added by Joa
 
 proc morphology(){localobj nl,import
           nl = new Import3d_Neurolucida3()
           nl.quiet = 1
           //print getcwd()                                                         //start block added by Joa ---|
-          strdef new_dir
+          //strdef new_dir
           //print cell_name
-          sprint(new_dir,"%s%s%s",getcwd(),"cells/L23_PC_cADpyr229_2",cell_name)
+          //sprint(new_dir,"%s%s%s",getcwd(),"cells/L23_PC_cADpyr229_2",cell_name)
           //print new_dir
-          chdir(new_dir)
+          //chdir(new_dir)
           //print getcwd()                                                          //end block added by Joa  ---|
           nl.input("morphology/dend-C170897A-P3_axon-C190898A-P2_-_Clone_3.asc")
           import = new Import3d_GUI(nl, 0)

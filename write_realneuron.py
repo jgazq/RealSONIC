@@ -7,6 +7,7 @@ from neuron import h
 import shutil
 import sys
 import os
+import datetime
 #sys.path.append("C:\\Users\\jgazquez\\RealSONIC")
 import tempFunctions as tf
 h.load_file("init.hoc")
@@ -19,32 +20,35 @@ dist_2_soma = 20 #um
 """"--------------------------------------"""
 
 cell_folder = h.cell_names[cell_nr-1].s #OR h.cell_names.o(cell_nr-1).s        (cell_folder = "L23_PC_cADpyr229_2")
-mech_folder = "cells/"+cell_folder+"/mechanisms/"
+mech_folder = "mechanisms/"#"cells/"+cell_folder+"/mechanisms/"
 mod_files, mod_names = tf.read_mod(mech_folder)
 
 for i,e in enumerate(mod_names):
     mod_names[i] = tf.rm_us(e)
+print(mod_names);quit()
 
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
 
-path = os. getcwd() + "\\PySONIC\\neurons\\real_neuron.py"
+current_time = datetime.datetime.now()
+now = datetime.datetime.strftime(current_time,'%Y-%m-%d %H:%M:%S')
+
+path = os. getcwd() + "/PySONIC/neurons/real_neuron.py"
 with open(path,'w') as filenaam:
 
 # write header of the file and imports
-    path2 = os.getcwd().replace('\\','\\\\')
     filenaam.write(f"""# -*- coding: utf-8 -*-
 # @Author: Theo Lemaire
 # @Email: theo.lemaire@epfl.ch
 # @Date:   2019-06-11 15:58:38
 # @Last Modified by:   Joaquin Gazquez
-# @Last Modified time: 2023-24-10
+# @Last Modified time: {now}
                    
 import numpy as np
 from neuron import h
 import sys
-sys.path.append("{path2}")
+sys.path.append("{path}")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures\n\n""")

@@ -481,3 +481,29 @@
 # # print(f"alpham_Ca_HVA: {klasse.alpham_Ca_HVA}, check: {klasse.check}")
 # # print(f"alpham_Ca_HVA: {klasse.alpham_Ca_HVA}, check: {klasse.check}")
 # # print(f"functie: {klasse.test}")
+
+
+------------------------------------------------------------------------------------------------------------
+def mod_to_eff(mech_folder, restrictions = None):
+    """read all .mod files in a directory and create the effective ones in parallel"""
+
+    mod_files = []
+    mod_names = []
+    for root, dirs, files in os.walk(mech_folder):
+        for file in files:
+            if restrictions:
+                if file.endswith(".mod") and not file.endswith("_eff.mod") and file.replace(".mod","") in restrictions:
+                    file_dupl = file.replace(".mod","_eff.mod")
+                    with open (os.path.join(root,file)) as f, open(os.path.join(root,file_dupl),'w') as dupl:
+                        for line in f:
+                            if '{' in line:
+                                dupl.write(line)
+            elif not file.endswith("_eff.mod"):
+                if file.endswith(".mod"):
+                    file_dupl = file.replace(".mod","_eff.mod")
+                    print(os.path.join(root,file),os.path.join(root,"eff",file_dupl))
+                    with open (os.path.join(root,file)) as f, open(os.path.join(root,"eff",file_dupl),'w') as dupl:
+                        for line in f:
+                            if '{' in line:
+                                dupl.write(line)
+    return mod_files, mod_names 

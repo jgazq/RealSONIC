@@ -24,7 +24,6 @@ Second Street, Suite 300, San Francisco, California, 94105, USA.
  * @author Werner Van Geit @ BBP                                                 
  * @date 2015                                                                    
 */        
-
 load_file("nrngui.hoc")
 load_file("import3d.hoc")
 
