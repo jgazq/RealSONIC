@@ -33,7 +33,7 @@ g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
 current_time = datetime.datetime.now()
 now = datetime.datetime.strftime(current_time,'%Y-%m-%d %H:%M:%S')
 
-path = os. getcwd() + "/PySONIC/neurons/real_neuron.py"
+path = os.getcwd() + "/PySONIC/neurons/real_neuron.py"
 with open(path,'w') as filenaam:
 
 # write header of the file and imports
@@ -47,7 +47,7 @@ with open(path,'w') as filenaam:
 import numpy as np
 from neuron import h
 import sys
-sys.path.append("{path}")
+sys.path.append(r"{os.getcwd()}")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures\n\n""")

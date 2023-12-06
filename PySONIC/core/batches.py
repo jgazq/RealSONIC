@@ -147,6 +147,7 @@ class Batch:
             outputs = []
             for params in self.queue:
                 args, kwargs = self.resolve(params)
+                print(f"\nStart simulation for the following parameters: {args} and {kwargs} ###")
                 outputs.append(self.func(*args, **kwargs))
         run_time = time.perf_counter() - start_time
         logger.info(f'Batch completed in {getTimeStr(run_time)} s')

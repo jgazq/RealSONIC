@@ -324,7 +324,8 @@ class PeriodicSolver(ODESolver):
         y_last, y_prec = [self.getCycle(-i, ivars=self.i_primary_vars)[1] for i in [1, 2]]
 
         # Evaluate ratios of RMSE between the two cycles / variation range over the last cycle
-        ratios = rmse(y_last, y_prec, axis=0) / np.ptp(y_last, axis=0)
+        print(rmse(y_last, y_prec, axis=0))
+        ratios = rmse(y_last, y_prec, axis=0) / np.ptp(y_last, axis=0); print(f"ratios: {ratios} ###")
 
         # Classify solution as periodically stable only if all ratios are below critical threshold
         return np.all(ratios < MAX_RMSE_PTP_RATIO)
@@ -348,13 +349,16 @@ class PeriodicSolver(ODESolver):
         # Initialize system
         if y0 is not None:
             self.initialize(y0, **kwargs)
+        print(f"{y0} ###")
 
         # Integrate system for minimal number of cycles
         for i in range(nmin):
+            print(f"iteration {i}: ###")
             self.integrateCycle()
 
         # Keep integrating system periodically until stopping criterion is met
         while not self.isPeriodicallyStable() and i < nmax:
+            print(f"iteration {i}: ###")
             self.integrateCycle()
             i += 1
 

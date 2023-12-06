@@ -6,6 +6,8 @@ NEURON {
        USEION k READ ek WRITE ik
        USEION ca READ cai
        RANGE gSK_E2bar, gSK_E2, ik
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 UNITS {
@@ -15,7 +17,12 @@ UNITS {
 }
 
 PARAMETER {
-          v            (mV)
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
+	v (nC/cm2)
+	Vm (mV)
           gSK_E2bar = .000001 (mho/cm2)
           zTau = 1              (ms)
           ek           (mV)
@@ -26,16 +33,22 @@ ASSIGNED {
          zInf
          ik            (mA/cm2)
          gSK_E2	       (S/cm2)
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 STATE {
       z   FROM 0 TO 1
 }
 
 BREAKPOINT {
+	update()
            SOLVE states METHOD cnexp
            gSK_E2  = gSK_E2bar * z
-           ik   =  gSK_E2 * (v - ek)
+           ik   =  gSK_E2 * (Vm - ek)
 }
 
 DERIVATIVE states {
@@ -53,4 +66,7 @@ PROCEDURE rates(ca(mM)) {
 INITIAL {
         rates(cai)
         z = zInf
+}
+INDEPENDENT {
+	t FROM 0 TO 1 WITH 1 (ms)
 }

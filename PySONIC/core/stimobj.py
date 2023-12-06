@@ -97,6 +97,7 @@ class StimObject(metaclass=abc.ABCMeta):
         return value
 
     def checkFloat(self, key, value):
+        print(value,type(value))
         if isinstance(value, int):
             value = float(value)
         if not isinstance(value, float):

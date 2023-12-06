@@ -76,9 +76,15 @@ NEURON {
 	NONSPECIFIC_CURRENT i
     POINTER rng
     RANGE synapseID, verboseLevel
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 PARAMETER {
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
 	tau_r_GABAA  = 0.2   (ms)  : dual-exponential conductance profile
 	tau_d_GABAA = 8   (ms)  : IMPORTANT: tau_r < tau_d
     tau_r_GABAB  = 3.5   (ms)  : dual-exponential conductance profile :Placeholder value from hippocampal recordings SR
@@ -117,7 +123,8 @@ ENDVERBATIM
   
 
 ASSIGNED {
-	v (mV)
+	v (nC/cm2)
+	Vm (mV)
 	i (nA)
         i_GABAA (nA)
         i_GABAB (nA)
@@ -142,7 +149,12 @@ ASSIGNED {
        u (1) : running release probability
 
 
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 STATE {
         A_GABAA       : GABAA state variable to construct the dual-exponential profile - decays with conductance tau_r_GABAA
@@ -152,8 +164,9 @@ STATE {
 }
 
 INITIAL{
-
         LOCAL tp_GABAA, tp_GABAB
+
+	update()
 
 	Rstate=1
 	tsyn_fac=0
@@ -181,13 +194,14 @@ INITIAL{
 }
 
 BREAKPOINT {
+	update()
 	SOLVE state
 	
         g_GABAA = gmax*(B_GABAA-A_GABAA) :compute time varying conductance as the difference of state variables B_GABAA and A_GABAA
         g_GABAB = gmax*(B_GABAB-A_GABAB) :compute time varying conductance as the difference of state variables B_GABAB and A_GABAB 
         g = g_GABAA + g_GABAB
-        i_GABAA = g_GABAA*(v-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
-        i_GABAB = g_GABAB*(v-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
+        i_GABAA = g_GABAA*(Vm-e_GABAA) :compute the GABAA driving force based on the time varying conductance, membrane potential, and GABAA reversal
+        i_GABAB = g_GABAB*(Vm-e_GABAB) :compute the GABAB driving force based on the time varying conductance, membrane potential, and GABAB reversal
         i = i_GABAA + i_GABAB
 }
 
@@ -330,4 +344,7 @@ ENDVERBATIM
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1 - verboseLevel
+}
+INDEPENDENT {
+	t FROM 0 TO 1 WITH 1 (ms)
 }

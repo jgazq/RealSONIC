@@ -21,6 +21,7 @@ pickle_file = "realneuron_lookups_fs1.00.pkl"
 
 """"--------------------------------------"""
 
+"""load in state names from the mechanisms folder and their gating state kinetics from the .pkl LUT"""
 cell_folder = h.cell_names[cell_nr-1].s
 mech_folder = "mechanisms/"#"cells/"+cell_folder+"/mechanisms/" #"mechanisms\\"
 mod_files, mod_names = tf.read_mod(mech_folder) #returns a list with mod file content and the names of the mod files
@@ -33,12 +34,14 @@ func_tables = pkl_txt['tables'].keys() #this returns all the gating state kineti
 # print(func_tables)
 # [print(e) for e in func_tables]
 
-tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones -> this is only used to see git changes
+# tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones -> this is only used to see git changes
 
+"""iterate over all mechanisms files and create duplicates"""
 mod_files = []
 mod_names = []
 for root, dirs, files in os.walk(mech_folder): #go through all files in the mechanics folders (all depths)
     for file in files:
+        file = tf.one_to_multiline(root,file) #replace all the BLOCKS that are defined in one line to a block that is defined on multiple lines in order to comply with future adaptations
         if file.endswith(".mod") and not 'eff' in root+file: #we only want to duplicate mechanism .modl files and not already created effective copies
             file_repl = file.replace(".mod","").replace("_","") #a pruned version of the mod name used for recognition later
             # first we copy everything from .mod to _eff.mod without the PROCEDURE rates() block
@@ -58,10 +61,14 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             #     shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
             #     continue      
   
-            #start writing to the new file
-            with open (root+file) as f, open(root+"eff\\"+file_dupl,'w') as dupl: #now the effective (still empty) duplicate will copy everything except the PROCEDURE block
+            """start writing to the new file"""
+            with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file_dupl),'w') as dupl: #now the effective (still empty) duplicate will copy everything except the PROCEDURE block
                 flist = list(f)
+                voltage_gated = False #we wait for proof to assume the mechanism is voltage gated
+                no_indep = True #until we encounter an INDEPENDENT block, there is none
                 for i, line in enumerate(flist):
+                    if re.search(tc.onelineBLOCK_pattern,line):
+                        print(f"{line} in {file}")
                     if block == "PROCEDURE": #do not copy the PROCEDURE block or the rates() function caller -> is replaced with FUNCTION TABLES and called as can be seen above in the INITIAL and DERIVATIVE blocks
                         if mod_eff:
                             continue
@@ -70,6 +77,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                             continue
                     elif re.search(tc.neuronvoltage_pattern,line) and re.findall(tc.vsecluded_pattern,line): #line needs to be replaced #for both noneff and eff
                         dupl.write('\tv (nC/cm2)\n\tVm (mV)\n') #add/replace specific lines -> recast
+                        voltage_gated = True #if mechanism contains v, it is assumed to be voltage gated and needs to be recast
                         continue
                     elif re.search(tc.vRHS_pattern,line) and re.findall(tc.vsecluded_pattern,line):#elif re.search('i.*\=.*v',line): #line needs to be replaced #for both
                         voltages_hits = re.findall(tc.vsecluded_pattern,line) #\W means: "no word" do v cannot be preceded or followed by a combination of letters
@@ -99,18 +107,20 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     if re.search('rates()',line) and mod_eff: #do not copy the PROCEDURE block or the rates() function caller -> is replaced with FUNCTION TABLES and called as can be seen above in the INITIAL and DERIVATIVE blocks
                         continue
                     dupl.write(line) #copy line if all cases above are not the case
-                
+                    
                     if block == "NEURON" and flist[i+1].startswith('}'): #put extra lines at the end of the NEURON block
                         dupl.write("\tRANGE Adrive, Vm, y, Fdrive, A_t : section specific\n\tRANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)\n") #add specific lines
                     elif block == "PARAMETER" and flist[i].startswith("PARAMETER"): #put extra lines at the beginning of the PARAMETER block
                         dupl.write("\tstimon       : Stimulation state\n\tFdrive (kHz) : Stimulation frequency\n\tAdrive (kPa) : Stimulation amplitude\n\tdetailed     : Simulation type\n") #add specific lines
                     elif block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
                         dupl.write("\tA_t  (kPa)\n\ty\n") #add specific lines
-                    elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and mod_eff: #add extra line at the beginning of these 2 blocks
+                    elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and voltage_gated: #and mod_eff: #add extra line at the beginning of these 2 blocks
                         dupl.write("\tupdate()\n") #add specific line
-                        
+                    elif (block == "INDEPENDENT"):
+                        no_indep = False
+                    
                     if line.startswith('}'):
-                        if block == "ASSIGNED" and mod_eff: #put the include and the FUNCTION TABLES after the assigned
+                        if block == "ASSIGNED" and mod_eff and voltage_gated: #put the include and the FUNCTION TABLES after the assigned
                             dupl.write("\nINCLUDE \"update.inc\"\n")  #include this file
                             dupl.write("\n")
                             for e in func_tables: #check if it is an effective 'duplicate'
@@ -122,10 +132,28 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                                     dupl.write("FUNCTION_TABLE ")
                                     dupl.write(e)
                                     dupl.write("(A(kPa), Q(nC/cm2)) (mV)\n") if volt else dupl.write("(A(kPa), Q(nC/cm2)) (/ms)\n")
-                        elif block == "ASSIGNED" and 'xtra' not in file_repl:
-                             dupl.write("\nINCLUDE \"update_bis.inc\"\n")  #include this file
+                        elif block == "ASSIGNED" and 'xtra' not in file_repl and voltage_gated:
+                            dupl.write("\nINCLUDE \"update.inc\"") #_bis.inc\"\n")  #include this file
+                            dupl.write("\n")
+                            dupl.write("FUNCTION_TABLE ")
+                            dupl.write("V(A(kPa), Q(nC/cm2)) (mV)\n") 
                         block = None
-
+                if no_indep:
+                    dupl.write('INDEPENDENT {\n\tt FROM 0 TO 1 WITH 1 (ms)\n}')
+            """some lines need to be interchanged in the effective duplicate"""        
+            with open(os.path.join(root,"eff",file_dupl),'r') as dupl:
+                flist = list(dupl)
+                strings = tf.str1_before_str2("LOCAL","update()",flist) #update() may not appear before LOCAL
+                if strings:
+                    loc1 = flist.index(strings[0])
+                    loc2 = flist.index(strings[1])
+                    string1, string2 = flist[loc1], flist[loc2]
+                    flist[loc1] = string2
+                    flist[loc2] = string1
+            with open(os.path.join(root,"eff",file_dupl),'w') as dupl:
+                dupl.writelines(flist)
+                    
+                #print(any(['LOCAL' in e for e in flist]),file)
 
 # from neuron import h
 # h.load_file('init.hoc')

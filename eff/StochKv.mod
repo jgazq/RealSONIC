@@ -36,8 +36,9 @@ Jan 1999, Mickey London, Hebrew University, mikilon@lobster.ls.huji.ac.il
 ----------------------------------------------------------------
 ENDCOMMENT
 
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-
+INDEPENDENT {
+	t FROM 0 TO 1 WITH 1 (ms)
+}
 NEURON {
     SUFFIX StochKv
     USEION k READ ek WRITE ik
@@ -46,6 +47,8 @@ NEURON {
     GLOBAL Ra, Rb
     GLOBAL vmin, vmax, q10, temp, tadj
     POINTER rng
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 UNITS {
@@ -57,7 +60,12 @@ UNITS {
 } 
 
 PARAMETER {
-    v           (mV)
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
+	v (nC/cm2)
+	Vm (mV)
     dt      (ms)
     area    (um2)
     
@@ -65,7 +73,7 @@ PARAMETER {
     eta              (1/um2)
     gkbar = .75      (S/cm2)
     
-    tha  = -40   (mV)        : v 1/2 for inf
+    tha  = -40   (mV)        : Vm 1/2 for inf
     qa   = 9            : inf slope     
     Ra   = 0.02 (/ms)       : max act rate
     Rb   = 0.002    (/ms)       : max deact rate
@@ -98,7 +106,12 @@ ASSIGNED {
 
     n0_n1_new
 
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 
 STATE {
@@ -124,6 +137,7 @@ ENDVERBATIM
 : ----------------------------------------------------------------
 : initialization
 INITIAL { 
+	update()
     eta = gkbar / gamma
     trates(v)
     n = ninf
@@ -140,11 +154,12 @@ INITIAL {
 : ----------------------------------------------------------------
 : Breakpoint for each integration step
 BREAKPOINT {
+	update()
   SOLVE states
   
   gk =  (strap(N1) * scale_dens * tadj)
   
-  ik = 1e-4 * gk * (v - ek)
+  ik = 1e-4 * gk * (Vm - ek)
 } 
 
 

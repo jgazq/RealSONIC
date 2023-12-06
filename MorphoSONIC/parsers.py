@@ -184,7 +184,7 @@ class FiberParser(SpatiallyExtendedParser):
         args['type'] = [models_dict[model_key] for model_key in args['type']]
         if args['wiring'] == 'default':
             args['type'] = [fclass.__original__ for fclass in args['type']]
-        for key in ['fiberD']:
+        for key in ['fiberD']: #this needs to be args['fiberD'] right? #joa
             if len(args[key]) > 1 or args[key][0] is not None:
                 args[key] = self.parse2array(args, key, factor=self.factors[key])
         return args
@@ -320,3 +320,4 @@ class TestNetworkParser(TestParser):
     def addConnect(self):
         self.add_argument(
             '--connect', default=False, action='store_true', help='Connect nodes')
+            

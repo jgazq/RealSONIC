@@ -37,8 +37,9 @@ ASSIGNED {
 }
  
 
-STATE { m h}
-
+STATE {
+	 m h
+}
 BREAKPOINT {
         SOLVE states METHOD cnexp
        ik = gkbar * m*h*(v-ek)

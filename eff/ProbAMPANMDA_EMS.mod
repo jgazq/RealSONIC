@@ -74,9 +74,15 @@ NEURON {
         NONSPECIFIC_CURRENT i
         POINTER rng
         RANGE synapseID, verboseLevel
+	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
+	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
 PARAMETER {
+	stimon       : Stimulation state
+	Fdrive (kHz) : Stimulation frequency
+	Adrive (kPa) : Stimulation amplitude
+	detailed     : Simulation type
 
 
         tau_r_AMPA = 0.2   (ms)  : dual-exponential conductance profile
@@ -120,7 +126,8 @@ ENDVERBATIM
 
 ASSIGNED {
 
-        v (mV)
+	v (nC/cm2)
+	Vm (mV)
         i (nA)
         i_AMPA (nA)
         i_NMDA (nA)
@@ -144,7 +151,12 @@ ASSIGNED {
 	tsyn_fac (ms) : the time of the last spike
 	u (1) : running release probability
 
+	A_t  (kPa)
+	y
 }
+
+INCLUDE "update.inc"
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 STATE {
 
@@ -155,8 +167,9 @@ STATE {
 }
 
 INITIAL{
-
         LOCAL tp_AMPA, tp_NMDA
+
+	update()
 
 	Rstate=1
 	tsyn_fac=0
@@ -184,14 +197,15 @@ INITIAL{
 }
 
 BREAKPOINT {
+	update()
 
         SOLVE state
-        mggate = 1 / (1 + exp(0.062 (/mV) * -(v)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
+        mggate = 1 / (1 + exp(0.062 (/mV) * -(Vm)) * (mg / 3.57 (mM))) :mggate kinetics - Jahr & Stevens 1990
         g_AMPA = gmax*(B_AMPA-A_AMPA) :compute time varying conductance as the difference of state variables B_AMPA and A_AMPA
         g_NMDA = gmax*(B_NMDA-A_NMDA) * mggate :compute time varying conductance as the difference of state variables B_NMDA and A_NMDA and mggate kinetics
         g = g_AMPA + g_NMDA
-        i_AMPA = g_AMPA*(v-e) :compute the AMPA driving force based on the time varying conductance, membrane potential, and AMPA reversal
-        i_NMDA = g_NMDA*(v-e) :compute the NMDA driving force based on the time varying conductance, membrane potential, and NMDA reversal
+        i_AMPA = g_AMPA*(Vm-e) :compute the AMPA driving force based on the time varying conductance, membrane potential, and AMPA reversal
+        i_NMDA = g_NMDA*(Vm-e) :compute the NMDA driving force based on the time varying conductance, membrane potential, and NMDA reversal
         i = i_AMPA + i_NMDA
 }
 
@@ -331,4 +345,7 @@ ENDVERBATIM
 
 FUNCTION toggleVerbose() {
     verboseLevel = 1-verboseLevel
+}
+INDEPENDENT {
+	t FROM 0 TO 1 WITH 1 (ms)
 }

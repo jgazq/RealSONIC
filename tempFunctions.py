@@ -28,7 +28,7 @@ def read_pickle(path, filename):
     print('refs: ',pkl['refs'].keys()) #which variables are sweeped over
     #print('refs: ',pkl['refs'].values()) #the arrays of each variable(length of each variable is given in the dimensions above)
     print('tables: ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
-    if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value
+    if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value -> NOT TRUE!!! I ?accidentaly? removed the tcomp line in run_lookups_MC.py
         print('total simulation time: ',np.sum(pkl['tables']['tcomp'])/3600/24,'days')
 
     return pkl
@@ -266,13 +266,13 @@ def read_mod(mech_folder, restrictions = None):
         for file in files:
             if restrictions: #list with restricted mechanisms is given
                 if file.endswith(".mod") and not 'eff' in root+file and file.replace(".mod","") in restrictions:
-                    with open(root+file) as f:
+                    with open(os.path.join(root,file)) as f:
                         lines_list = f.readlines()
                         mod_files.append(lines_list)
                         mod_names.append(file.replace('.mod','')) #root+file   
             elif not 'eff' in root+file: #no restriction list given
                 if file.endswith(".mod"):
-                    with open(root+file) as f:
+                    with open(os.path.join(root,file)) as f:
                         lines_list = f.readlines()
                         mod_files.append(lines_list)
                         mod_names.append(file.replace('.mod','')) #root+file  
@@ -311,7 +311,7 @@ def read_gbars(cell_folder,d_2_s):
     for root, dirs, files in os.walk(cell_folder):
         for file in files:
             if file.endswith("biophysics.hoc"):
-                with open(root+file) as f:
+                with open(os.path.join(root,file)) as f:
                     lines_list = f.readlines()
     for line in lines_list:
         search = re.search('g.*bar',line)
@@ -354,7 +354,7 @@ def state_from_line(line,pattern):
         key = "m_"+line[2].replace('.mod','')
         value = line[2].replace('.mod','')+" activation gate"       
     else:
-        print(f'{tc.bcolors.OKCYAN}{match} is not a recognized gating parameter m or h{tc.bcolors.ENDC}')
+        print(f'{tc.bcolors.OKCYAN}{match} is not a recognized gating parameter m or h in {line[2]}{tc.bcolors.ENDC}')
         return
     
     return key,value
@@ -630,6 +630,77 @@ def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_e
 
     return variables_dict, variables_reduced
 
+
+"""-----------------------------------------------------------------------------------WRITE MODL-----------------------------------------------------------------------------------"""
+def one_to_multiline(root,file):
+    """split a BLOCK defined a .modl file on one line over multiple lines {
+    like this
+    }"""
+    changed = 0
+    with open(os.path.join(root,file), 'r') as f:
+        lines = f.readlines()
+
+    for i, line in enumerate(lines):
+        if re.search(tc.onelineBLOCK_pattern,line):
+            part1, part2 = line.split("{")[0],line.split("{")[1].split("}")[0]
+            lines[i] = f"{part1}{{\n\t{part2}\n}}"
+            (line.split("{")[0],"\n",line.split("{")[1].split("}")[0])
+            changed = 1
+            print(line,file)
+            #break
+    if changed:
+        with open(os.path.join(root,file), 'w') as newf: #.replace(".mod","_test.mod")
+            newf.writelines(lines)
+
+        return file #.replace(".mod","_test.mod")
+    else:
+
+        return file
+    
+
+def model_to_BLOCKS(flist):
+    """put the different BLOCK lines of a mechanism .modl file in a dictionary with each seperate block"""
+
+    BLOCKdict = {}
+    BLOCK_ON = 0
+    BLOCK_list = []
+    for line in flist:
+        if re.search(tc.block_init_pattern,line): #do determine if we are in a specific block or not
+            block = re.search(tc.block_pattern,(re.search(tc.block_init_pattern,line).group(0))).group(0) #first look if we are in a BLOCK initiation line and then extract the actual block
+            BLOCK_ON = 1
+        if BLOCK_ON == 1:
+            BLOCK_list.append(line)
+        if line.startswith('}'):
+            BLOCK_ON = 0
+            BLOCKdict[block] = BLOCK_list
+            BLOCK_list = []
+    return BLOCKdict
+
+
+def str_in_element_in_list(str,list):
+    """looks if a string is inside an element of a list(to search for certain keywords)"""
+    return [e for e in list if str in e]
+
+
+def str1_before_str2(str1,str2,flist):
+    """str1 NEEDS to be before str2 so interchange strings if str2 is before str1"""
+    BLOCKdict = model_to_BLOCKS(flist)
+    for e,f in BLOCKdict.items():
+        list1 = str_in_element_in_list(str1,f) #local
+        list2 = str_in_element_in_list(str2,f) #update
+        if list1 and list2:
+            loc1 = f.index(list1[0])
+            loc2 = f.index(list2[0])
+            if loc1 > loc2: #interchange them if str2 is before str1
+
+                return f[loc1],f[loc2]
+
+        # if any([str1 in g for g in f]) and any([str2 in g for g in f]):
+        #     str1_index = f.index(str1)
+        #     str2_index = f.index(str1)
+
+
+            
 
 """-----------------------------------------------------------------------------------VARIA-----------------------------------------------------------------------------------"""
 def plt_transdistr(psource,grid_type):

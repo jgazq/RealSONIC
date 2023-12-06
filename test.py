@@ -10,6 +10,7 @@ import argparse
 # from MorphoSONIC.models import SennFiber, Realnrn
 #from neuron import h
 import tempFunctions as tf
+import tempConstants as tc
 # import PySONIC as ps
 
 """to test a parsing function"""
@@ -81,8 +82,7 @@ import tempFunctions as tf
 #print(list(set(dir(Fiber)) & set(dir(MRG))))
 
 """to read a pickle file"""
-# tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','MRGnode_lookups_fs1.00.pkl')
-
-a = 'b'
-for e in a:
-    print(e)
+# tf.read_pickle('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\lookups\\test_joa\\','realneuron_lookups_fs1.00_test.pkl')
+# tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','realneuron_lookups_fs1.00.pkl')
+np.set_printoptions(suppress=True)
+print(len(np.append(0,np.logspace(np.log10(0.1), np.log10(600), 50))))

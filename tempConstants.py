@@ -80,5 +80,6 @@ vRHS_pattern = "\=.*v"
 vsecluded_pattern = "\Wv\W" #v pattern that is not part of a word
 block_init_pattern = "^[A-Z][A-Z]*.*\{"
 block_pattern = "^[A-Z][A-Z]*"
-state_pattern = '[a-zA-Z]'
-stateder_pattern = '[a-zA-Z]\''
+state_pattern = "[a-zA-Z]"
+stateder_pattern = "[a-zA-Z]\'"
+onelineBLOCK_pattern = "^[a-zA-Z]+.*\{.*\}"

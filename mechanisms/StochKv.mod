@@ -36,8 +36,9 @@ Jan 1999, Mickey London, Hebrew University, mikilon@lobster.ls.huji.ac.il
 ----------------------------------------------------------------
 ENDCOMMENT
 
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-
+INDEPENDENT {
+	t FROM 0 TO 1 WITH 1 (ms)
+}
 NEURON {
     SUFFIX StochKv
     USEION k READ ek WRITE ik

@@ -3,12 +3,12 @@
 # @Email: theo.lemaire@epfl.ch
 # @Date:   2019-06-11 15:58:38
 # @Last Modified by:   Joaquin Gazquez
-# @Last Modified time: 2023-11-29 12:15:22
+# @Last Modified time: 2023-12-04 11:33:54
                    
 import numpy as np
 from neuron import h
 import sys
-sys.path.append("C:\Users\jgazquez\RealSONIC/PySONIC/neurons/real_neuron.py")
+sys.path.append(r"C:\Users\jgazquez\RealSONIC")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures

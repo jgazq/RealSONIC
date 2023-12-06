@@ -738,6 +738,7 @@ class BilayerSonophore(Model):
         ''' Compute simulation initial conditions. '''
         # Compute initial non-zero deflection
         Z = self.computeInitialDeflection(*args, **kwargs)
+        #print(f"Z = {Z}")
 
         # Return initial conditions dictionary
         return {
