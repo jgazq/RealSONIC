@@ -1,6 +1,7 @@
 """"just testing some things"""
 
 import numpy as np
+import matplotlib.pyplot as plt
 import re
 import copy
 import os
@@ -8,7 +9,7 @@ import sys
 import argparse
 #from MorphoSONIC.models import NeuronModel, SpatiallyExtendedNeuronModel, FiberNeuronModel, SingleCableFiber, MRGFiber
 # from MorphoSONIC.models import SennFiber, Realnrn
-#from neuron import h
+from neuron import h
 import tempFunctions as tf
 import tempConstants as tc
 # import PySONIC as ps
@@ -84,5 +85,8 @@ import tempConstants as tc
 """to read a pickle file"""
 # tf.read_pickle('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\lookups\\test_joa\\','realneuron_lookups_fs1.00_test.pkl')
 # tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','realneuron_lookups_fs1.00.pkl')
-np.set_printoptions(suppress=True)
-print(len(np.append(0,np.logspace(np.log10(0.1), np.log10(600), 50))))
+
+"""to plot all the effective gating parameter"""
+pkldict = tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\test_joa\\','realneuron_lookups_fs1.00_17_01_2024_12_25_43_test.pkl',True)
+tf.save_gatingplots(pkldict,"gating")
+# pkldict = tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','RS_lookups_fs1.00.pkl',True)

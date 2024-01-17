@@ -28,6 +28,7 @@ for i,e in enumerate(mod_names):
 
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
+#print(states)
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
 
 current_time = datetime.datetime.now()

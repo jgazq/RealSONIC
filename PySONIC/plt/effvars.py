@@ -138,6 +138,9 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
 
     # Get lookups and re-organize them
     lkp = nbls.getLookup().squeeze()
+    print(lkp.refs)
+    # lkp.refs['a'] = np.array([3.2e-08])
+    # lkp.refs['f'] = np.array([500e3])
     Qref = lkp.refs['Q']
     lkp.rename('V', 'Vm')
     lkp['Cm'] = Qref / lkp['Vm'] * 1e3  # uF/cm2
@@ -147,7 +150,7 @@ def plotEffectiveVariables(pneuron, a=None, f=None, A=None, nlevels=10,
     del keys[keys.index('Cm')]
     del keys[keys.index('Vm')]
     keys = ['Cm', 'Vm'] + keys
-    keys = keys[:] # to show only a part of the variables on the plot
+    keys = keys[0:4] # to show only a part of the variables on the plot
     #print(keys)
     
     # Get reference US-OFF lookups (1D)

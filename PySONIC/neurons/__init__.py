@@ -21,6 +21,7 @@ from .mrg import *
 from .pas import *
 from .real_neuron import * #RealisticNeuron
 from .Ca_only import *
+# from .real_neuron_dyn import * #RealisticDynNeuron
 
 
 def getNeuronsDict():

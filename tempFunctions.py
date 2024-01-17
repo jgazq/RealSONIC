@@ -20,14 +20,16 @@ import prev.Interp3Dfield as tt
 
 
 """-----------------------------------------------------------------------------------UTILS-----------------------------------------------------------------------------------"""
-def read_pickle(path, filename):
+def read_pickle(path, filename,prints=False):
     """read the LUT pickle files metadata"""
 
     pkl = pd.read_pickle(path+filename)
+    if not prints:
+        return pkl
     print('shape of V in tables',pkl['tables']['V'].shape) #dimensions of refs
-    print('refs: ',pkl['refs'].keys()) #which variables are sweeped over
+    print('refs(inputs): ',pkl['refs'].keys()) #which variables are sweeped over
     #print('refs: ',pkl['refs'].values()) #the arrays of each variable(length of each variable is given in the dimensions above)
-    print('tables: ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
+    print('tables(outputs): ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
     if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value -> NOT TRUE!!! I ?accidentaly? removed the tcomp line in run_lookups_MC.py
         print('total simulation time: ',np.sum(pkl['tables']['tcomp'])/3600/24,'days')
 
@@ -490,12 +492,13 @@ def eq_hoc2pyt(equation):
     "translate an equation or formula from hoc syntax to python syntax"
 
     equation = equation.replace('exp','np.exp').replace('^','**')
+    equation = equation.strip() #remove spaces at beginning and end
     equation = equation.lower() #put equations always in lowercase #POTENTIAL_RISK
 
     return equation
 
 
-def calc_eq(e,variables_dict):
+def calc_eq(e,variables_dict,mod_name=None):
     """parses an equation and puts the excecuted RHS into the variable of the LHS"""
 
     LHS,RHS = e.split("=")
@@ -505,25 +508,47 @@ def calc_eq(e,variables_dict):
     variable = eq_hoc2pyt(variable)
     formula = eq_hoc2pyt(formula)
     equation = eq_hoc2pyt(equation)
-    try:
+    # try:
+    # if mod_name == 'Ca':
+    #     print(f'equation: {variable} : {formula} : {equation}')
+    if True:
         variables_dict[variable] = eval(formula,{**globals(),**variables_dict}) # eval evaluates the value of the formula (RHS)
         exec(equation,{**globals(),**variables_dict}) # exec executes the equation and puts the value into the LHS
-    except: 
-        print(f"{tc.bcolors.OKCYAN}LOG: \t didn't work to compute: {equation}{tc.bcolors.ENDC}")
+    # except: 
+    #     print(f"{tc.bcolors.OKCYAN}LOG: \t didn't work to compute: {equation}{tc.bcolors.ENDC}")
+    #     print(equation,variables_dict)
+    #     quit()
 
 
-def if_recursive(list_mod,if_statement,variables_dict,offset):
+def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None):
     """a recursive functions which handels executing if-statements encountered in a MODL file"""
-
-    while not re.search("}",list_mod[offset]):
-        if re.search('if',list_mod[offset]) and if_statement:
+    orig_offset = offset
+    # if mod_name == 'Ca':
+    #     print('if recursive called')
+    #     print("list_mod:", list_mod)
+    while not re.search("[^a-zA-Z]}[^a-zA-Z]",list_mod[offset-orig_offset]):
+        # if mod_name == 'Ca':
+        #     print(f'list_mod[offset-orig_offset]: {list_mod[offset-orig_offset]}')
+        if re.search('if',list_mod[offset-orig_offset]) and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here1')
             if_statement = eval(re.search(tc.if_pattern,list_mod).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
-            if_recursive(list_mod[offset+1],if_statement,variables_dict,offset+1)
-        elif re.search('else',list_mod[i]) and if_statement:
-            return variables_dict, offset+1
-        elif re.search('=',list_mod[offset]) and if_statement:
-            calc_eq(list_mod[offset],variables_dict)
-            offset += 1   
+            if_recursive(list_mod[offset+1-orig_offset:],if_statement,variables_dict,offset+1,mod_name)
+        elif re.search('else',list_mod[offset-orig_offset]): #and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here2')
+            return if_recursive(list_mod[offset+1-orig_offset:],not if_statement,variables_dict,offset+1,mod_name) #return variables_dict, offset+1
+        elif re.search('=',list_mod[offset-orig_offset]) and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here3')
+            #     print(list_mod[offset-orig_offset])
+            #     print(variables_dict)
+            calc_eq(list_mod[offset-orig_offset],variables_dict,mod_name=mod_name)
+            offset += 1 
+        else:
+            # if mod_name == 'Ca':
+            #     print('here4')
+            offset +=1  
 
     return variables_dict, offset+1    
 
@@ -531,13 +556,18 @@ def if_recursive(list_mod,if_statement,variables_dict,offset):
 def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
     """extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h"""
 
+    #print(mod_name)
     celsius = tc.T_C #temperature in degrees Celsius
     proc_executing, param_executing = 0,0
 
     variables_dict = {'v': Vm, 'celsius' : celsius} #uncomment this if v is a known parameter
+    # if mod_name == 'Ca':
+    #     print(f"voltage = {variables_dict['v']}")
     i = 0
     while i < len (list_mod):
         e = list_mod[i]
+        # if i > 55 and mod_name == 'Ca':
+        #     print("line: ",e)
     #for i,e in enumerate(list_mod):
         #stop when PROCEDURE BLOCK is finished
         if re.search('^}',e):
@@ -545,13 +575,20 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
             param_executing = 0
         if proc_executing == 1:
             if re.search('if',e):
+                # if mod_name == 'Ca':
+                #     variables_dict["v"] = -27
+                #     print(f'mod_name: {mod_name}, v = {variables_dict["v"]} , line: {e}')
                 if_statement = eval(re.search(tc.if_pattern,e).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
-                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,1)
+                # if mod_name == 'Ca':
+                #     print('if_statement: ',if_statement)
+                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,0,mod_name)
+                # if mod_name == 'Ca':
+                #     print(f"variables_dict : {variables_dict}, offset: {offset}")                    
                 i += offset
                 continue
             #elif?
             if re.search('=',e):
-                calc_eq(e,variables_dict)
+                calc_eq(e,variables_dict,mod_name)
         elif param_executing == 1:
             if re.search('=',e):
                 if re.findall("\(.*\)",e):
@@ -570,10 +607,12 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
     #variables_dict[variable+'_'+mod_name.replace(".mod","")]
     for x in ['m','h']:
         if not x+'alpha' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
-            variables_dict[x+'alpha'] =  variables_dict[x+'inf'] / variables_dict[x+'tau']
+            variables_dict[x+'alpha'] = variables_dict[x+'inf'] / variables_dict[x+'tau']
         if not x+'beta' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
-            variables_dict[x+'beta'] =  variables_dict[x+'inf'] / variables_dict[x+'tau']
-
+            variables_dict[x+'beta'] = (1 - variables_dict[x+'inf']) / variables_dict[x+'tau']
+    # if mod_name == 'Ca':
+    #     print("final variables_dict: ",variables_dict)
+    #     quit()
     return variables_dict   
 
 
@@ -714,3 +753,57 @@ def plt_transdistr(psource,grid_type):
     plt.plot(x * ms.M_TO_MM, y * ms.M_TO_MM, 'o', markersize = 4)
     plt.tight_layout()
     plt.show()
+
+
+def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
+    """"plot the given effective variable in function of the charge density for different pressure amplitudes
+    this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
+    num_shades = len(Q_refs)
+
+    cmap = plt.cm.get_cmap('hsv')
+    # Generate colors across the colormap
+    colors = [cmap(i / num_shades) for i in range(num_shades)]
+    #colors = plt.cm.Reds(np.linspace(0, 1, len(pkldict['refs']['Q'])))
+    plt.clf()
+    no_reduc = ['tcomp','V']
+    for i,e in enumerate(table[::5]):
+        plt.plot(Q_refs[::5]*1e5,e[::5],label=f"{A_refs[::5][i]*1e-3:.1e} kPa".replace('+0','').replace('-0',''),color = colors[::5][i])
+        plt.legend()
+        plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
+        ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
+        plt.ylabel(f'{ylab}')
+        if reduced_range and (variable not in no_reduc):
+            change_lower = plt.ylim()[0] < -10
+            change_upper = plt.ylim()[1] > 10
+            e_sorted = np.sort(e[::5].reshape(-1))
+            e_limited = [e for e in e_sorted if e < 10 and e > -10]
+            if not e_limited: #if no value falls under the limited range, use the original array instead of no values
+                e_limited = e
+            # print(variable); print('before'); print(plt.ylim())
+            plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
+            plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
+            # print('after'); print(plt.ylim()); print('\n\n')
+        if plot:
+            plt.show()
+        
+
+
+def save_gatingplots(pkldict,foldername,reduced_range=True):
+    """"save all plots for the different LUTs, containing the effective variables of the gating kinetics
+    (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
+
+    Qrange,Arange = pkldict['refs']['Q'], pkldict['refs']['A']
+    plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
+    #plot all calculated effective variables
+    for key in pkldict['tables']:
+        table = pkldict['tables'][key]
+        table = table[0][0]
+        plt_LUTeff(key,table,Qrange,Arange,reduced_range=reduced_range)
+        plt.savefig(f'figs/{foldername}/{key}.png')
+
+    #plot the effective capacity
+    table_V = pkldict['tables']['V'][0][0]
+    Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
+    table_C = Q_table / table_V
+    plt_LUTeff('C',table_C,Qrange,Arange)
+    plt.savefig(f'figs/{foldername}/C.png')   

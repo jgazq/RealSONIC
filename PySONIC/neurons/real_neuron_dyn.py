@@ -3,7 +3,7 @@
 # @Email: theo.lemaire@epfl.ch
 # @Date:   2019-06-11 15:58:38
 # @Last Modified by:   Joaquin Gazquez
-# @Last Modified time: 2023-12-08 16:24:01
+# @Last Modified time: 2023-12-04 11:33:54
                    
 import numpy as np
 from neuron import h
@@ -14,11 +14,11 @@ import tempFunctions as tf
 from ..core import PointNeuron, addSonicFeatures
 
 @addSonicFeatures
-class RealisticNeuron(PointNeuron):
-    ''' Realistic neuron class '''
+class RealisticDynNeuron(PointNeuron):
+    ''' Realistic neuron class with dynamically appended  methods'''
 
     # Neuron name
-    name = 'realneuron'
+    name = 'realneuron_dyn'
 
     # ------------------------------ Biophysical parameters ------------------------------
 
@@ -43,32 +43,11 @@ class RealisticNeuron(PointNeuron):
     dist_2_soma = 20 # Distance from the considered segment to the soma (um?)
 
     mod_files, mod_names = tf.read_mod("mechanisms/")
+    l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
     g_dict = tf.read_gbars("cells/"+"L23_PC_cADpyr229_2"+"/",dist_2_soma)
 
     # ------------------------------ States names & descriptions ------------------------------
-    states = {
-		'm_Ca' : 'Ca activation gate',
-		'h_Ca' : 'Ca inactivation gate',
-		'm_CaHVA' : 'CaHVA activation gate',
-		'h_CaHVA' : 'CaHVA inactivation gate',
-		'm_Ih' : 'Ih activation gate',
-		'm_Im' : 'Im activation gate',
-		'm_NapEt2' : 'NapEt2 activation gate',
-		'h_NapEt2' : 'NapEt2 inactivation gate',
-		'm_NaTat' : 'NaTat activation gate',
-		'h_NaTat' : 'NaTat inactivation gate',
-		'm_NaTs2t' : 'NaTs2t activation gate',
-		'h_NaTs2t' : 'NaTs2t inactivation gate',
-		'm_CaLVAst' : 'CaLVAst activation gate',
-		'h_CaLVAst' : 'CaLVAst inactivation gate',
-		'm_KPst' : 'KPst activation gate',
-		'h_KPst' : 'KPst inactivation gate',
-		'm_KTst' : 'KTst activation gate',
-		'h_KTst' : 'KTst inactivation gate',
-		'm_SKv31' : 'SKv31 activation gate',
-		'm_KdShu2007' : 'KdShu2007 activation gate',
-		'h_KdShu2007' : 'KdShu2007 inactivation gate',
-	}
+    states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs)
 
     # ------------------------------ Gating states kinetics ------------------------------
 
@@ -325,29 +304,11 @@ class RealisticNeuron(PointNeuron):
 
     @classmethod
     def derStates(cls):
-        return {
-			'm_Ca' : lambda Vm, x: cls.alpham_Ca(Vm) * (1 - x['m_Ca']) - cls.betam_Ca(Vm) * x['m_Ca'],
-			'h_Ca' : lambda Vm, x: cls.alphah_Ca(Vm) * (1 - x['h_Ca']) - cls.betah_Ca(Vm) * x['h_Ca'],
-			'm_CaHVA' : lambda Vm, x: cls.alpham_CaHVA(Vm) * (1 - x['m_CaHVA']) - cls.betam_CaHVA(Vm) * x['m_CaHVA'],
-			'h_CaHVA' : lambda Vm, x: cls.alphah_CaHVA(Vm) * (1 - x['h_CaHVA']) - cls.betah_CaHVA(Vm) * x['h_CaHVA'],
-			'm_Ih' : lambda Vm, x: cls.alpham_Ih(Vm) * (1 - x['m_Ih']) - cls.betam_Ih(Vm) * x['m_Ih'],
-			'm_Im' : lambda Vm, x: cls.alpham_Im(Vm) * (1 - x['m_Im']) - cls.betam_Im(Vm) * x['m_Im'],
-			'm_NapEt2' : lambda Vm, x: cls.alpham_NapEt2(Vm) * (1 - x['m_NapEt2']) - cls.betam_NapEt2(Vm) * x['m_NapEt2'],
-			'h_NapEt2' : lambda Vm, x: cls.alphah_NapEt2(Vm) * (1 - x['h_NapEt2']) - cls.betah_NapEt2(Vm) * x['h_NapEt2'],
-			'm_NaTat' : lambda Vm, x: cls.alpham_NaTat(Vm) * (1 - x['m_NaTat']) - cls.betam_NaTat(Vm) * x['m_NaTat'],
-			'h_NaTat' : lambda Vm, x: cls.alphah_NaTat(Vm) * (1 - x['h_NaTat']) - cls.betah_NaTat(Vm) * x['h_NaTat'],
-			'm_NaTs2t' : lambda Vm, x: cls.alpham_NaTs2t(Vm) * (1 - x['m_NaTs2t']) - cls.betam_NaTs2t(Vm) * x['m_NaTs2t'],
-			'h_NaTs2t' : lambda Vm, x: cls.alphah_NaTs2t(Vm) * (1 - x['h_NaTs2t']) - cls.betah_NaTs2t(Vm) * x['h_NaTs2t'],
-			'm_CaLVAst' : lambda Vm, x: cls.alpham_CaLVAst(Vm) * (1 - x['m_CaLVAst']) - cls.betam_CaLVAst(Vm) * x['m_CaLVAst'],
-			'h_CaLVAst' : lambda Vm, x: cls.alphah_CaLVAst(Vm) * (1 - x['h_CaLVAst']) - cls.betah_CaLVAst(Vm) * x['h_CaLVAst'],
-			'm_KPst' : lambda Vm, x: cls.alpham_KPst(Vm) * (1 - x['m_KPst']) - cls.betam_KPst(Vm) * x['m_KPst'],
-			'h_KPst' : lambda Vm, x: cls.alphah_KPst(Vm) * (1 - x['h_KPst']) - cls.betah_KPst(Vm) * x['h_KPst'],
-			'm_KTst' : lambda Vm, x: cls.alpham_KTst(Vm) * (1 - x['m_KTst']) - cls.betam_KTst(Vm) * x['m_KTst'],
-			'h_KTst' : lambda Vm, x: cls.alphah_KTst(Vm) * (1 - x['h_KTst']) - cls.betah_KTst(Vm) * x['h_KTst'],
-			'm_SKv31' : lambda Vm, x: cls.alpham_SKv31(Vm) * (1 - x['m_SKv31']) - cls.betam_SKv31(Vm) * x['m_SKv31'],
-			'm_KdShu2007' : lambda Vm, x: cls.alpham_KdShu2007(Vm) * (1 - x['m_KdShu2007']) - cls.betam_KdShu2007(Vm) * x['m_KdShu2007'],
-			'h_KdShu2007' : lambda Vm, x: cls.alphah_KdShu2007(Vm) * (1 - x['h_KdShu2007']) - cls.betah_KdShu2007(Vm) * x['h_KdShu2007'],
-		}
+        dictionary = {}
+        for e in self.states:
+            exec(f"dictionary[{e}] = lambda Vm, x: cls.alpha{e}(Vm) * (1 - x['{e}']) - cls.beta{e}(Vm) * x['{e}']")
+        return dictionary
+
 
     # ------------------------------ Steady states ------------------------------
 

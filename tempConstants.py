@@ -71,7 +71,7 @@ inf_pattern = "[a-zA-Z]_[Ii]nf|[Ii]nf_[a-zA-Z]|[a-zA-Z][Ii]nf|[Ii]nf[a-zA-Z]"
 
 var_pattern = "[a-zA-Z_][a-zA-Z0-9_]*"
 math_pattern = "[0-9\.\+\-\*/\(\)a-zA-Z]*[ 0-9\.\+\-\*/\(\)a-zA-Z^_]*[0-9\.\+\-\*/\(\)a-zA-Z]*" #removal of \t, \n and spaces around the formula
-equation_pattern = "[0-9\.\+\-\*/\(\)a-zA-Z]*[ 0-9\.\+\-\*/\(\)a-zA-Z^=_]*[0-9\.\+\-\*/\(\)a-zA-Z]*" #removal of \t, \n and spaces around the formula
+equation_pattern = r"[0-9.\+\-\*/\(\)a-zA-Z^=_ ]+" #"[0-9\.\+\-\*/\(\)a-zA-Z]*[ 0-9\.\+\-\*/\(\)a-zA-Z^=_]*[0-9\.\+\-\*/\(\)a-zA-Z]*" #removal of \t, \n and spaces around the formula
 if_pattern = "\(.*\)"
 
 """"WRITE_NMODL"""
