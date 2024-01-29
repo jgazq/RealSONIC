@@ -25,7 +25,7 @@ import tempFunctions as tf
 # import PySONIC as ps
 # import MorphoSONIC as ms
 from PySONIC.core import PulsedProtocol
-from MorphoSONIC.models import RealBase, RealNeuronModel,MRGFiber
+from MorphoSONIC.models import RealBase, RealNeuronModel,MRGFiber, Realnrn
 from MorphoSONIC.plt import plotFiberXCoords, SectionCompTimeSeries
 from MorphoSONIC.sources import IntracellularCurrent, ExtracellularCurrent
 
@@ -67,36 +67,37 @@ fiberD = 10e-6  # um
 """"comparing the plotFiberXCoords of MRGFiber with RealNeuronModel like is shown in the mrg.ipynb notebook"""
 # fig = plotFiberXCoords(MRGFiber(fiberD, nnodes))
 # plt.show()
-# fig = plotFiberXCoords(RealNeuronModel(compartments))
-# plt.show()
-
-
-def plotSimIClamp(fiber, pp, I=None, ylim=None, title=None):
-    if I is not None:
-        polarity = 'cathode' if I < 0 else 'anode'
-    else:
-        polarity = 'anode'    
-    source = IntracellularCurrent(fiber.central_ID, I=I, mode=polarity)
-    data, meta = fiber.simulate(source, pp)
-    fig = SectionCompTimeSeries([(data, meta)], 'Vm', fiber.nodeIDs).render()
-    if ylim is not None:
-        fig.axes[0].set_ylim(ylim)
-    if title is not None:
-        fig.axes[0].set_title(title)
-    return fig
-
-def plotSimExtSource(fiber, source, pp, ylim=None, title=None):
-    data, meta = fiber.simulate(source, pp)
-    fig = SectionCompTimeSeries([(data, meta)], 'Vm', fiber.nodeIDs).render()
-    if ylim is not None:
-        fig.axes[0].set_ylim(ylim)
-    if title is not None:
-        fig.axes[0].set_title(title)
-    return fig
-
-pp = PulsedProtocol(100e-6, 3e-3) 
-# fig = plotSimIClamp(MRGFiber(fiberD,nnodes), pp, title='MRGFiber(fiberD,nnodes)')
-# plt.show()
-fig = plotSimIClamp(RealNeuronModel(compartments), pp, title='RealNeuronModel(compartments)')
+#fig = plotFiberXCoords(RealNeuronModel(compartments))
+fig = plotFiberXCoords(Realnrn(cell_nr))
 plt.show()
+
+
+# def plotSimIClamp(fiber, pp, I=None, ylim=None, title=None):
+#     if I is not None:
+#         polarity = 'cathode' if I < 0 else 'anode'
+#     else:
+#         polarity = 'anode'    
+#     source = IntracellularCurrent(fiber.central_ID, I=I, mode=polarity)
+#     data, meta = fiber.simulate(source, pp)
+#     fig = SectionCompTimeSeries([(data, meta)], 'Vm', fiber.nodeIDs).render()
+#     if ylim is not None:
+#         fig.axes[0].set_ylim(ylim)
+#     if title is not None:
+#         fig.axes[0].set_title(title)
+#     return fig
+
+# def plotSimExtSource(fiber, source, pp, ylim=None, title=None):
+#     data, meta = fiber.simulate(source, pp)
+#     fig = SectionCompTimeSeries([(data, meta)], 'Vm', fiber.nodeIDs).render()
+#     if ylim is not None:
+#         fig.axes[0].set_ylim(ylim)
+#     if title is not None:
+#         fig.axes[0].set_title(title)
+#     return fig
+
+# pp = PulsedProtocol(100e-6, 3e-3) 
+# # fig = plotSimIClamp(MRGFiber(fiberD,nnodes), pp, title='MRGFiber(fiberD,nnodes)')
+# # plt.show()
+# fig = plotSimIClamp(RealNeuronModel(compartments), pp, title='RealNeuronModel(compartments)')
+# plt.show()
 

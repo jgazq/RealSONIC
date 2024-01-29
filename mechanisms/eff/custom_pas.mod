@@ -3,7 +3,7 @@ TITLE Custom passive current
 INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
 
 NEURON {
-    SUFFIX custom_pas
+    SUFFIX pas_eff
     NONSPECIFIC_CURRENT i : passive leakage current
     RANGE g, e
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific
@@ -15,8 +15,8 @@ PARAMETER {
     Fdrive (kHz) : Stimulation frequency
     Adrive (kPa) : Stimulation amplitude
     detailed     : Simulation type
-    g      (S/cm2)
-    e      (mV)
+    g = 0.001      (S/cm2)
+    e = -70.0     (mV)
 }
 
 ASSIGNED {

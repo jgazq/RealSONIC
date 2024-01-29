@@ -87,6 +87,12 @@ import tempConstants as tc
 # tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','realneuron_lookups_fs1.00.pkl')
 
 """to plot all the effective gating parameter"""
-pkldict = tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\test_joa\\','realneuron_lookups_fs1.00_17_01_2024_12_25_43_test.pkl',True)
-tf.save_gatingplots(pkldict,"gating")
+# pkldict = tf.read_pickle('C:\\Users\\jgazquez\\PySONIC\\PySONIC\\lookups\\test_joa\\','realneuron_lookups_32nm_500kHz_fs1.00_22_01_2024_13_12_49.pkl',True)
+#tf.save_gatingplots(pkldict,"gating")
 # pkldict = tf.read_pickle('C:\\Users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\','RS_lookups_fs1.00.pkl',True)
+
+""" to test the functionality of the passive mechanism"""
+soma = h.Section(name='soma')
+soma.insert('pas')
+soma.insert('pas_eff')
+print(soma.psection())

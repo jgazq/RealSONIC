@@ -9,9 +9,9 @@
     upon ultrasound stimulation at one node. '''
 
 from PySONIC.core import Batch, NeuronalBilayerSonophore
-from PySONIC.utils import logger
+from PySONIC.utils import logger, gaussian, gaussian3D
 from PySONIC.parsers import AStimParser
-from MorphoSONIC.core import GaussianAcousticSource
+from MorphoSONIC.core import GaussianAcousticSource, UniformAcousticSource, Gaussian3DAcousticSource
 from MorphoSONIC.parsers import AStimRealisticNeuronParser
 
 
@@ -19,6 +19,7 @@ def main():
     #TODO: add these variables to parser
     cell_nr = 7
     se = 0
+    stimulation = "uniform"#"gaussian3D" #"gaussian"
     # Parse command line arguments
     parser = AStimRealisticNeuronParser()
     args = parser.parse()
@@ -42,21 +43,48 @@ def main():
                 fiber.fs = fs
                 for x0 in args['x0']:
                     for sigma in args['sigma']:
+                        print(f"x0 ={x0}, sigma = {sigma}")
                         if args['save']:
-                            simqueue = [(
-                                [GaussianAcousticSource(
-                                    x0, sigma, item[0][0].f, item[0][0].A), *item[0][1:]],
-                                item[1]
-                            ) for item in queue]
+                            if stimulation == "gaussian":
+                                simqueue = [(
+                                    [GaussianAcousticSource(
+                                        x0, sigma, item[0][0].f, item[0][0].A), *item[0][1:]],
+                                    item[1]
+                                ) for item in queue]
+                            elif stimulation == "uniform":
+                                simqueue = [(
+                                    [UniformAcousticSource(
+                                        item[0][0].f, item[0][0].A), *item[0][1:]],
+                                    item[1]
+                                ) for item in queue]   
+                            elif stimulation == "gaussian3D":
+                                simqueue = [(
+                                    [Gaussian3DAcousticSource(
+                                        x0, x0, x0, sigma, sigma, sigma, item[0][0].f, item[0][0].A), *item[0][1:]], #currently the same x0 and sigma is given in all 3 directions but this should be variable
+                                    item[1]
+                                ) for item in queue]                                                                
                             func = fiber.simAndSave
                         else:
-                            simqueue = [
-                                [GaussianAcousticSource(x0, sigma, item[0].f, item[0].A), *item[1:]]
-                                for item in queue]
+                            if stimulation == "gaussian":
+                                simqueue = [
+                                    [GaussianAcousticSource(x0, sigma, item[0].f, item[0].A), *item[1:]]
+                                    for item in queue]
+                            elif stimulation == "uniform":
+                                simqueue = [
+                                    [UniformAcousticSource(item[0].f, item[0].A), *item[1:]]
+                                    for item in queue]   
+                            elif stimulation == "gaussian3D":     
+                                simqueue = [
+                                    [Gaussian3DAcousticSource(x0, x0, x0, sigma, sigma, sigma, item[0].f, item[0].A), *item[1:]]
+                                    for item in queue]                                                        
                             func = fiber.simulate
                         batch = Batch(func, simqueue)
                         output += batch(loglevel=args['loglevel'])
-
+    print(args['section'])
+    refsec = fiber.sections[args['section'][0][:-1]][args['section'][0]] #fiber.refsection
+    amplitude = gaussian(refsec.x_xtra,x0,sigma,queue[0].A) if stimulation == 'gaussian' else gaussian3D(refsec.x_xtra, refsec.y_xtra, refsec.y_xtra,x0,x0,x0,sigma,sigma,sigma,queue[0].A) if stimulation == 'gaussian3D' else queue[0][0].A
+    print(f'{"-"*50}\nrefsection:\nlocation:\t({refsec.x_xtra}, {refsec.y_xtra}, {refsec.z_xtra})\namplitude = {amplitude}')
+    args['plot'] = 'Vm' #for debugging the plot section
     # Plot resulting profiles
     if args['plot'] is not None:
         parser.parsePlot(args, output)
