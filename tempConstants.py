@@ -2,26 +2,26 @@ import numpy as np
 
 
 "-----PHYSICAL CONSTANTS-----"
-RHO = 1e3 #medium density (kg/m3)
-C = 1490.0 #medium speed of sound (m)
+# RHO = 1e3 #medium density (kg/m3)
+# C = 1490.0 #medium speed of sound (m)
 
 "-----GATING PARAMETERS-----"
 """RESTING PARAMETERS"""
-Cm0 = 1e-2   # Membrane capacitance (F/m2)
-Vm0 = -71.9  # Membrane potential (mV)
+# Cm0 = 1e-2   # Membrane capacitance (F/m2)
+# Vm0 = -71.9  # Membrane potential (mV)
 
 """REVERSAL PARAMETERS (Mv)"""
-ENa = 50.0     # Sodium
-EK = -85.0 #-90.0     # Potassium
-ELeak = -70.3  # Non-specific leakage
+# ENa = 50.0     # Sodium
+# EK = -85.0 #-90.0     # Potassium
+# ELeak = -70.3  # Non-specific leakage
 """ABERRA/BBP"""
-ehcn =  -45.0 #Ih (mV), hyperpolarization-activated 
-              #cyclic nucleotide-gated channels
+# ehcn =  -45.0 #Ih (mV), hyperpolarization-activated 
+#               #cyclic nucleotide-gated channels
 
 """MAXIMAL CHANNEL CONDUCTANCES (S/m2)"""
-gNabar = 560.0  # Sodium
-gKdbar = 60.0   # Delayed-rectifier Potassium
-gLeak = 0.205   # Non-specific leakage
+# gNabar = 560.0  # Sodium
+# gKdbar = 60.0   # Delayed-rectifier Potassium
+# gLeak = 0.205   # Non-specific leakage
 """ABERRA/BBP"""
 """BASAL"""
 # gIhbar = 8e-05*1e4 #0.00001*1e4          #Ih (S/cm2 -> S/m2)
@@ -40,9 +40,9 @@ gLeak = 0.205   # Non-specific leakage
 # gNaTs2_tbar = 0.926705*1e4 #0.00001*1e4   #NaTs2_t (S/cm2 -> S/m2)
 
 """ADDITIONAL"""
-VT = -56.2  # Spike threshold adjustment parameter (mV)
-VIh = 154.9 # Mv
-T_C = 34 # Temperature (°C)
+# VT = -56.2  # Spike threshold adjustment parameter (mV)
+# VIh = 154.9 # Mv
+T_C = 37 # Temperature (°C) #changed from 34 to 37 (BBP uses 34 -> Aberra uses 37)
 
 "-----TEXT FORMATTING-----"
 """COLORING LOGS"""
@@ -83,3 +83,4 @@ block_pattern = "^[A-Z][A-Z]*"
 state_pattern = "[a-zA-Z]"
 stateder_pattern = "[a-zA-Z]\'"
 onelineBLOCK_pattern = "^[a-zA-Z]+.*\{.*\}"
+Cm0_map = {0.02: '0_02', 1.: '', 2.: '2'}

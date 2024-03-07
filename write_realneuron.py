@@ -28,16 +28,17 @@ for i,e in enumerate(mod_names):
 
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
-#print(states)
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
 
 current_time = datetime.datetime.now()
 now = datetime.datetime.strftime(current_time,'%Y-%m-%d %H:%M:%S')
 
-path = os.getcwd() + "/PySONIC/neurons/real_neuron.py"
+this_path = os.getcwd()
+path = this_path + "/PySONIC/neurons/real_neuron.py"
 with open(path,'w') as filenaam:
 
 # write header of the file and imports
+    #path2 = os.getcwd().replace('\\','\\\\')
     filenaam.write(f"""# -*- coding: utf-8 -*-
 # @Author: Theo Lemaire
 # @Email: theo.lemaire@epfl.ch
@@ -48,7 +49,7 @@ with open(path,'w') as filenaam:
 import numpy as np
 from neuron import h
 import sys
-sys.path.append(r"{os.getcwd()}")
+sys.path.append("{this_path}")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures\n\n""")
@@ -66,7 +67,7 @@ class RealisticNeuron(PointNeuron):
 
     # Resting parameters
     Cm0 = 1e-2   # Membrane capacitance (F/m2)
-    Vm0 = -71.9  # Membrane potential (mV)\n\n""")
+    Vm0 = -75  # Membrane potential (mV)\n\n""")
     filenaam.write(f"""         
     # Reversal potentials (mV)
     #TODO\n""")
@@ -176,4 +177,4 @@ class RealisticNeuron(PointNeuron):
     filenaam.write('\n        }')
 
 # copy the file from RealSONIC/PySONIC to PySONIC/PySONIC so both contain the correct real_neuron.py file
-shutil.copy(path, os. getcwd().replace('RealSONIC','PySONIC') + "\\PySONIC\\neurons\\real_neuron.py")
+#shutil.copy(path, os. getcwd().replace('RealSONIC','PySONIC') + "\\PySONIC\\neurons\\real_neuron.py")

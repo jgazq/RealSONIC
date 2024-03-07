@@ -6,38 +6,114 @@ import matplotlib.pyplot as plt
 # import PySONIC as ps
 # import MorphoSONIC as ms
 import numpy as np
-# import pickle
-import pandas as pd
+import pickle
+#import pandas as pd
 from neuron import h
 import re
 import os
 import copy
 import shutil
 import zipfile
+import datetime
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
 
 
 """-----------------------------------------------------------------------------------UTILS-----------------------------------------------------------------------------------"""
-def read_pickle(path, filename,prints=False):
+def read_pickle(path, filename=None, prints=False):
     """read the LUT pickle files metadata"""
 
-    pkl = pd.read_pickle(path+filename)
+    fpath = path+filename if filename else path #option to give path and filename together or seperate
+    #pkl = pd.read_pickle(path+filename)
+    with open(fpath, 'rb') as fh:
+        pkl = pickle.load(fh)
     if not prints:
         return pkl
     print('shape of V in tables',pkl['tables']['V'].shape) #dimensions of refs
     print('refs(inputs): ',pkl['refs'].keys()) #which variables are sweeped over
+    print('refs values (inputs): ',pkl['refs'].values())
     #print('refs: ',pkl['refs'].values()) #the arrays of each variable(length of each variable is given in the dimensions above)
     print('tables(outputs): ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
     if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value -> NOT TRUE!!! I ?accidentaly? removed the tcomp line in run_lookups_MC.py
         print('total simulation time: ',np.sum(pkl['tables']['tcomp'])/3600/24,'days')
-
+    # for e,f in pkl['tables'].items(): #to print all the tables for all gating parameters
+    #     print(f'{e}:\n\n{f}')
     return pkl
+
+
+def load_pickle(dictio, path, filename = None):
+    """saves a dictionary into a pickle file with the provided path and name"""
+
+    fpath = path+filename if filename else path #option to give path and filename together or seperate
+    with open(fpath, 'wb') as fh:
+        pickle.dump(dictio, fh)
+    print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
+
+def merge_LUTdicts(dict1, dict2):
+    """"merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables"""
+
+    refs1, tables1 = dict1['refs'], dict1['tables']
+    refs2, tables2 = dict2['refs'], dict2['tables']
+    refs_merged, tables_merged = dict1['refs'].copy(), dict1['tables'].copy() #dict 1 and 2 contain the same refs (keys)
+
+    for i,ref in enumerate(refs_merged): #iterate over the different reference variables/dimensions of the tables
+        set1 = set(refs1[ref])
+        set2 = set(refs2[ref])
+        refs_merged[ref] = list(set1.union(set2))
+        refs_merged[ref] = np.sort(refs_merged[ref])
+        if len(refs1[ref]) != len(refs_merged[ref]) or len(refs2[ref]) != len(refs_merged[ref]): #refs1 and refs2 aren't fully overlapping so tables need to be combined
+            for table in tables_merged:
+                #tables_merged[table] = np.concatenate((tables1[table],tables2[table]),axis=i) #this assumes that refs1 and refs2 are disjoints sets
+                                                                                               #and that the values of refs2 are all bigger than refs1
+                for j, ref_val in enumerate(refs_merged[ref]):
+                    index_val, whichrefs = (np.where(refs1[ref] == ref_val)[0][0], 1) if ref_val in refs1[ref] else (np.where(refs2[ref] == ref_val)[0][0], 2) if ref_val in refs2[ref] else None
+                    #print(ref_val,index_val,whichrefs)
+                    to_append = np.take(tables1[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 1 else np.take(tables2[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 2 else None
+                    #print(to_append.shape)
+                    new_table = to_append if j == 0 else np.concatenate((new_table,to_append),axis=i) 
+                tables_merged[table] = new_table
+                #check the new dimensions
+                #print(tables_merged[table].shape, tables1[table].shape, tables2[table].shape)
+        #print(len(set1),len(set2),len(refs_merged[ref]))
+
+    merged_dict = {'refs': refs_merged, 'tables': tables_merged}
+
+    return merged_dict
+
+
+def merge_LUT(path, filename1, filename2):
+    """this reads in 2 LUT pickle files and writes out a LUT that combines the two"""
+
+    pkldict1 = read_pickle(path,filename1)
+    pkldict2 = read_pickle(path,filename2)
+    merge_dict = merge_LUTdicts(pkldict1,pkldict2)
+    print(filename1.split('.pkl'))
+    filename1_split = filename1.split('.pkl')[0].split('_')
+    filename2_split = filename2.split('.pkl')[0].split('_')
+    merge_filename = ''
+    for e,f in zip(filename1_split, filename2_split):
+        if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
+                                                                    #relevant values need to include 
+            continue
+        if e == f:
+            merge_filename += e
+            merge_filename += '_'
+            continue
+        merge_filename += e + '_' + f + '_'   
+
+    current_time = datetime.datetime.now()
+    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
+    merge_filename += now
+    if merge_filename.endswith("_"):
+        merge_filename = merge_filename[:-1]              
+        
+    load_pickle(merge_dict,path,merge_filename+'_merged.pkl')
 
 
 def rm_us(name): 
     """reduce the number of underscores in a name/string to none"""
+
     name_ = []
     if type(name)==list:
         print('removing the underscores in a list')
@@ -82,19 +158,24 @@ def unzip():
 def allmech_BBP():
     """searches for all mechanism files and returns the intersection of these mechanisms in a list"""
 
-    folder = "OneDrive - UGent/PhD/Untouched Code/BBP/unzipped"
+    folder = r"C:\Users\jgazquez\OneDrive - UGent\PhD\Untouched Code\BBP\unzipped"
     lijst = []
     locations = []
-
+    mech_dict = {}
     for root, dirs, files in os.walk(folder): #go through all files in the mechanics folders (all depths)
         for file in files:
             file = os.path.join(root,file)
             filename = os.path.basename(file)
-            #print(filename)
+            # print(filename)
+            if filename.endswith(".mod") and filename in mech_dict.keys():
+                mech_dict[filename].append(file.split('\\')[-3])
+            elif filename.endswith(".mod"):
+                mech_dict[filename] = [file.split('\\')[-3]]
             if filename.endswith(".mod") and filename not in lijst:
                 #print(lijst)
                 lijst.append(filename)
                 locations.append(file.split('unzipped')[-1])
+    #print(f"{'StochKv.mod'} found in the following cells:\n{mech_dict['StochKv.mod']}\n\n")
     print(lijst,locations)
   
 
@@ -226,20 +307,20 @@ def coord_dict():
     """returns a dict with all segments containing their 3D position"""
 
     i = 0
-    dict = {}
+    dictio = {}
     for sec in h.allsec():
         for seg in sec:
             if "Scale" not in str(sec) and "Elec" not in str(sec):
-                dict[str(seg)] = (seg.x_xtra, seg.y_xtra, seg.z_xtra)
+                dictio[str(seg)] = (seg.x_xtra, seg.y_xtra, seg.z_xtra)
 
-    return dict
+    return dictio
 
 
 def coord_dict_type():
     """returns a dict with each type of segment containing all the segments and their locations"""
 
     i = 0
-    dict = {}
+    dictio = {}
     for sec in h.allsec():
         for seg in sec:
             replace_sec = re.findall('\[[0-9]*\]',str(sec))
@@ -250,11 +331,11 @@ def coord_dict_type():
             else 'basal' if 'dend' in sec_repl else 'axon' if 'axon' in sec_repl else sec_repl.lower()
             if "Scale" not in str(sec) and "Elec" not in str(sec):
                 if sec_type not in dict.keys():
-                    dict[str(sec_type)] = {str(seg) : (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6)} #um to m
+                    dictio[str(sec_type)] = {str(seg) : (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6)} #um to m
                 else:
-                    dict[str(sec_type)][str(seg)] = (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6) #um to m      
+                    dictio[str(sec_type)][str(seg)] = (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6) #um to m      
 
-    return dict
+    return dictio
 
 
 """-----------------------------------------------------------------------------------WRITE REALNEURON (AND MODL)-----------------------------------------------------------------------------------"""
@@ -284,6 +365,7 @@ def read_mod(mech_folder, restrictions = None):
 
 def mod_duplicate(mech_folder, restrictions = None):
     """read all .mod files in a directory and duplicate them in a seperate folder: eff"""
+
     mod_files = []
     mod_names = []
     for root, dirs, files in os.walk(mech_folder):
@@ -337,10 +419,10 @@ def filter_mod(mod_files,mod_names):
     for i,e in enumerate(mod_files):
         for j,f in enumerate(e):
             #print(test,f)
-            l_alphas.append(([i,j],f,mod_names[i])) if  re.search(tc.alpha_x_pattern,f) is not None else None
-            l_betas.append(([i,j],f,mod_names[i])) if  re.search(tc.beta_x_pattern,f) is not None else None
-            l_taus.append(([i,j],f,mod_names[i])) if  re.search(tc.tau_x_pattern,f) is not None else None
-            l_infs.append(([i,j],f,mod_names[i])) if  re.search(tc.x_inf_pattern,f) is not None else None
+            l_alphas.append(([i,j],f,mod_names[i])) if re.search(tc.alpha_x_pattern,f) else None
+            l_betas.append(([i,j],f,mod_names[i]))  if re.search(tc.beta_x_pattern,f)  else None
+            l_taus.append(([i,j],f,mod_names[i]))   if re.search(tc.tau_x_pattern,f)   else None
+            l_infs.append(([i,j],f,mod_names[i]))   if re.search(tc.x_inf_pattern,f)   else None
             hits.append(i) if  (re.search(tc.alpha_x_pattern,f) or re.search(tc.beta_x_pattern,f) or re.search(tc.tau_x_pattern,f) or re.search(tc.x_inf_pattern,f)) else None
 
     return l_alphas, l_betas, l_taus, l_infs, hits
@@ -522,6 +604,7 @@ def calc_eq(e,variables_dict,mod_name=None):
 
 def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None):
     """a recursive functions which handels executing if-statements encountered in a MODL file"""
+
     orig_offset = offset
     # if mod_name == 'Ca':
     #     print('if recursive called')
@@ -675,6 +758,7 @@ def one_to_multiline(root,file):
     """split a BLOCK defined a .modl file on one line over multiple lines {
     like this
     }"""
+
     changed = 0
     with open(os.path.join(root,file), 'r') as f:
         lines = f.readlines()
@@ -718,11 +802,13 @@ def model_to_BLOCKS(flist):
 
 def str_in_element_in_list(str,list):
     """looks if a string is inside an element of a list(to search for certain keywords)"""
+
     return [e for e in list if str in e]
 
 
 def str1_before_str2(str1,str2,flist):
     """str1 NEEDS to be before str2 so interchange strings if str2 is before str1"""
+
     BLOCKdict = model_to_BLOCKS(flist)
     for e,f in BLOCKdict.items():
         list1 = str_in_element_in_list(str1,f) #local
@@ -731,14 +817,44 @@ def str1_before_str2(str1,str2,flist):
             loc1 = f.index(list1[0])
             loc2 = f.index(list2[0])
             if loc1 > loc2: #interchange them if str2 is before str1
-
-                return f[loc1],f[loc2]
+                
+                string1, string2 = f[loc1],f[loc2] #loc is location in BLOCK
+                locat1 = flist.index(string1) #locat is location in whole flist
+                locat2 = flist.index(string2) 
+                flist[locat1], flist[locat2] = string2, string1
+                return (flist, True)
+    return (flist, False)
 
         # if any([str1 in g for g in f]) and any([str2 in g for g in f]):
         #     str1_index = f.index(str1)
         #     str2_index = f.index(str1)
 
 
+def SUFFIX_Cm0(flist,Cm0):
+    """adds the capacitance value to the suffix to distinguish the different mechanisms in NEURON"""
+
+    for i,e in enumerate(flist):
+        if 'SUFFIX' in e:
+            flist[i] = e.split('\n')[0]+Cm0+'\n' #put Cm0 value just before the newline
+            break
+    return flist
+
+
+def eff_to_noteff(flist, Cm0):
+    """"convert an effective version of a mech to a simple mechanism .mod file (this is the case for custom_pas)"""
+
+    indices_to_remove = []
+    for index, element in enumerate(flist): 
+        if 'FUNCTION_TABLE' in element or 'INCLUDE' in element: #remove function tables and included files
+            indices_to_remove.append(index)
+    for index in sorted(indices_to_remove, reverse=True):
+        del flist[index]
+
+    for index, element in enumerate(flist): #replace the update line with a manual recast
+        if 'update()' in element:
+            flist[index] = f"Vm = v/{str(Cm0)} :Cm0 = 0.02 uF/cm2\n"
+            flist.insert(index+1,'y = v\n')
+    return flist
             
 
 """-----------------------------------------------------------------------------------VARIA-----------------------------------------------------------------------------------"""
@@ -758,7 +874,10 @@ def plt_transdistr(psource,grid_type):
 def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
     """"plot the given effective variable in function of the charge density for different pressure amplitudes
     this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
-    num_shades = len(Q_refs)
+
+    num_shades = len(Q_refs) #number of different colors for the different curves on 1 plot
+    #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
+    step = 5
 
     cmap = plt.cm.get_cmap('hsv')
     # Generate colors across the colormap
@@ -766,29 +885,30 @@ def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
     #colors = plt.cm.Reds(np.linspace(0, 1, len(pkldict['refs']['Q'])))
     plt.clf()
     no_reduc = ['tcomp','V']
-    for i,e in enumerate(table[::5]):
-        plt.plot(Q_refs[::5]*1e5,e[::5],label=f"{A_refs[::5][i]*1e-3:.1e} kPa".replace('+0','').replace('-0',''),color = colors[::5][i])
+    for i,e in enumerate(table[::step]): #take only every fifth amplitude
+        plt.plot(Q_refs*1e5,e,label=f"{A_refs[::step][i]*1e-3:.1e} kPa".replace('+0','').replace('-0',''),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
         plt.legend()
         plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
         ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
         plt.ylabel(f'{ylab}')
-        if reduced_range and (variable not in no_reduc):
-            change_lower = plt.ylim()[0] < -10
-            change_upper = plt.ylim()[1] > 10
-            e_sorted = np.sort(e[::5].reshape(-1))
-            e_limited = [e for e in e_sorted if e < 10 and e > -10]
+        if reduced_range and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
+            change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
+            change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
+            e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
+            e_limited = [e for e in e_sorted if e < 10 and e > -10] #filter values that go out of bounds
             if not e_limited: #if no value falls under the limited range, use the original array instead of no values
                 e_limited = e
             # print(variable); print('before'); print(plt.ylim())
             plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
             plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
+            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
             # print('after'); print(plt.ylim()); print('\n\n')
         if plot:
             plt.show()
         
 
 
-def save_gatingplots(pkldict,foldername,reduced_range=True):
+def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
     """"save all plots for the different LUTs, containing the effective variables of the gating kinetics
     (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
 
@@ -796,13 +916,20 @@ def save_gatingplots(pkldict,foldername,reduced_range=True):
     plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
     #plot all calculated effective variables
     for key in pkldict['tables']:
-        table = pkldict['tables'][key]
-        table = table[0][0]
-        plt_LUTeff(key,table,Qrange,Arange,reduced_range=reduced_range)
-        plt.savefig(f'figs/{foldername}/{key}.png')
+        table = pkldict['tables'][key] #(a,f,A,Q,Cm,fs)
+        table2 = table[0][0] #remove a and f
+        if Cm0:
+            table2 = np.moveaxis(table2,-2,0) #move Cm to the beginning
+            table2 = table2[0] #remove Cm
+        plt_LUTeff(key,table2,Qrange,Arange,reduced_range=reduced_range)
+        Cm0_ext = '_' + str(Cm0) if Cm0 else ''
+        plt.savefig(f'figs/{foldername}/{key}{Cm0_ext}.png')
 
     #plot the effective capacity
     table_V = pkldict['tables']['V'][0][0]
+    if Cm0:
+        table_V = np.moveaxis(table_V,-2,0)
+        table_V = table_V[0]
     Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
     table_C = Q_table / table_V
     plt_LUTeff('C',table_C,Qrange,Arange)
