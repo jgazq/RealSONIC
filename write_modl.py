@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import os
+if "DISPLAY" in  os.environ:
+    del os.environ['DISPLAY']
 import shutil
 # import sys
 import re
@@ -16,7 +18,7 @@ h.load_file("init.hoc")
 """"--------------- INPUTS ---------------"""
 cell_nr = 7
 sec_type = 'somatic'
-pickle_folder = "c:\\users\\jgazquez\\RealSONIC\\PySONIC\\lookups\\"
+pickle_folder = "/Users/joaquin/Documents/python-virtual-environments/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
 
 """"--------------------------------------"""
@@ -41,8 +43,8 @@ mod_files = []
 mod_names = []
 for root, dirs, files in os.walk(mech_folder): #go through all files in the mechanics folders (all depths)
     for file in files:
-        file = tf.one_to_multiline(root,file) #replace all the BLOCKS that are defined in one line to a block that is defined on multiple lines in order to comply with future adaptations
         if file.endswith(".mod") and not 'eff' in root+file: #we only want to duplicate mechanism .modl files and not already created effective copies
+            file = tf.one_to_multiline(root,file) #replace all the BLOCKS that are defined in one line to a block that is defined on multiple lines in order to comply with future adaptations
             file_repl = file.replace(".mod","").replace("_","") #a pruned version of the mod name used for recognition later
             # first we copy everything from .mod to _eff.mod without the PROCEDURE rates() block
             block = None #block keeps track in which BLOCK the writer is at the moment
@@ -54,9 +56,27 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
 
             """"the mechanisms, where there are no computed effective variables and function tables, also need some modifications for the recasting"""
             """except xtra.mod?"""
-            if 'xtra' in file_repl:
-                shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
+            if 'xtra' in file_repl or 'CaDynamics' in file_repl:
+                #shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #TURN ON
                 continue    
+            if 'pas' in file_repl:
+                #here we don't iterate over the Cm0_map as it doesn't include the value for 0.02 (which is not in LUT)
+                "Cm0 = 1"
+                #shutil.copy(root+file,root+"eff\\"+file) #TURN ON
+                "Cm0 = 2"
+                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace('.mod','_2.mod')),'w') as dupl: 
+                    flist = list(f)
+                    flist2 = tf.SUFFIX_Cm0(flist,"2")
+                    dupl.writelines(flist2)
+                "Cm0 = 0.02"
+                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace('.mod','_0_02.mod')),'w') as dupl: 
+                    flist = list(f)
+                    flist = tf.eff_to_noteff(flist,0.02)
+                    flist2 = tf.SUFFIX_Cm0(flist,"0_02")
+                    dupl.writelines(flist2)             
+                continue   
+
+
             # if not mod_eff: #just copy the file if the mechanism is not voltage dependent and go to the next mechanism (hence the continue)
             #     shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations
             #     continue      
@@ -143,17 +163,22 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             """some lines need to be interchanged in the effective duplicate"""        
             with open(os.path.join(root,"eff",file_dupl),'r') as dupl:
                 flist = list(dupl)
-                strings = tf.str1_before_str2("LOCAL","update()",flist) #update() may not appear before LOCAL
-                if strings:
-                    loc1 = flist.index(strings[0])
-                    loc2 = flist.index(strings[1])
-                    string1, string2 = flist[loc1], flist[loc2]
-                    flist[loc1] = string2
-                    flist[loc2] = string1
+                new_list,worked = tf.str1_before_str2("LOCAL","update()",flist) #update() may not appear before LOCAL
+                if worked:
+                    flist = new_list
             with open(os.path.join(root,"eff",file_dupl),'w') as dupl:
                 dupl.writelines(flist)
                     
                 #print(any(['LOCAL' in e for e in flist]),file)
+            if voltage_gated:
+                for Cm0fl, Cm0str in tc.Cm0_map.items():
+                    if Cm0fl == 1: #do not touch file if Cm0 = 1
+                        continue
+                    with open(os.path.join(root,"eff",file_dupl),'r') as dupl:
+                        flist = list(dupl)
+                        flistCm = tf.SUFFIX_Cm0(flist,Cm0str)
+                    with open(os.path.join(root,"eff",file_dupl.replace('.mod','_'+Cm0str+'.mod')),'w') as dupl_Cm0:
+                        dupl_Cm0.writelines(flistCm)
 
 # from neuron import h
 # h.load_file('init.hoc')

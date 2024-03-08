@@ -83,4 +83,4 @@ block_pattern = "^[A-Z][A-Z]*"
 state_pattern = "[a-zA-Z]"
 stateder_pattern = "[a-zA-Z]\'"
 onelineBLOCK_pattern = "^[a-zA-Z]+.*\{.*\}"
-Cm0_map = {0.02: '0_02', 1.: '', 2.: '2'}
+Cm0_map = {1.: '', 2.: '2'} #{0.02: '0_02', 1.: '', 2.: '2'}

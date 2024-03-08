@@ -111,6 +111,61 @@ def merge_LUT(path, filename1, filename2):
     load_pickle(merge_dict,path,merge_filename+'_merged.pkl')
 
 
+def merge_LUTlist(path,filenamelist):
+    """this reads in a list of LUT pickle files and writes out a LUT that combines them all"""
+
+    pkldict_merged = read_pickle(path,filenamelist[0])
+    merged_name = filenamelist[0]
+    for e in filenamelist[1:]:
+
+        pkldict2 = read_pickle(path,e)
+        pkldict_merged = merge_LUTdicts(pkldict_merged,pkldict2)
+        merged_split = merged_name.split('.pkl')[0].split('_')
+        filename2_split = e.split('.pkl')[0].split('_')
+        merge_filename = ''
+        for e,f in zip(merged_split, filename2_split):
+            if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
+                                                                        #relevant values need to include 
+                continue
+            if e == f:
+                merge_filename += e
+                merge_filename += '_'
+                continue
+            merge_filename += e + '_' + f + '_'   
+        merged_name = merge_filename
+
+    current_time = datetime.datetime.now()
+    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
+    merge_filename += now
+    if merge_filename.endswith("_"):
+        merge_filename = merge_filename[:-1]              
+        
+    load_pickle(pkldict_merged,path,merge_filename+'_merged.pkl')
+
+
+def LUT_extend(filename):
+    """extends the LUT replacing the zero value by the edge values"""
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    for table in pkldict['tables'].values():
+        shape = table.shape
+        for i in range(shape[0]): #iterating over a
+            for j in range(shape[1]): #iterating over f
+                for k in range(shape[2]): #iterating over A
+                    for m in range(shape[4]): #iterating over Cm0
+                        for n in range(shape[5]):
+                            #print(table[i,j,k,:,m,n])
+                            nonzero = np.nonzero(table[i,j,k,:,m,n])[0] #returns the indexes of nonzero values
+                            first_value = table[i,j,k,nonzero[0],m,n]
+                            last_value = table[i,j,k,nonzero[-1],m,n]
+                            for l in range(shape[3]):
+                                if l < nonzero[0]: #all values before the first nonzero value are put equal to that value
+                                    table[i,j,k,l,m,n] = first_value
+                                if l > nonzero[-1]: #same for all values above the last non-zero value
+                                    table[i,j,k,l,m,n] = last_value
+    load_pickle(pkldict,filename.replace('.pkl','_ext.pkl'))
+
+
 def rm_us(name): 
     """reduce the number of underscores in a name/string to none"""
 
@@ -769,7 +824,7 @@ def one_to_multiline(root,file):
             lines[i] = f"{part1}{{\n\t{part2}\n}}"
             (line.split("{")[0],"\n",line.split("{")[1].split("}")[0])
             changed = 1
-            print(line,file)
+            print(f"{line} has been split over multiple lines in: {file}")
             #break
     if changed:
         with open(os.path.join(root,file), 'w') as newf: #.replace(".mod","_test.mod")
@@ -857,7 +912,7 @@ def eff_to_noteff(flist, Cm0):
     return flist
             
 
-"""-----------------------------------------------------------------------------------VARIA-----------------------------------------------------------------------------------"""
+"""-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
 def plt_transdistr(psource,grid_type):
     """plot the distribution points of a transducer source"""
 
@@ -901,7 +956,7 @@ def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
             # print(variable); print('before'); print(plt.ylim())
             plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
             plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
-            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
+            #plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
             # print('after'); print(plt.ylim()); print('\n\n')
         if plot:
             plt.show()
@@ -919,8 +974,14 @@ def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
         table = pkldict['tables'][key] #(a,f,A,Q,Cm,fs)
         table2 = table[0][0] #remove a and f
         if Cm0:
-            table2 = np.moveaxis(table2,-2,0) #move Cm to the beginning
-            table2 = table2[0] #remove Cm
+            ind = np.where(pkldict['refs']['Cm0']==Cm0)[0]
+            if len(ind):
+                ind = ind[0]
+                table2 = np.moveaxis(table2,-2,0) #move Cm to the beginning
+                table2 = table2[ind] #remove Cm
+            else:
+                print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
+                quit()
         plt_LUTeff(key,table2,Qrange,Arange,reduced_range=reduced_range)
         Cm0_ext = '_' + str(Cm0) if Cm0 else ''
         plt.savefig(f'figs/{foldername}/{key}{Cm0_ext}.png')
@@ -929,7 +990,7 @@ def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
     table_V = pkldict['tables']['V'][0][0]
     if Cm0:
         table_V = np.moveaxis(table_V,-2,0)
-        table_V = table_V[0]
+        table_V = table_V[ind]
     Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
     table_C = Q_table / table_V
     plt_LUTeff('C',table_C,Qrange,Arange)

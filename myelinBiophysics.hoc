@@ -8,15 +8,15 @@
 proc myelin_biophys() { localobj axon_bp //iseg_secList,Node_secList,Myelin_seclist,Unmyelin_secList
 
 	axon_bp = get_axon_biophys()
-	forsec cell.somatic {
-		cm=1 // uF/cm2 
-	}
-	forsec cell.apical {
-		cm = 2 // uF/cm2 
-	}
-	forsec cell.basal {
-		cm = 2 // uF/cm2 
-	}
+:	forsec cell.somatic {
+:		cm=1 // uF/cm2 
+:	}
+:	forsec cell.apical {
+:		cm = 2 // uF/cm2 
+:	}
+:	forsec cell.basal {
+:		cm = 2 // uF/cm2 
+:	}
 	forsec axonal {		// cell.axonal still not formed
 		insert pas						
 		e_pas = axon_bp.x[12] // usually -75 mV
