@@ -42,7 +42,7 @@ def search_folder(string, non_string ,folder,case_sens=1):
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
 folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC']
-search_folder(['relevant_mechs'],[],r'/Users/joaquin/Documents/python-virtual-environments/RealSONIC')
+search_folder(['TURN ON'],[],r'/Users/joaquin/Documents/python-virtual-environments/MorphoSONIC')
 
 
 def search_file(string, folder,filename_only=False):
@@ -71,7 +71,7 @@ def remove_eff(folder):
             if "eff" in file and file.endswith(".mod"):
                 os.remove(file)
 
-remove_eff(os.path.join(os.getcwd(),'mechanisms'))
+#remove_eff(os.path.join(os.getcwd(),'mechanisms'))
 
 
 def remove_dll(folder):

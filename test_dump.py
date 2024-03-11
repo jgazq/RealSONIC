@@ -77,6 +77,17 @@ import tempConstants as tc
 # print(soma.psection())
 
 
+"""to check if there are 'ghost sections' present """
+
+#check if duplicate sections:
+# soma_dupl = []
+# for i,sec in enumerate(h.allsec()):
+#     #print('first sec: ',sec) if (i==0) else None
+#     if 'soma' in str(sec):
+#         soma_dupl.append(sec)
+#print('last sec: ',sec)
+#print('somas:\t',soma_dupl) # to check if soma is defined multiple times
+
 
 """to plot the expsyn and exp2syn mechanisms"""
 

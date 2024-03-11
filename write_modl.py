@@ -171,6 +171,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     
                 #print(any(['LOCAL' in e for e in flist]),file)
             if voltage_gated:
+                if "Prob" in file:
+                    continue
                 for Cm0fl, Cm0str in tc.Cm0_map.items():
                     if Cm0fl == 1: #do not touch file if Cm0 = 1
                         continue
