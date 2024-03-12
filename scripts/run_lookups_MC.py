@@ -13,11 +13,8 @@ import logging
 import numpy as np
 import sys
 import datetime
-
-path = os.path.abspath(os.path.split(__file__)[0])
-print(path)
-print(path.split("RealSIM")[0]+"/RealSIM")
-sys.path.append(path.split("RealSIM")[0]+"/RealSIM")
+sys.path.append(os.path.abspath(\
+os.path.split(__file__)[0].split('RealSONIC')[0]+'\\RealSONIC'))
 current_time = datetime.datetime.now()
 now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')
 
