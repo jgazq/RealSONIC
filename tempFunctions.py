@@ -210,6 +210,7 @@ def unzip():
 
             #print("Extraction complete!")
 
+
 def allmech_BBP():
     """searches for all mechanism files and returns the intersection of these mechanisms in a list"""
 
@@ -232,7 +233,43 @@ def allmech_BBP():
                 locations.append(file.split('unzipped')[-1])
     #print(f"{'StochKv.mod'} found in the following cells:\n{mech_dict['StochKv.mod']}\n\n")
     print(lijst,locations)
-  
+
+
+def tcomp_run_time(tcomp,run_time):
+    """divides the tcomp value from PySONIC by the actual run_time to estimate the number of used cores
+    tcomp format: H:M:S.MS s
+    run_time: x.y days"""
+    if ',' in run_time:
+        days, run_time = run_time.split(',')
+        days = re.findall("\d*",days)[0] #remove unit
+    else:
+        days = 0
+    hours,ms = run_time.split('.')
+    ms = re.findall("\d*",ms)[0] #remove unit
+    h,m,s = hours.split(':')
+    run_time_days = float(days) + float(h)/24 + float(m)/24/60 + float(s)/24/60/60 + float(ms)/24/60/60*1e-3
+    tcomp_days = float(re.findall("\d*\.\d*",tcomp)[0]) #remove unit
+    return tcomp_days/run_time_days
+
+
+def write_csv(numA=50, Qstep=10, maxovertones=1, Vm0=-75, Cm0=2e-2, max_lines=np.inf):
+    """writes all the parameter combinations into a csv file which can be used with the worker module for parallelisation"""
+
+    nlines = 0
+    DQ_LOOKUP = 1e-5
+    numQ = int(((50.0 - np.round(Vm0 - 35.0)) * Cm0 * 1e-3) / DQ_LOOKUP + 1)
+    with open("lookup_data_ext.csv",'w') as file:
+        file.write("radius, frequency, amplitude, startcharge, endcharge, overtones\n")
+        for overt in range(maxovertones+1):
+            for a in np.array([16.0, 32.0, 64.0]):
+                for f in np.array([20., 100., 500., 1e3, 2e3, 3e3, 4e3]):
+                    for P_A in np.insert(np.logspace(np.log10(0.1), np.log10(600), num=numA), 0, 0.0):
+                        for Qstart in range(0,numQ,Qstep):
+                            file.write(f"{a}, {f}, {P_A}, {Qstart}, {Qstart+Qstep}, {overt}\n")
+                            nlines += 1
+                            if nlines == max_lines:
+                                quit()
+
 
 """-----------------------------------------------------------------------------------INSIDE NEURON (MECHANISMS AND SECTIONS)-----------------------------------------------------------------------------------"""
 def gbar_mechs():
@@ -983,8 +1020,8 @@ def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
                 print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
                 quit()
         plt_LUTeff(key,table2,Qrange,Arange,reduced_range=reduced_range)
-        Cm0_ext = '_' + str(Cm0) if Cm0 else ''
-        plt.savefig(f'figs/{foldername}/{key}{Cm0_ext}.png')
+        Cm0_ext = str(Cm0) if Cm0 else '' #'_' + 
+        plt.savefig(f'figs/{foldername}/{Cm0_ext}/{key}.png')
 
     #plot the effective capacity
     table_V = pkldict['tables']['V'][0][0]
@@ -994,4 +1031,4 @@ def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
     Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
     table_C = Q_table / table_V
     plt_LUTeff('C',table_C,Qrange,Arange)
-    plt.savefig(f'figs/{foldername}/C.png')   
+    plt.savefig(f'figs/{foldername}/{Cm0_ext}/C.png')   
