@@ -963,7 +963,7 @@ def plt_transdistr(psource,grid_type):
     plt.show()
 
 
-def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
+def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, reduced_xrange=False):
     """"plot the given effective variable in function of the charge density for different pressure amplitudes
     this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
 
@@ -983,7 +983,7 @@ def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
         plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
         ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
         plt.ylabel(f'{ylab}')
-        if reduced_range and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
+        if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
             change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
             change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
             e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
@@ -993,14 +993,15 @@ def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_range=False):
             # print(variable); print('before'); print(plt.ylim())
             plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
             plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
-            #plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
+            if reduced_xrange:
+                plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
             # print('after'); print(plt.ylim()); print('\n\n')
         if plot:
             plt.show()
         
 
 
-def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
+def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False,Cm0=None):
     """"save all plots for the different LUTs, containing the effective variables of the gating kinetics
     (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
 
@@ -1019,7 +1020,7 @@ def save_gatingplots(pkldict,foldername,reduced_range=True,Cm0=None):
             else:
                 print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
                 quit()
-        plt_LUTeff(key,table2,Qrange,Arange,reduced_range=reduced_range)
+        plt_LUTeff(key,table2,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
         Cm0_ext = str(Cm0) if Cm0 else '' #'_' + 
         plt.savefig(f'figs/{foldername}/{Cm0_ext}/{key}.png')
 

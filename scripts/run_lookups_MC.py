@@ -235,7 +235,7 @@ def main():
     parser.defaults['amp'] = np.insert(
         np.logspace(np.log10(0.1), np.log10(600), num=50), 0, 0.0)  # kPa #50 different pressure amplitudes, including 0 so none
     parser.defaults['charge'] = np.nan
-    parser.defaults['Qm0start'], parser.defaults['Qm0end'] = None, None
+    parser.defaults['Qstart'], parser.defaults['Qend'] = None, None
     parser.defaults['Cm0'] = np.array([1., 2.]) #np.array([0.02, 1., 2.]) #uF/cm2 #given in command line
     parser.add_argument('--novertones', type=int, default=0, help='Number of Fourier overtones') # numer of Qm overtones
     args = parser.parse()
@@ -252,20 +252,21 @@ def main():
             Qmin, Qmax = pneuron.Qbounds #np.array([np.round(self.Vm0 - 35.0), 50.0]) * self.Cm0 * 1e-3  # C/m2
             charges = np.arange(Qmin, Qmax + DQ_LOOKUP, DQ_LOOKUP)  # C/m2 #DQ_LOOKUP is step value
             #charges = np.linspace(Qmin, Qmax, 2) #for debugging
-            Qm0start, Qm0end = args['Qm0start'][0], args['Qm0end'][0]
-            if Qm0start:
-                if Qm0end:
-                    charges = charges[Qm0start:Qm0end]
+            Qstart, Qend = args['Qstart'][0], args['Qend'][0]
+            if Qstart:
+                if Qend:
+                    charges = charges[Qstart:Qend]
                 else:
-                    charges = charges[Qm0start:]
-            elif Qm0end:
-                charges = charges = charges[:Qm0end]
+                    charges = charges[Qstart:]
+            elif Qend:
+                charges = charges = charges[:Qend]
 
         # Number of Fourier overtones
         novertones = args['novertones']
 
         # Determine output filename
         input_args = {'a': args['radius'], 'f': args['freq'], 'A': args['amp'], 'fs': args['fs'], 'Cm0': args['Cm0']}
+        input_args = {**input_args, 'Qstart': args['Qstart'], 'Qend': args['Qend']} #addition of Qm0-range in the LUT name
         fname_args = {k: v[0] if v.size == 1 else None for k, v in input_args.items()}
         fname_args['novertones'] = novertones
         lookup_fpath = NeuronalBilayerSonophore(32e-9, pneuron).getLookupFilePath(**fname_args)
