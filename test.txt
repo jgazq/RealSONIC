@@ -1,5 +1,2 @@
-line 1
-line 2
-INDEPENDENT {t FROM 0 TO 1 WITH 1 (ms)}
-line 3
-line 4
+v = Vm
+celsius = 37

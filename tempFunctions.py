@@ -565,7 +565,7 @@ def states_from_lists(l_alphas, l_betas, l_taus, l_infs):
 
 
 def formula_from_line(line, pattern, kinetic):
-    "split an equations into LHS and RHS"
+    """split an equations into LHS and RHS"""
     LHS,RHS = line[1].split("=")
     match = re.search(pattern,LHS)
     if re.search("^h|h$",match.group()):
@@ -579,7 +579,7 @@ def formula_from_line(line, pattern, kinetic):
         return
     value = value.replace('exp','np.exp') 
 
-    return key,value   
+    return key,value
 
 
 def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs):
@@ -665,8 +665,9 @@ def derstates_from_gating(states,gating_states_kinetics,x_dict):
 def eq_hoc2pyt(equation):
     "translate an equation or formula from hoc syntax to python syntax"
 
-    equation = equation.replace('exp','np.exp').replace('^','**')
+    equation = equation.replace('exp','np.exp').replace('^','**').replace('}','').replace('{','')
     equation = equation.strip() #remove spaces at beginning and end
+    equation = equation.split(":")[0] #remove commentary in NMODL file
     equation = equation.lower() #put equations always in lowercase #POTENTIAL_RISK
 
     return equation
@@ -682,6 +683,7 @@ def calc_eq(e,variables_dict,mod_name=None):
     variable = eq_hoc2pyt(variable)
     formula = eq_hoc2pyt(formula)
     equation = eq_hoc2pyt(equation)
+    #print(f'equation: {variable} : {formula} : {equation}')
     # try:
     # if mod_name == 'Ca':
     #     print(f'equation: {variable} : {formula} : {equation}')
@@ -741,8 +743,7 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
     i = 0
     while i < len (list_mod):
         e = list_mod[i]
-        # if i > 55 and mod_name == 'Ca':
-        #     print("line: ",e)
+        estrip = e.strip()
     #for i,e in enumerate(list_mod):
         #stop when PROCEDURE BLOCK is finished
         if re.search('^}',e):
@@ -753,7 +754,8 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
                 # if mod_name == 'Ca':
                 #     variables_dict["v"] = -27
                 #     print(f'mod_name: {mod_name}, v = {variables_dict["v"]} , line: {e}')
-                if_statement = eval(re.search(tc.if_pattern,e).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
+                if_statement = eval(eq_hoc2pyt(re.search(tc.if_pattern,e).group()),{**globals(),**variables_dict})
+                print(re.search(tc.if_pattern,e).group())
                 # if mod_name == 'Ca':
                 #     print('if_statement: ',if_statement)
                 variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,0,mod_name)
@@ -762,10 +764,12 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
                 i += offset
                 continue
             #elif?
-            if re.search('=',e):
-                calc_eq(e,variables_dict,mod_name)
+            if re.search('=',e) and not(estrip.startswith(':')):
+                print(estrip)
+                calc_eq(estrip,variables_dict,mod_name)
         elif param_executing == 1:
-            if re.search('=',e):
+            if re.search('=',e) and not(estrip.startswith(':')):
+                print(estrip)
                 if re.findall("\(.*\)",e):
                     calc_eq(e.replace(re.findall("\(.*\)",e)[0],""),variables_dict) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
                 else:
@@ -789,6 +793,66 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
     #     print("final variables_dict: ",variables_dict)
     #     quit()
     return variables_dict   
+
+
+def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
+    """extract PROCEDURE block and save all equations in a list to retrieve alpha, beta, tau and inf from m and h"""
+
+    #print(mod_name)
+    celsius = tc.T_C #temperature in degrees Celsius
+    proc_executing, param_executing = 0,0
+    indents = 2
+
+    variables_dict = {'v': 0.3, 'celsius' : celsius}
+    equations_list = [4*indents*' '+'v = Vm', 4*indents*' '+f'celsius = {celsius}'] #uncomment this if v is a known parameter
+    i = 0
+    for i,e in enumerate(list_mod):
+        estrip = e.strip()
+    #for i,e in enumerate(list_mod):
+        #stop when PROCEDURE BLOCK is finished
+        if re.search('^}',e):
+            proc_executing = 0
+            param_executing = 0
+        if proc_executing == 1:
+            if re.search('if',e):    
+                indents -= e.count("}")
+                equations_list.append(4*indents*' '+eq_hoc2pyt(estrip)+":")
+                indents += e.count("{")
+            elif re.search('else',e):
+                indents -= e.count("}")  
+                equations_list.append(4*indents*' '+"else:")
+                indents += e.count("{") 
+            #elif e.search('if',e):
+            elif re.search('=',e) and not(estrip.startswith(':')): #no if or else or fi or esle (end of)
+                equation = eq_hoc2pyt(re.search(tc.equation_pattern,estrip).group())
+                equations_list.append(4*indents*' '+equation)
+            else:
+                indents += e.count("{") - e.count("}") 
+        elif param_executing == 1:
+            if re.search('=',e) and not(estrip.startswith(':')):
+                if re.findall("\(.*\)",e):
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e.replace(re.findall("\(.*\)",e)[0],""))) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
+                else:
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e)) #don't replace anything if units are not given
+        #start when entering PROCEDURE block on the next iteration
+        if re.search('PROCEDURE',e):
+            proc_executing = 1
+        #start when entering PARAMETER block on the next iteration
+        if re.search('PARAMETER',e):
+            param_executing = 1
+        i += 1
+    #maybe good idea to add a suffix to each variable -> NO
+    #variables_dict[variable+'_'+mod_name.replace(".mod","")]
+    for x in ['m','h']:
+        if not (any([x+'alpha' in e for e in equations_list])) and (any([x+'tau' in e for e in equations_list])) and (any([x+'tau' in e for e in equations_list])):
+            equations_list.append(4*indents*' '+f"{x+'alpha'} = {x+'inf'} / {x+'tau'} #only tau and inf provided in NMODL file")
+        if not (any([x+'beta' in e for e in equations_list])) and (any([x+'tau' in e for e in equations_list])) and (any([x+'tau' in e for e in equations_list])):
+            equations_list.append(4*indents*' '+f"{x+'beta'} = (1 - {x+'inf'}) / {x+'tau'} #only tau and inf provided in NMODL file")
+    # if mod_name == 'Ca':
+    #     print("final variables_dict: ",variables_dict)
+    #     quit()
+    
+    return equations_list
 
 
 def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0):

@@ -36,7 +36,7 @@ now = datetime.datetime.strftime(current_time,'%Y-%m-%d %H:%M:%S')
 
 this_path = os.getcwd()
 print(this_path)
-path = os.path.abspath(os.path.join(this_path, '..', "PySONIC/PySONIC/neurons/real_neuron.py"))
+path = os.path.abspath(os.path.join(this_path, '..', "PySONIC/PySONIC/neurons/real_neuron_opt.py"))
 print(path)
 #path = this_path + "/PySONIC/neurons/real_neuron.py"
 with open(path,'w') as filenaam:
@@ -61,11 +61,11 @@ from ..core import PointNeuron, addSonicFeatures\n\n""")
 # write the first part of the class
 
     filenaam.write(f"""@addSonicFeatures
-class RealisticNeuron(PointNeuron):
+class RealisticNeuronOpt(PointNeuron):
     ''' Realistic neuron class '''
 
     # Neuron name
-    name = 'realneuron'
+    name = 'realneuron_opt'
 
     # ------------------------------ Biophysical parameters ------------------------------
 
@@ -106,14 +106,18 @@ class RealisticNeuron(PointNeuron):
                 gating_param =  x+'_'+name_mod
                 if gating_param in states:
                     filenaam.write(f"""    @classmethod
-    def alpha{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
-        return variables['{x}'+'alpha']\n\n""")
+    def alpha{gating_param}(cls,Vm):\n""")
+                    for e in tf.gating_from_PROCEDURES_list(list_mod=mod_files[mod_number], mod_name=f):
+                        filenaam.write(f"""{e}\n""")
+                    filenaam.write(f"""
+        return {x}alpha\n\n""")
 
                     filenaam.write(f"""    @classmethod
-    def beta{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
-        return variables['{x}'+'beta']\n\n""")
+    def beta{gating_param}(cls,Vm):\n""")
+                    for e in tf.gating_from_PROCEDURES_list(list_mod=mod_files[mod_number], mod_name=f):
+                        filenaam.write(f"""{e}\n""")
+                    filenaam.write(f"""
+        return {x}beta\n\n""")
             filenaam.write("\n\n\n")
         mod_number += 1 
     

@@ -73,7 +73,7 @@ def computeAStimLookup(pneuron, aref, fref, Aref, Cm0ref, fsref, Qref, novertone
     # If multiple sonophore coverage values, ensure that only 1 value of
     # sonophore radius and US frequency are provided
     if fsref.size > 1 or fsref.shape[0] != 1.: #checks if multiple fs are given, otherwise it needs to be 1
-        for x in ['a', 'f', 'Cm0']:
+        for x in ['a', 'f']:
             assert refs[x].size == 1, err_span.format(descs['fs'], descs[x])
     # Add sonophore coverage vector to references
     refs['fs'] = fsref
@@ -81,16 +81,18 @@ def computeAStimLookup(pneuron, aref, fref, Aref, Cm0ref, fsref, Qref, novertone
     # If charge overtones are required, ensure that only 1 value of
     # sonophore radius, US frequency and coverage fraction are provided
     if novertones > 0:
-        for x in ['a', 'f', 'fs','Cm0']:
+        for x in ['a', 'f', 'fs']:
             assert refs[x].size == 1, err_span.format(descs['overtones'], descs[x])
 
     # If charge overtones are required, downsample charge and US amplitude input vectors
     if novertones > 0:
         nQmax = 50
         if len(refs['Q']) > nQmax:
+            print("nQmax exceeded!\n\n")
             refs['Q'] = np.linspace(refs['Q'][0], refs['Q'][-1], nQmax) #same Q_m range but with fewer amount of samples: #50
         nAmax = 15
         if len(refs['A']) > nAmax:
+            print("nAmax exceeded!\n\n")
             refs['A'] = np.insert(
                 np.logspace(np.log10(refs['A'][1]), np.log10(refs['A'][-1]), num=nAmax - 1),
                 0, 0.0) #Same P_A range but fewer amount of samples and conserving the 0 amplitude
