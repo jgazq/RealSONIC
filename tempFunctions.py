@@ -755,7 +755,7 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
                 #     variables_dict["v"] = -27
                 #     print(f'mod_name: {mod_name}, v = {variables_dict["v"]} , line: {e}')
                 if_statement = eval(eq_hoc2pyt(re.search(tc.if_pattern,e).group()),{**globals(),**variables_dict})
-                print(re.search(tc.if_pattern,e).group())
+                #print(re.search(tc.if_pattern,e).group())
                 # if mod_name == 'Ca':
                 #     print('if_statement: ',if_statement)
                 variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,0,mod_name)
@@ -765,11 +765,11 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
                 continue
             #elif?
             if re.search('=',e) and not(estrip.startswith(':')):
-                print(estrip)
+                #print(estrip)
                 calc_eq(estrip,variables_dict,mod_name)
         elif param_executing == 1:
             if re.search('=',e) and not(estrip.startswith(':')):
-                print(estrip)
+                #print(estrip)
                 if re.findall("\(.*\)",e):
                     calc_eq(e.replace(re.findall("\(.*\)",e)[0],""),variables_dict) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
                 else:
