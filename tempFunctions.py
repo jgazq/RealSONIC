@@ -803,9 +803,7 @@ def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
     proc_executing, param_executing = 0,0
     indents = 2
 
-    variables_dict = {'v': 0.3, 'celsius' : celsius}
     equations_list = [4*indents*' '+'v = Vm', 4*indents*' '+f'celsius = {celsius}'] #uncomment this if v is a known parameter
-    i = 0
     for i,e in enumerate(list_mod):
         estrip = e.strip()
     #for i,e in enumerate(list_mod):
@@ -840,7 +838,6 @@ def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
         #start when entering PARAMETER block on the next iteration
         if re.search('PARAMETER',e):
             param_executing = 1
-        i += 1
     #maybe good idea to add a suffix to each variable -> NO
     #variables_dict[variable+'_'+mod_name.replace(".mod","")]
     for x in ['m','h']:
@@ -855,8 +852,31 @@ def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
     return equations_list
 
 
+def get_reversals(cell=None):
+    """extract the reversal voltages from the loaded Aberra cell in hoc
+    this only works if a certain cell (sections) are loaded in"""
+    if cell == None:
+        return {'ek': [-85.0], 'ena': [50.0], 'eca': [132.4579341637009]}
+
+    reversals = {"ek": [], "ehcn": [], "ena": [], "eca": []}
+
+    for e in h.allsec():
+        for rev, rev_vals in reversals.items():
+            #print(e,rev)
+            try:
+                rev_val = eval(f"h.{e}.{rev}")
+                if rev_val not in rev_vals:
+                    if len(rev_vals) != 0:
+                        print("multiple rev_vals for the same reversal potential?")
+                    rev_vals.append(rev_val)
+            except:
+                pass
+
+    return reversals
+
+
 def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0):
-    """extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h"""
+    """extract PROCEDURE block and execute all equations to retrieve the current from m and h"""
 
     celsius = tc.T_C #temperature in degrees Celsius
     #gbar = eval('g'+mod_name.replace('.mod','')+'bar')
@@ -907,6 +927,58 @@ def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_e
         del variables_reduced[e]
 
     return variables_dict, variables_reduced
+
+
+def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
+    """extract PROCEDURE block and save all equations to retrieve a list of the current from m and h"""
+
+    celsius = tc.T_C #temperature in degrees Celsius
+    break_executing, param_executing = 0,0
+    indents = 2
+
+    equations_list = [4*indents*' '+'v = Vm', 4*indents*' '+f'celsius = {celsius}'] #uncomment this if v is a known parameter
+    reversals = get_reversals()
+    for e,f in reversals.items():
+        equations_list.append(4*indents*' '+f"{e} = {f[0]}")
+    for e in gating_var:
+        equations_list.append(4*indents*' '+f"{e} = {e}_{mod_name} #")
+
+    for i,e in enumerate(list_mod):
+        estrip = e.strip()
+    #for i,e in enumerate(list_mod):
+        #stop when PROCEDURE BLOCK is finished
+        if re.search('^}',e):
+            break_executing = 0
+            param_executing = 0
+        if break_executing == 1:
+            if re.search('if',e):    
+                indents -= e.count("}")
+                equations_list.append(4*indents*' '+eq_hoc2pyt(estrip)+":")
+                indents += e.count("{")
+            elif re.search('else',e):
+                indents -= e.count("}")  
+                equations_list.append(4*indents*' '+"else:")
+                indents += e.count("{") 
+            #elif e.search('if',e):
+            elif re.search('=',e) and not(estrip.startswith(':')): #no if or else or end of it: fi 
+                equation = eq_hoc2pyt(re.search(tc.equation_pattern,estrip).group())
+                equations_list.append(4*indents*' '+equation)
+            else:
+                indents += e.count("{") - e.count("}") 
+        elif param_executing == 1:
+            if re.search('=',e) and not(estrip.startswith(':')):
+                if re.findall("\(.*\)",e):
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e.replace(re.findall("\(.*\)",e)[0],""))) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
+                else:
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e)) #don't replace anything if units are not given
+        #start when entering PROCEDURE block on the next iteration
+        if re.search('BREAKPOINT',e):
+            break_executing = 1
+        #start when entering PARAMETER block on the next iteration
+        if re.search('PARAMETER',e):
+            param_executing = 1
+    equations_list.append(4*indents*' '+'vars='+str([eq.split('=')[0].strip()for eq in equations_list]))
+    return equations_list
 
 
 """-----------------------------------------------------------------------------------WRITE MODL-----------------------------------------------------------------------------------"""

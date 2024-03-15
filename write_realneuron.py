@@ -106,14 +106,18 @@ class RealisticNeuron(PointNeuron):
                 gating_param =  x+'_'+name_mod
                 if gating_param in states:
                     filenaam.write(f"""    @classmethod
-    def alpha{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
-        return variables['{x}'+'alpha']\n\n""")
+    def alpha{gating_param}(cls,Vm):\n""")
+                    for e in tf.gating_from_PROCEDURES_list(list_mod=mod_files[mod_number], mod_name=f):
+                        filenaam.write(f"""{e}\n""")
+                    filenaam.write(f"""
+        return {x}alpha\n\n""")
 
                     filenaam.write(f"""    @classmethod
-    def beta{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
-        return variables['{x}'+'beta']\n\n""")
+    def beta{gating_param}(cls,Vm):\n""")
+                    for e in tf.gating_from_PROCEDURES_list(list_mod=mod_files[mod_number], mod_name=f):
+                        filenaam.write(f"""{e}\n""")
+                    filenaam.write(f"""
+        return {x}beta\n\n""")
             filenaam.write("\n\n\n")
         mod_number += 1 
     
@@ -162,13 +166,14 @@ class RealisticNeuron(PointNeuron):
                 """return cls.g_{name_mod}*Vm \n\n"""
                 filenaam.write(f"""    @classmethod
     def i_{name_mod}(cls,{gating_var}Vm):
-        ''' i{name_mod} current '''
-        x_dict = {{'e': e for e in [{gating_var[:-1]}]}}
-        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[{mod_number}], mod_name='{f}', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "{sec_type}")
-        currents = [e for e in variables.keys() if (e.startswith(\'i\') or e.startswith(\'I\'))]
+        ''' i{name_mod} current '''\n""")
+                for e in tf.currents_from_BREAKPOINT_list(list_mod=mod_files[mod_number], mod_name=f, gating_var=x_actual):
+                    filenaam.write(f"""{e}\n""")
+                filenaam.write(f"""
+        currents = [e for e in vars if (e.startswith(\'i\') or e.startswith(\'I\'))]
         print(currents)
         if currents:
-            return variables[currents[0]]
+            return eval(vars[currents[0]])
         else:
             return 0\n\n""")
                 currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x: cls.i_{name_mod}({current_var}Vm),'
