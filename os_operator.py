@@ -1,5 +1,5 @@
 import os
-#from docx import Document #TURN ON
+from docx import Document #TURN ON
 
 def search_folder(string, non_string ,folder,case_sens=1):
     """searches in all lines of all files in a folder for a given list of strings
@@ -42,7 +42,7 @@ def search_folder(string, non_string ,folder,case_sens=1):
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
 folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC']
-search_folder(['DISPLAY'],[],r'/Users/joaquin/Documents/python-virtual-environments/RealSONIC')
+search_folder(['mod_duplicate'],[],r'/Users/joaquin/Documents/python-virtual-environments/RealSONIC')
 
 
 def search_file(string, folder,filename_only=False):
@@ -107,4 +107,4 @@ def search_docx(string,folder):
     print('')
 
 # search_docx('rest',r'C:\Users\jgazquez\OneDrive - UGent\PhD') #just a test
-# search_docx('file is not open',r'C:\Users\jgazquez\OneDrive - UGent\PhD') #just a test
+#search_docx('37',r'/Users/joaquin/Library/CloudStorage/OneDrive-UGent/PhD') #just a test

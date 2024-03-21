@@ -22,7 +22,10 @@ import prev.Interp3Dfield as tt
 
 """-----------------------------------------------------------------------------------UTILS-----------------------------------------------------------------------------------"""
 def read_pickle(path, filename=None, prints=False):
-    """read the LUT pickle files metadata"""
+    """ read the LUT pickle files metadata
+        :path: directory where the pickle file is stored (can contain also the filename)
+        :filename: optional to give the filename separate 
+        :prints: prints various metadata of the loaded LUT"""
 
     fpath = path+filename if filename else path #option to give path and filename together or seperate
     #pkl = pd.read_pickle(path+filename)
@@ -43,7 +46,10 @@ def read_pickle(path, filename=None, prints=False):
 
 
 def load_pickle(dictio, path, filename = None):
-    """saves a dictionary into a pickle file with the provided path and name"""
+    """ saves a dictionary into a pickle file with the provided path and name
+        :dictio: dictionary containing the LUT
+        :path: directory where the LUT needs to be stored (filename can also be included in path)
+        :filename: explicit mentioning the name of the file where it needs to be stored"""
 
     fpath = path+filename if filename else path #option to give path and filename together or seperate
     with open(fpath, 'wb') as fh:
@@ -51,7 +57,9 @@ def load_pickle(dictio, path, filename = None):
     print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
 
 def merge_LUTdicts(dict1, dict2):
-    """"merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables"""
+    """ merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables
+        :dict1: dictionary containing the first LUT
+        :dict2: dicitonary containing the second LUT"""
 
     refs1, tables1 = dict1['refs'], dict1['tables']
     refs2, tables2 = dict2['refs'], dict2['tables']
@@ -83,7 +91,10 @@ def merge_LUTdicts(dict1, dict2):
 
 
 def merge_LUT(path, filename1, filename2):
-    """this reads in 2 LUT pickle files and writes out a LUT that combines the two"""
+    """ this reads in 2 LUT pickle files and writes out a LUT that combines the two
+        :path: directory where both LUT files are stored
+        :filename1: name of the first LUT file
+        :filename2: name of the second LUT file"""
 
     pkldict1 = read_pickle(path,filename1)
     pkldict2 = read_pickle(path,filename2)
@@ -112,7 +123,9 @@ def merge_LUT(path, filename1, filename2):
 
 
 def merge_LUTlist(path,filenamelist):
-    """this reads in a list of LUT pickle files and writes out a LUT that combines them all"""
+    """ this reads in a list of LUT pickle files and writes out a LUT that combines them all
+        :path: directory where the various LUT files are stored
+        :filenamelist: list of filenames of the LUTs that need to be merged"""
 
     pkldict_merged = read_pickle(path,filenamelist[0])
     merged_name = filenamelist[0]
@@ -144,7 +157,8 @@ def merge_LUTlist(path,filenamelist):
 
 
 def LUT_extend(filename):
-    """extends the LUT replacing the zero value by the edge values"""
+    """ extends the LUT replacing the zero value by the edge values
+        :filename: name of the LUT file that needs to be extended"""
     pkldict = read_pickle(filename)
     refs = pkldict['refs']
     for table in pkldict['tables'].values():
@@ -167,7 +181,8 @@ def LUT_extend(filename):
 
 
 def rm_us(name): 
-    """reduce the number of underscores in a name/string to none"""
+    """ reduce the number of underscores in a name/string to none
+        :name: string which needs underscore reduction"""
 
     name_ = []
     if type(name)==list:
@@ -236,9 +251,9 @@ def allmech_BBP():
 
 
 def tcomp_run_time(tcomp,run_time):
-    """divides the tcomp value from PySONIC by the actual run_time to estimate the number of used cores
-    tcomp format: H:M:S.MS s
-    run_time: x.y days"""
+    """ divides the tcomp value from PySONIC by the actual run_time to estimate the number of used cores
+        :tcomp: serial computation time, format: H:M:S.MS s
+        :run_time: actual, parallel computation time,format: x.y days"""
     if ',' in run_time:
         days, run_time = run_time.split(',')
         days = re.findall("\d*",days)[0] #remove unit
@@ -253,7 +268,13 @@ def tcomp_run_time(tcomp,run_time):
 
 
 def write_csv(numA=50, Qstep=10, maxovertones=1, Vm0=-75, Cm0=2e-2, max_lines=np.inf):
-    """writes all the parameter combinations into a csv file which can be used with the worker module for parallelisation"""
+    """ writes all the parameter combinations into a csv file which can be used with the worker module for parallelisation
+        :numA: number of amplitude values
+        :Qstep: the difference between two charge values
+        :maxovertones: the maximum number of overtones
+        :Vm0: the lowest possible membrane resting voltage (worst case)
+        :Cm0: the highest possible membrane resting capacitance (worst case)
+        :max_lines: the maximum number of lines that can be written out to the .csv file"""
 
     nlines = 0
     DQ_LOOKUP = 1e-5
@@ -432,8 +453,10 @@ def coord_dict_type():
 
 """-----------------------------------------------------------------------------------WRITE REALNEURON (AND MODL)-----------------------------------------------------------------------------------"""
 def read_mod(mech_folder, restrictions = None):
-    """read all .mod files in a directory and put them into a 2D-list
-    restrictions: list that contains the mechanisms that need to be read"""
+    """ read all .mod files in a directory and put them into a 2D-list
+        restrictions: list that contains the mechanisms that need to be read
+        :mech_folder: directory where the various NMODL mechanism files are stored
+        :restrictions: a list of files that are the only ones that are considered in this function"""
 
     mod_files = []
     mod_names = []
@@ -456,7 +479,9 @@ def read_mod(mech_folder, restrictions = None):
 
 
 def mod_duplicate(mech_folder, restrictions = None):
-    """read all .mod files in a directory and duplicate them in a seperate folder: eff"""
+    """read all .mod files in a directory and duplicate them in a seperate folder: eff
+        :mech_folder: folder containing all the mechanisms .mod file
+        :restrictions: selection of files that are duplicated"""
 
     mod_files = []
     mod_names = []
@@ -478,7 +503,9 @@ def mod_duplicate(mech_folder, restrictions = None):
 
 
 def read_gbars(cell_folder,d_2_s):
-    """read all all gbars from biophysics.hoc and put them into a dictionary"""
+    """ read all all gbars from biophysics.hoc and put them into a dictionary
+        :cell_folder: directory of the considered cell where the biophysics file is present
+        :d_2_s: distance to the soma"""
 
     #d_2_s = 0.001 #distance to soma is taken here as a constant but should be adapted to each section
 
@@ -504,7 +531,9 @@ def read_gbars(cell_folder,d_2_s):
 
 
 def filter_mod(mod_files,mod_names):
-    """filters in the list of the model file texts the lines that contain a gating parameter"""
+    """ filters in the list of the model file texts the lines that contain a gating parameter
+        :mod_files: list containing lists that contain all the lines of the NMODL .mod files that need to be translated
+        :mod_names: list containing all the names of the different mechanisms"""
 
     l_alphas, l_betas, l_taus, l_infs = [], [], [], []
     hits = []
@@ -520,7 +549,9 @@ def filter_mod(mod_files,mod_names):
     return l_alphas, l_betas, l_taus, l_infs, hits
 
 def state_from_line(line,pattern):
-    """look if a gating state parameter is defined in the current/given line"""
+    """ look if a gating state parameter is defined in the current/given line
+        :line: line that can contain a gating state parameter
+        :pattern: pattern that recognizes which kind of gating parameter state it is"""
 
     match = re.search(pattern,line[1])
     if re.search("^h|h$",match.group()):
@@ -537,7 +568,11 @@ def state_from_line(line,pattern):
 
 
 def states_from_lists(l_alphas, l_betas, l_taus, l_infs):
-    """determine all the states from the 4 lists -> states names and descriptions"""
+    """ determine all the states from the 4 lists -> states names and descriptions
+        :l_alphas: lines containing a formula with alpha(alpha_x_pattern)
+        :l_betas: lines containing a formula with beta(beta_x_pattern)
+        :l_taus: lines containing a formula with tau(tau_x_pattern)
+        :l_infs: lines containing a formula with inf(x_inf_pattern)"""
 
     d_states = {}
 
@@ -564,7 +599,7 @@ def states_from_lists(l_alphas, l_betas, l_taus, l_infs):
     return d_states    
 
 
-def formula_from_line(line, pattern, kinetic):
+def formula_from_line(line, pattern, kinetic): #DEPRECATED?
     """split an equations into LHS and RHS"""
     LHS,RHS = line[1].split("=")
     match = re.search(pattern,LHS)
@@ -582,7 +617,7 @@ def formula_from_line(line, pattern, kinetic):
     return key,value
 
 
-def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs):
+def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs): #DEPRECATED?
     """extract both the LHS and RHS from the equations in the list"""
 
     d_alphas, d_betas, d_taus, d_infs = {}, {}, {}, {}
@@ -609,7 +644,7 @@ def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs):
     return d_alphas, d_betas, d_taus, d_infs
 
 
-def steadystates_from_gating_old(alphas, betas,taus,infs,dstates):
+def steadystates_from_gating_old(alphas, betas,taus,infs,dstates): #DEPRECATED
     """steady states are calculated based on alphas, betas and infs"""
 
     #print(dstates)
@@ -627,7 +662,7 @@ def steadystates_from_gating_old(alphas, betas,taus,infs,dstates):
     return steadystates
 
 
-def steadystates_from_gating(states,gating_states_kinetics):
+def steadystates_from_gating(states,gating_states_kinetics): #DEPRECATED?
     """steady states are calculated based on the values of alpha, beta and inf"""
 
     steadystates = {}
@@ -645,8 +680,8 @@ def steadystates_from_gating(states,gating_states_kinetics):
     return steadystates
 
 
-def derstates_from_gating(states,gating_states_kinetics,x_dict):
-    """derivative states functions are calculated based on the gating states kinetics and put into dictionary"""
+def derstates_from_gating(states,gating_states_kinetics,x_dict): #DEPRECATED?
+    """ derivative states functions are calculated based on the gating states kinetics and put into dictionary"""
 
     derstates = {}
     for e in states:
@@ -663,7 +698,8 @@ def derstates_from_gating(states,gating_states_kinetics,x_dict):
 
 
 def eq_hoc2pyt(equation):
-    "translate an equation or formula from hoc syntax to python syntax"
+    """ translate an equation or formula from hoc syntax to python syntax
+        :equation: equation in hoc that needs to be translated to python"""
 
     equation = equation.replace('exp','np.exp').replace('^','**').replace('}','').replace('{','')
     equation = equation.strip() #remove spaces at beginning and end
@@ -673,8 +709,11 @@ def eq_hoc2pyt(equation):
     return equation
 
 
-def calc_eq(e,variables_dict,mod_name=None):
-    """parses an equation and puts the excecuted RHS into the variable of the LHS"""
+def calc_eq(e,variables_dict,mod_name=None): #DEPRECATED
+    """ parses an equation and puts the excecuted RHS into the variable of the LHS
+        :e: equation that is parsed
+        :variables_dict: all variables that are needed to execute the equation
+        :mod_name: name of the mechanism"""
 
     LHS,RHS = e.split("=")
     variable = re.search(tc.var_pattern,LHS).group()
@@ -696,8 +735,13 @@ def calc_eq(e,variables_dict,mod_name=None):
     #     quit()
 
 
-def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None):
-    """a recursive functions which handels executing if-statements encountered in a MODL file"""
+def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None): #DEPRECATED
+    """ a recursive functions which handels executing if-statements encountered in a MODL file
+        :list_mod: list containing the lines of a NMODL .mod file starting at an if case
+        :if_statement: the value of the if_statement, indicating if the equation needs to be excecuted or not
+        :variables_dict: dictionary containing all the executed variables (and also the ones needed to execute the equations)
+        :offset: line offset indicating how many lines are being excecuted in if_recursive
+        :mod_name: name of the mechanism"""
 
     orig_offset = offset
     # if mod_name == 'Ca':
@@ -730,8 +774,11 @@ def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None):
     return variables_dict, offset+1    
 
 
-def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
-    """extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h"""
+def gating_from_PROCEDURES_old(list_mod,mod_name,Vm): #,start_executing = 0): #DEPRECATED
+    """ extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h
+        :list_mod: list containing all the lines from a NMODL .mod file
+        :mod_name: name of the mechanism
+        :Vm: the voltage (v in neuron)"""
 
     #print(mod_name)
     celsius = tc.T_C #temperature in degrees Celsius
@@ -796,7 +843,9 @@ def gating_from_PROCEDURES(list_mod,mod_name,Vm): #,start_executing = 0):
 
 
 def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
-    """extract PROCEDURE block and save all equations in a list to retrieve alpha, beta, tau and inf from m and h"""
+    """ extract PROCEDURE block and save all equations in a list to retrieve alpha, beta, tau and inf from m and h
+        :list_mod: list containing all the lines from the NMODL .mod file
+        :mod_name: name of the mechanism"""
 
     #print(mod_name)
     celsius = tc.T_C #temperature in degrees Celsius
@@ -853,8 +902,9 @@ def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
 
 
 def get_reversals(cell=None):
-    """extract the reversal voltages from the loaded Aberra cell in hoc
-    this only works if a certain cell (sections) are loaded in"""
+    """ extract the reversal voltages from the loaded Aberra cell in hoc
+        this only works if a certain cell (sections) is loaded in
+        :cell: dummy parameter that tells if a cell is loaded in or not"""
     if cell == None:
         return {'ek': [-85.0], 'ena': [50.0], 'eca': [132.4579341637009]}
 
@@ -875,8 +925,15 @@ def get_reversals(cell=None):
     return reversals
 
 
-def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0):
-    """extract PROCEDURE block and execute all equations to retrieve the current from m and h"""
+def currents_from_BREAKPOINT_old(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0): #DEPRECATED
+    """ extract PROCEDURE block and execute all equations to retrieve the current from m and h
+        :list_mod: list containing the lines of the NMODL .mod file
+        :mod_name: name of the mechanism
+        :Vm: voltage (v in neuron)
+        :x_dict: dictionary containing the gating parameters with their respective value of the mechanisms
+        :g_dict:dictionary containing all the conductivities of the different mechanisms
+        :location: keyword that reveals the location of the section which determines the exact conductivity
+        :start_executing: parameter that determines if a line in the NMODL file needs to be executed or not"""
 
     celsius = tc.T_C #temperature in degrees Celsius
     #gbar = eval('g'+mod_name.replace('.mod','')+'bar')
@@ -930,7 +987,10 @@ def currents_from_BREAKPOINT(list_mod,mod_name,Vm,x_dict,g_dict,location,start_e
 
 
 def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
-    """extract PROCEDURE block and save all equations to retrieve a list of the current from m and h"""
+    """ extract PROCEDURE block and save all equations to retrieve a list of the current from m and h
+        :list_mod: a list containing all the lines of the NMODL .mod file
+        :mod_name: the name of the mechanism
+        :gating_var: gating parameters that are defined in the NMODL file"""
 
     celsius = tc.T_C #temperature in degrees Celsius
     break_executing, param_executing = 0,0
@@ -985,7 +1045,9 @@ def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
 def one_to_multiline(root,file):
     """split a BLOCK defined a .modl file on one line over multiple lines {
     like this
-    }"""
+    }
+        :root:the directory where the file is stored
+        :file:name of the file in the directory"""
 
     changed = 0
     with open(os.path.join(root,file), 'r') as f:
@@ -1010,7 +1072,8 @@ def one_to_multiline(root,file):
     
 
 def model_to_BLOCKS(flist):
-    """put the different BLOCK lines of a mechanism .modl file in a dictionary with each seperate block"""
+    """ put the different BLOCK lines of a mechanism .modl file in a dictionary with each seperate block
+        :flist: list containing all the lines of a file"""
 
     BLOCKdict = {}
     BLOCK_ON = 0
@@ -1029,13 +1092,18 @@ def model_to_BLOCKS(flist):
 
 
 def str_in_element_in_list(str,list):
-    """looks if a string is inside an element of a list(to search for certain keywords)"""
+    """ looks if a string is inside an element of a list(to search for certain keywords)
+        :str: string is being looked for
+        :list: list where string is searched"""
 
     return [e for e in list if str in e]
 
 
 def str1_before_str2(str1,str2,flist):
-    """str1 NEEDS to be before str2 so interchange strings if str2 is before str1"""
+    """ str1 NEEDS to be before str2 so interchange strings if str2 is before str1
+        :str1: first string
+        :str2: second string
+        :flist: list containing all the lines of a file"""
 
     BLOCKdict = model_to_BLOCKS(flist)
     for e,f in BLOCKdict.items():
@@ -1059,8 +1127,9 @@ def str1_before_str2(str1,str2,flist):
 
 
 def SUFFIX_Cm0(flist,Cm0):
-    """adds the capacitance value to the suffix to distinguish the different mechanisms in NEURON"""
-
+    """ adds the capacitance value to the suffix to distinguish the different mechanisms in NEURON
+        :flist: list containing the lines of the file that needs to be adapted
+        :Cm0: membrane resting capacitance"""
     for i,e in enumerate(flist):
         if 'SUFFIX' in e:
             flist[i] = e.split('\n')[0]+Cm0+'\n' #put Cm0 value just before the newline
@@ -1069,7 +1138,9 @@ def SUFFIX_Cm0(flist,Cm0):
 
 
 def eff_to_noteff(flist, Cm0):
-    """"convert an effective version of a mech to a simple mechanism .mod file (this is the case for custom_pas)"""
+    """ convert an effective version of a mech to a simple mechanism .mod file (this is the case for custom_pas)
+        :flist: list containing the lines of the file that needs to be adapted
+        :Cm0: membrane resting capacitance"""
 
     indices_to_remove = []
     for index, element in enumerate(flist): 
@@ -1099,17 +1170,18 @@ def plt_transdistr(psource,grid_type):
     plt.show()
 
 
-def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, reduced_xrange=False):
-    """"plot the given effective variable in function of the charge density for different pressure amplitudes
+def plt_LUTeff_old(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, reduced_xrange=False): #DEPRECATED
+    """plot the given effective variable in function of the charge density for different pressure amplitudes
     this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
 
-    num_shades = len(Q_refs) #number of different colors for the different curves on 1 plot
+    num_shades = len(A_refs) #number of different colors for the different curves on 1 plot
     #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
     step = 5
 
-    cmap = plt.cm.get_cmap('hsv')
+    cmap = plt.cm.get_cmap('Wistia')
     # Generate colors across the colormap
-    colors = [cmap(i / num_shades) for i in range(num_shades)]
+    colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
+    #colors.reverse()
     #colors = plt.cm.Reds(np.linspace(0, 1, len(pkldict['refs']['Q'])))
     plt.clf()
     no_reduc = ['tcomp','V']
@@ -1129,16 +1201,15 @@ def plt_LUTeff(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, red
             # print(variable); print('before'); print(plt.ylim())
             plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
             plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
-            if reduced_xrange:
-                plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
+        if reduced_xrange:
+            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
             # print('after'); print(plt.ylim()); print('\n\n')
         if plot:
             plt.show()
         
 
-
-def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False,Cm0=None):
-    """"save all plots for the different LUTs, containing the effective variables of the gating kinetics
+def save_gatingplots_old(pkldict,foldername,reduced_yrange=True,reduced_xrange=False,Cm0=None): #DEPRECATED
+    """save all plots for the different LUTs, containing the effective variables of the gating kinetics
     (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
 
     Qrange,Arange = pkldict['refs']['Q'], pkldict['refs']['A']
@@ -1156,7 +1227,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
             else:
                 print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
                 quit()
-        plt_LUTeff(key,table2,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+        plt_LUTeff_old(key,table2,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
         Cm0_ext = str(Cm0) if Cm0 else '' #'_' + 
         plt.savefig(f'figs/{foldername}/{Cm0_ext}/{key}.png')
 
@@ -1167,5 +1238,103 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
         table_V = table_V[ind]
     Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
     table_C = Q_table / table_V
-    plt_LUTeff('C',table_C,Qrange,Arange)
+    plt_LUTeff_old('C',table_C,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
     plt.savefig(f'figs/{foldername}/{Cm0_ext}/C.png')   
+
+
+def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduced_yrange=False, reduced_xrange=False):
+    """ plots a certain gating parameter in function of the charge, possibility to provide multiple values for a tunable parameter
+        :variable: the gating parameter that needs to be plotted
+        :table: a table containing the y-values (for different values of a certain parameter)
+        :Q_refs: x-values
+        :factor: multiplication factor
+        :unit: unit of the given parameter
+        :var_refs: the parameter for which different plots is rendered given the different values
+        :plot: showing the plot
+        :reduced_yrange: reduction in y-range values
+        :reduced_xrange: reduction in x-range values"""
+
+    num_shades = len(var_refs) if type(var_refs) == np.ndarray else 1 #number of different colors for the different curves on 1 plot
+    #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
+    step = 1 if num_shades < 10 else num_shades//10 #max 10 plots (sometimes it will be 11 due to rounding errors but OK)
+    cmap = plt.cm.get_cmap('Wistia')
+    # Generate colors across the colormap
+    colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
+    #colors.reverse()
+    plt.clf()
+    no_reduc = ['tcomp','V']
+    for i,e in enumerate(table[::step]): #take only every fifth amplitude
+        if num_shades > 1:
+            plt.plot(Q_refs*1e5,e,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('+0','').replace('-0','-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+            plt.legend()
+        else:
+            plt.plot(Q_refs*1e5,e) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+        plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
+        ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
+        plt.ylabel(f'{ylab}')
+        if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
+            change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
+            change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
+            e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
+            e_limited = [e for e in e_sorted if e < 10 and e > -10] #filter values that go out of bounds
+            if not e_limited: #if no value falls under the limited range, use the original array instead of no values
+                e_limited = e
+            # print(variable); print('before'); print(plt.ylim())
+            plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
+            plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
+        if reduced_xrange:
+            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
+            # print('after'); print(plt.ylim()); print('\n\n')
+        if plot:
+            plt.show()  
+
+
+def save_gatingplots(pkldict,foldername,factor,unit,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
+    """ plots the various gating parameters in function of the charge, it is possible to give multiple radius, frequencies, amplitudes or capacitances
+        :pkldict: dictionary containing LUT
+        :foldername: directory where the various plots will be stored
+        :factor: multiplier to comply with given unit
+        :unit: unit in which the parameter is expressed in
+        :reduced_yrange: if a reduction in the gating parameter range is needed (most necessary when going to infinity)
+        :reduced_xrange: to reduce the charge range when using different Cm0-values
+        :a, f, A, Cm0: both specific values as the keyword 'all' can be given to specify which values need to be plugged in the independent parameters"""
+
+    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} #4 different variables can be sweeped over
+    var_list = ['a', 'f', 'A', 'Cm0']
+    title = f"{[f'{k} = {v}' for (k,v) in var_dict.items()]}"
+    all_list = np.where(np.array(list(var_dict.values()))=='all')[0]
+    #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
+    ind_list = [int(np.where(abs((pkldict['refs'][k]-v)/v)<0.1)[0][0]) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a value is given, the array is indexed at the given param value
+    ind_list = ind_list[:3]+[":"]+[ind_list[3]]+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
+    ind_list = [str(e) for e in ind_list] #convert to strings for later on
+    if len(all_list) > 1:
+        print("only 1 parameter can be plotted for all")
+        quit()
+    Qrange = pkldict['refs']['Q']
+    plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
+    #plot all calculated effective variables
+    for key in pkldict['tables']:
+        table = pkldict['tables'][key] #(a,f,A,Q,Cm,fs)
+        table2 = eval(f"table[{(',').join(ind_list)}]")
+        ind_colon = np.where(np.array(ind_list)==":")[0]
+        ind = ind_colon[ind_colon !=3][0]
+        if ind > 3:
+            table2 = np.swapaxes(table2,0,1)
+        table2 = np.reshape(table2,(-1,len(Qrange)))
+        if len(all_list) == 0:
+            plt_LUTeff(key,table2,Qrange,factor,unit,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+        else:
+            plt_LUTeff(key,table2,Qrange,factor,unit,var_refs=pkldict['refs'][var_list[all_list[0]]],reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+        plt.title(title)
+        plt.savefig(f'figs/{foldername}/{key}.png')
+
+    #plot the effective capacity
+    table_V = eval(f"pkldict['tables']['V'][{(',').join(ind_list)}]")
+    table_V = np.reshape(table_V,(-1,len(Qrange)))
+    Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
+    table_C = Q_table / table_V
+    if len(all_list) == 0:
+        plt_LUTeff('C',table_C,Qrange,factor,unit,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+    else:
+        plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=pkldict['refs'][var_list[all_list[0]]],reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+    plt.savefig(f'figs/{foldername}/C.png')  

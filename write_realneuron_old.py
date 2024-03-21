@@ -107,12 +107,12 @@ class RealisticNeuron(PointNeuron):
                 if gating_param in states:
                     filenaam.write(f"""    @classmethod
     def alpha{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
+        variables = tf.gating_from_PROCEDURES_old(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
         return variables['{x}'+'alpha']\n\n""")
 
                     filenaam.write(f"""    @classmethod
     def beta{gating_param}(cls,Vm):
-        variables = tf.gating_from_PROCEDURES(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
+        variables = tf.gating_from_PROCEDURES_old(Vm=Vm, list_mod=cls.mod_files[{mod_number}], mod_name='{f}')
         return variables['{x}'+'beta']\n\n""")
             filenaam.write("\n\n\n")
         mod_number += 1 
@@ -164,7 +164,7 @@ class RealisticNeuron(PointNeuron):
     def i_{name_mod}(cls,{gating_var}Vm):
         ''' i{name_mod} current '''
         x_dict = {{'e': e for e in [{gating_var[:-1]}]}}
-        variables = tf.currents_from_BREAKPOINT(list_mod=cls.mod_files[{mod_number}], mod_name='{f}', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "{sec_type}")
+        variables = tf.currents_from_BREAKPOINT_old(list_mod=cls.mod_files[{mod_number}], mod_name='{f}', Vm=Vm, x_dict = x_dict, g_dict = cls.g_dict, location = "{sec_type}")
         currents = [e for e in variables.keys() if (e.startswith(\'i\') or e.startswith(\'I\'))]
         print(currents)
         if currents:
