@@ -599,104 +599,6 @@ def states_from_lists(l_alphas, l_betas, l_taus, l_infs):
     return d_states    
 
 
-def formula_from_line(line, pattern, kinetic): #DEPRECATED?
-    """split an equations into LHS and RHS"""
-    LHS,RHS = line[1].split("=")
-    match = re.search(pattern,LHS)
-    if re.search("^h|h$",match.group()):
-        key = "h_"+kinetic+'_'+line[2].replace('.mod','')
-        value = re.search(tc.math_pattern,RHS).group()
-    elif re.search("^m|m$",match.group()):
-        key = "m_"+kinetic+'_'+line[2].replace('.mod','')
-        value = re.search(tc.math_pattern,RHS).group()
-    else:
-        print(f'{tc.bcolors.OKCYAN}{match} is not a recognized gating parameter m or h{tc.bcolors.ENDC} in {line[2]}')
-        return
-    value = value.replace('exp','np.exp') 
-
-    return key,value
-
-
-def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs): #DEPRECATED?
-    """extract both the LHS and RHS from the equations in the list"""
-
-    d_alphas, d_betas, d_taus, d_infs = {}, {}, {}, {}
-    for e in l_alphas:
-        if formula_from_line(e,tc.alpha_pattern,"alpha"):
-            key, value = formula_from_line(e,tc.alpha_pattern,"alpha")
-            d_alphas[key] = value
-
-    for e in l_betas:
-        if formula_from_line(e,tc.beta_pattern,"beta"):
-            key, value = formula_from_line(e,tc.beta_pattern,"beta")
-            d_betas[key] = value
-
-    for e in l_taus:
-        if formula_from_line(e,tc.tau_pattern,"tau"):
-            key, value = formula_from_line(e,tc.tau_pattern,"tau")
-            d_taus[key] = value
-
-    for e in l_infs:
-        if formula_from_line(e,tc.inf_pattern,"inf"):
-            key, value = formula_from_line(e,tc.inf_pattern,"inf")
-            d_taus[key] = value
-
-    return d_alphas, d_betas, d_taus, d_infs
-
-
-def steadystates_from_gating_old(alphas, betas,taus,infs,dstates): #DEPRECATED
-    """steady states are calculated based on alphas, betas and infs"""
-
-    #print(dstates)
-    steadystates = {}
-    for e in dstates:
-        pre_suf = e.split('_',1) #only split on the first underscore
-        if pre_suf[0]+'_alpha_'+pre_suf[1] in alphas.keys():
-            alpha = alphas[pre_suf[0]+'_alpha_'+pre_suf[1]]
-            beta = betas[pre_suf[0]+'_beta_'+pre_suf[1]]
-            steadystates[e] = lambda Vm : eval(alpha)/(eval(alpha)+eval(beta))
-        else:
-            inf = infs[pre_suf[0]+'_inf_'+pre_suf[1]]
-            steadystates[e] = lambda Vm : eval(inf)
-
-    return steadystates
-
-
-def steadystates_from_gating(states,gating_states_kinetics): #DEPRECATED?
-    """steady states are calculated based on the values of alpha, beta and inf"""
-
-    steadystates = {}
-    for e in states:
-        activ, mech = e.split('_',1)
-        mech_var = gating_states_kinetics[mech]
-        if activ+'alpha' in mech_var.keys():
-            alpha = mech_var[activ+'alpha']
-            beta = mech_var[activ+'beta']
-            steadystates[e] = alpha/(alpha+beta)
-        else:
-            inf = mech_var[activ+'inf']    
-            steadystates[e] = inf
-
-    return steadystates
-
-
-def derstates_from_gating(states,gating_states_kinetics,x_dict): #DEPRECATED?
-    """ derivative states functions are calculated based on the gating states kinetics and put into dictionary"""
-
-    derstates = {}
-    for e in states:
-        activ, mech = e.split('_',1)
-        mech_var = gating_states_kinetics[mech]
-        if activ+'alpha' in mech_var.keys():
-            mech_var[activ+'alpha']
-            derstates[e] = mech_var[activ+'alpha'] * (1-x_dict[e]) - mech_var[activ+'beta'] * x_dict[e]
-        else:
-            mech_var[activ+'tau']
-            derstates[e] = (mech_var[activ+'inf']-x_dict[e])/mech_var[activ+'tau']
-
-    return derstates
-
-
 def eq_hoc2pyt(equation):
     """ translate an equation or formula from hoc syntax to python syntax
         :equation: equation in hoc that needs to be translated to python"""
@@ -707,139 +609,6 @@ def eq_hoc2pyt(equation):
     equation = equation.lower() #put equations always in lowercase #POTENTIAL_RISK
 
     return equation
-
-
-def calc_eq(e,variables_dict,mod_name=None): #DEPRECATED
-    """ parses an equation and puts the excecuted RHS into the variable of the LHS
-        :e: equation that is parsed
-        :variables_dict: all variables that are needed to execute the equation
-        :mod_name: name of the mechanism"""
-
-    LHS,RHS = e.split("=")
-    variable = re.search(tc.var_pattern,LHS).group()
-    formula = re.search(tc.math_pattern,RHS).group()
-    equation = re.search(tc.equation_pattern,e).group()
-    variable = eq_hoc2pyt(variable)
-    formula = eq_hoc2pyt(formula)
-    equation = eq_hoc2pyt(equation)
-    #print(f'equation: {variable} : {formula} : {equation}')
-    # try:
-    # if mod_name == 'Ca':
-    #     print(f'equation: {variable} : {formula} : {equation}')
-    if True:
-        variables_dict[variable] = eval(formula,{**globals(),**variables_dict}) # eval evaluates the value of the formula (RHS)
-        exec(equation,{**globals(),**variables_dict}) # exec executes the equation and puts the value into the LHS
-    # except: 
-    #     print(f"{tc.bcolors.OKCYAN}LOG: \t didn't work to compute: {equation}{tc.bcolors.ENDC}")
-    #     print(equation,variables_dict)
-    #     quit()
-
-
-def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None): #DEPRECATED
-    """ a recursive functions which handels executing if-statements encountered in a MODL file
-        :list_mod: list containing the lines of a NMODL .mod file starting at an if case
-        :if_statement: the value of the if_statement, indicating if the equation needs to be excecuted or not
-        :variables_dict: dictionary containing all the executed variables (and also the ones needed to execute the equations)
-        :offset: line offset indicating how many lines are being excecuted in if_recursive
-        :mod_name: name of the mechanism"""
-
-    orig_offset = offset
-    # if mod_name == 'Ca':
-    #     print('if recursive called')
-    #     print("list_mod:", list_mod)
-    while not re.search("[^a-zA-Z]}[^a-zA-Z]",list_mod[offset-orig_offset]):
-        # if mod_name == 'Ca':
-        #     print(f'list_mod[offset-orig_offset]: {list_mod[offset-orig_offset]}')
-        if re.search('if',list_mod[offset-orig_offset]) and if_statement:
-            # if mod_name == 'Ca':
-            #     print('here1')
-            if_statement = eval(re.search(tc.if_pattern,list_mod).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
-            if_recursive(list_mod[offset+1-orig_offset:],if_statement,variables_dict,offset+1,mod_name)
-        elif re.search('else',list_mod[offset-orig_offset]): #and if_statement:
-            # if mod_name == 'Ca':
-            #     print('here2')
-            return if_recursive(list_mod[offset+1-orig_offset:],not if_statement,variables_dict,offset+1,mod_name) #return variables_dict, offset+1
-        elif re.search('=',list_mod[offset-orig_offset]) and if_statement:
-            # if mod_name == 'Ca':
-            #     print('here3')
-            #     print(list_mod[offset-orig_offset])
-            #     print(variables_dict)
-            calc_eq(list_mod[offset-orig_offset],variables_dict,mod_name=mod_name)
-            offset += 1 
-        else:
-            # if mod_name == 'Ca':
-            #     print('here4')
-            offset +=1  
-
-    return variables_dict, offset+1    
-
-
-def gating_from_PROCEDURES_old(list_mod,mod_name,Vm): #,start_executing = 0): #DEPRECATED
-    """ extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h
-        :list_mod: list containing all the lines from a NMODL .mod file
-        :mod_name: name of the mechanism
-        :Vm: the voltage (v in neuron)"""
-
-    #print(mod_name)
-    celsius = tc.T_C #temperature in degrees Celsius
-    proc_executing, param_executing = 0,0
-
-    variables_dict = {'v': Vm, 'celsius' : celsius} #uncomment this if v is a known parameter
-    # if mod_name == 'Ca':
-    #     print(f"voltage = {variables_dict['v']}")
-    i = 0
-    while i < len (list_mod):
-        e = list_mod[i]
-        estrip = e.strip()
-    #for i,e in enumerate(list_mod):
-        #stop when PROCEDURE BLOCK is finished
-        if re.search('^}',e):
-            proc_executing = 0
-            param_executing = 0
-        if proc_executing == 1:
-            if re.search('if',e):
-                # if mod_name == 'Ca':
-                #     variables_dict["v"] = -27
-                #     print(f'mod_name: {mod_name}, v = {variables_dict["v"]} , line: {e}')
-                if_statement = eval(eq_hoc2pyt(re.search(tc.if_pattern,e).group()),{**globals(),**variables_dict})
-                #print(re.search(tc.if_pattern,e).group())
-                # if mod_name == 'Ca':
-                #     print('if_statement: ',if_statement)
-                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,0,mod_name)
-                # if mod_name == 'Ca':
-                #     print(f"variables_dict : {variables_dict}, offset: {offset}")                    
-                i += offset
-                continue
-            #elif?
-            if re.search('=',e) and not(estrip.startswith(':')):
-                #print(estrip)
-                calc_eq(estrip,variables_dict,mod_name)
-        elif param_executing == 1:
-            if re.search('=',e) and not(estrip.startswith(':')):
-                #print(estrip)
-                if re.findall("\(.*\)",e):
-                    calc_eq(e.replace(re.findall("\(.*\)",e)[0],""),variables_dict) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
-                else:
-                    calc_eq(e,variables_dict) #don't replace anything if units are not given
-        #start when entering PROCEDURE block on the next iteration
-        if re.search('PROCEDURE',e):
-            proc_executing = 1
-        #start when entering PARAMETER block on the next iteration
-        if re.search('PARAMETER',e):
-            param_executing = 1
-        i += 1
-
-    #maybe good idea to add a suffix to each variable -> NO
-    #variables_dict[variable+'_'+mod_name.replace(".mod","")]
-    for x in ['m','h']:
-        if not x+'alpha' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
-            variables_dict[x+'alpha'] = variables_dict[x+'inf'] / variables_dict[x+'tau']
-        if not x+'beta' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
-            variables_dict[x+'beta'] = (1 - variables_dict[x+'inf']) / variables_dict[x+'tau']
-    # if mod_name == 'Ca':
-    #     print("final variables_dict: ",variables_dict)
-    #     quit()
-    return variables_dict   
 
 
 def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
@@ -923,67 +692,6 @@ def get_reversals(cell=None):
                 pass
 
     return reversals
-
-
-def currents_from_BREAKPOINT_old(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0): #DEPRECATED
-    """ extract PROCEDURE block and execute all equations to retrieve the current from m and h
-        :list_mod: list containing the lines of the NMODL .mod file
-        :mod_name: name of the mechanism
-        :Vm: voltage (v in neuron)
-        :x_dict: dictionary containing the gating parameters with their respective value of the mechanisms
-        :g_dict:dictionary containing all the conductivities of the different mechanisms
-        :location: keyword that reveals the location of the section which determines the exact conductivity
-        :start_executing: parameter that determines if a line in the NMODL file needs to be executed or not"""
-
-    celsius = tc.T_C #temperature in degrees Celsius
-    #gbar = eval('g'+mod_name.replace('.mod','')+'bar')
-    ek, ena, eleak, ehcn = tc.EK, tc.ENa, tc.ELeak, tc.ehcn
-
-    try:
-        m = x_dict['m_'+mod_name.replace('.mod','')]
-    except:
-        m = 0
-        print(f'{tc.bcolors.OKCYAN}LOG: \t {x_dict} does not contain an m for: {mod_name}{tc.bcolors.ENDC}')
-    try:
-        h = x_dict['h_'+mod_name.replace('.mod','')]
-    except:
-        h = 0
-        print(f'{tc.bcolors.OKCYAN}LOG: \t {x_dict} does not contain an h for {mod_name}{tc.bcolors.ENDC}')
-
-    variables_dict = {'v': Vm, 'celsius' : celsius, 'm' : m,\
-                      'h' : h, 'ek' : ek, 'ena' : ena,\
-                        'eleak' : eleak, 'ehcn' : ehcn} | g_dict[location]
-    variables_dict_backup = copy.copy(variables_dict)
-    i = 0
-    while i < len (list_mod):
-        e = list_mod[i]
-    #for i,e in enumerate(list_mod):
-        #stop when PROCEDURE BLOCK is finished
-        if re.search('^}',e):
-            start_executing = 0
-        if start_executing == 1:
-            if re.search('if',e):
-                if_statement = eval(re.search(tc.if_pattern,e).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
-                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,1)
-                i += offset
-                continue
-            #elif?
-            if re.search('=',e):
-                calc_eq(e,variables_dict)
-        #start when entering PROCEDURE block on the next iteration
-        if re.search('BREAKPOINT',e):
-            start_executing = 1
-        i += 1
-
-    #maybe good idea to add a suffix to each variable
-    #variables_dict[variable+'_'+mod_name.replace(".mod","")]
-
-    # reduced dictionary with only the newly calculated values
-    variables_reduced = copy.copy(variables_dict)
-    for e in variables_dict_backup:
-        del variables_reduced[e]
-
-    return variables_dict, variables_reduced
 
 
 def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
@@ -1170,78 +878,6 @@ def plt_transdistr(psource,grid_type):
     plt.show()
 
 
-def plt_LUTeff_old(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, reduced_xrange=False): #DEPRECATED
-    """plot the given effective variable in function of the charge density for different pressure amplitudes
-    this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
-
-    num_shades = len(A_refs) #number of different colors for the different curves on 1 plot
-    #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
-    step = 5
-
-    cmap = plt.cm.get_cmap('Wistia')
-    # Generate colors across the colormap
-    colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
-    #colors.reverse()
-    #colors = plt.cm.Reds(np.linspace(0, 1, len(pkldict['refs']['Q'])))
-    plt.clf()
-    no_reduc = ['tcomp','V']
-    for i,e in enumerate(table[::step]): #take only every fifth amplitude
-        plt.plot(Q_refs*1e5,e,label=f"{A_refs[::step][i]*1e-3:.1e} kPa".replace('+0','').replace('-0',''),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
-        plt.legend()
-        plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
-        ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
-        plt.ylabel(f'{ylab}')
-        if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
-            change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
-            change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
-            e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
-            e_limited = [e for e in e_sorted if e < 10 and e > -10] #filter values that go out of bounds
-            if not e_limited: #if no value falls under the limited range, use the original array instead of no values
-                e_limited = e
-            # print(variable); print('before'); print(plt.ylim())
-            plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
-            plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
-        if reduced_xrange:
-            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
-            # print('after'); print(plt.ylim()); print('\n\n')
-        if plot:
-            plt.show()
-        
-
-def save_gatingplots_old(pkldict,foldername,reduced_yrange=True,reduced_xrange=False,Cm0=None): #DEPRECATED
-    """save all plots for the different LUTs, containing the effective variables of the gating kinetics
-    (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
-
-    Qrange,Arange = pkldict['refs']['Q'], pkldict['refs']['A']
-    plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
-    #plot all calculated effective variables
-    for key in pkldict['tables']:
-        table = pkldict['tables'][key] #(a,f,A,Q,Cm,fs)
-        table2 = table[0][0] #remove a and f
-        if Cm0:
-            ind = np.where(pkldict['refs']['Cm0']==Cm0)[0]
-            if len(ind):
-                ind = ind[0]
-                table2 = np.moveaxis(table2,-2,0) #move Cm to the beginning
-                table2 = table2[ind] #remove Cm
-            else:
-                print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
-                quit()
-        plt_LUTeff_old(key,table2,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
-        Cm0_ext = str(Cm0) if Cm0 else '' #'_' + 
-        plt.savefig(f'figs/{foldername}/{Cm0_ext}/{key}.png')
-
-    #plot the effective capacity
-    table_V = pkldict['tables']['V'][0][0]
-    if Cm0:
-        table_V = np.moveaxis(table_V,-2,0)
-        table_V = table_V[ind]
-    Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
-    table_C = Q_table / table_V
-    plt_LUTeff_old('C',table_C,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
-    plt.savefig(f'figs/{foldername}/{Cm0_ext}/C.png')   
-
-
 def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduced_yrange=False, reduced_xrange=False):
     """ plots a certain gating parameter in function of the charge, possibility to provide multiple values for a tunable parameter
         :variable: the gating parameter that needs to be plotted
@@ -1338,3 +974,368 @@ def save_gatingplots(pkldict,foldername,factor,unit,reduced_yrange=True,reduced_
     else:
         plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=pkldict['refs'][var_list[all_list[0]]],reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
     plt.savefig(f'figs/{foldername}/C.png')  
+
+
+"""-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""
+def formula_from_line(line, pattern, kinetic): #DEPRECATED?
+    """split an equations into LHS and RHS"""
+    LHS,RHS = line[1].split("=")
+    match = re.search(pattern,LHS)
+    if re.search("^h|h$",match.group()):
+        key = "h_"+kinetic+'_'+line[2].replace('.mod','')
+        value = re.search(tc.math_pattern,RHS).group()
+    elif re.search("^m|m$",match.group()):
+        key = "m_"+kinetic+'_'+line[2].replace('.mod','')
+        value = re.search(tc.math_pattern,RHS).group()
+    else:
+        print(f'{tc.bcolors.OKCYAN}{match} is not a recognized gating parameter m or h{tc.bcolors.ENDC} in {line[2]}')
+        return
+    value = value.replace('exp','np.exp') 
+
+    return key,value
+
+
+def formulas_from_lists(l_alphas, l_betas, l_taus, l_infs): #DEPRECATED?
+    """extract both the LHS and RHS from the equations in the list"""
+
+    d_alphas, d_betas, d_taus, d_infs = {}, {}, {}, {}
+    for e in l_alphas:
+        if formula_from_line(e,tc.alpha_pattern,"alpha"):
+            key, value = formula_from_line(e,tc.alpha_pattern,"alpha")
+            d_alphas[key] = value
+
+    for e in l_betas:
+        if formula_from_line(e,tc.beta_pattern,"beta"):
+            key, value = formula_from_line(e,tc.beta_pattern,"beta")
+            d_betas[key] = value
+
+    for e in l_taus:
+        if formula_from_line(e,tc.tau_pattern,"tau"):
+            key, value = formula_from_line(e,tc.tau_pattern,"tau")
+            d_taus[key] = value
+
+    for e in l_infs:
+        if formula_from_line(e,tc.inf_pattern,"inf"):
+            key, value = formula_from_line(e,tc.inf_pattern,"inf")
+            d_taus[key] = value
+
+    return d_alphas, d_betas, d_taus, d_infs
+
+
+def steadystates_from_gating_old(alphas, betas,taus,infs,dstates): #DEPRECATED
+    """steady states are calculated based on alphas, betas and infs"""
+
+    #print(dstates)
+    steadystates = {}
+    for e in dstates:
+        pre_suf = e.split('_',1) #only split on the first underscore
+        if pre_suf[0]+'_alpha_'+pre_suf[1] in alphas.keys():
+            alpha = alphas[pre_suf[0]+'_alpha_'+pre_suf[1]]
+            beta = betas[pre_suf[0]+'_beta_'+pre_suf[1]]
+            steadystates[e] = lambda Vm : eval(alpha)/(eval(alpha)+eval(beta))
+        else:
+            inf = infs[pre_suf[0]+'_inf_'+pre_suf[1]]
+            steadystates[e] = lambda Vm : eval(inf)
+
+    return steadystates
+
+
+def steadystates_from_gating(states,gating_states_kinetics): #DEPRECATED?
+    """steady states are calculated based on the values of alpha, beta and inf"""
+
+    steadystates = {}
+    for e in states:
+        activ, mech = e.split('_',1)
+        mech_var = gating_states_kinetics[mech]
+        if activ+'alpha' in mech_var.keys():
+            alpha = mech_var[activ+'alpha']
+            beta = mech_var[activ+'beta']
+            steadystates[e] = alpha/(alpha+beta)
+        else:
+            inf = mech_var[activ+'inf']    
+            steadystates[e] = inf
+
+    return steadystates
+
+
+def derstates_from_gating(states,gating_states_kinetics,x_dict): #DEPRECATED?
+    """ derivative states functions are calculated based on the gating states kinetics and put into dictionary"""
+
+    derstates = {}
+    for e in states:
+        activ, mech = e.split('_',1)
+        mech_var = gating_states_kinetics[mech]
+        if activ+'alpha' in mech_var.keys():
+            mech_var[activ+'alpha']
+            derstates[e] = mech_var[activ+'alpha'] * (1-x_dict[e]) - mech_var[activ+'beta'] * x_dict[e]
+        else:
+            mech_var[activ+'tau']
+            derstates[e] = (mech_var[activ+'inf']-x_dict[e])/mech_var[activ+'tau']
+
+    return derstates
+
+
+def calc_eq(e,variables_dict,mod_name=None): #DEPRECATED
+    """ parses an equation and puts the excecuted RHS into the variable of the LHS
+        :e: equation that is parsed
+        :variables_dict: all variables that are needed to execute the equation
+        :mod_name: name of the mechanism"""
+
+    LHS,RHS = e.split("=")
+    variable = re.search(tc.var_pattern,LHS).group()
+    formula = re.search(tc.math_pattern,RHS).group()
+    equation = re.search(tc.equation_pattern,e).group()
+    variable = eq_hoc2pyt(variable)
+    formula = eq_hoc2pyt(formula)
+    equation = eq_hoc2pyt(equation)
+    #print(f'equation: {variable} : {formula} : {equation}')
+    # try:
+    # if mod_name == 'Ca':
+    #     print(f'equation: {variable} : {formula} : {equation}')
+    if True:
+        variables_dict[variable] = eval(formula,{**globals(),**variables_dict}) # eval evaluates the value of the formula (RHS)
+        exec(equation,{**globals(),**variables_dict}) # exec executes the equation and puts the value into the LHS
+    # except: 
+    #     print(f"{tc.bcolors.OKCYAN}LOG: \t didn't work to compute: {equation}{tc.bcolors.ENDC}")
+    #     print(equation,variables_dict)
+    #     quit()
+
+
+def if_recursive(list_mod,if_statement,variables_dict,offset,mod_name=None): #DEPRECATED
+    """ a recursive functions which handels executing if-statements encountered in a MODL file
+        :list_mod: list containing the lines of a NMODL .mod file starting at an if case
+        :if_statement: the value of the if_statement, indicating if the equation needs to be excecuted or not
+        :variables_dict: dictionary containing all the executed variables (and also the ones needed to execute the equations)
+        :offset: line offset indicating how many lines are being excecuted in if_recursive
+        :mod_name: name of the mechanism"""
+
+    orig_offset = offset
+    # if mod_name == 'Ca':
+    #     print('if recursive called')
+    #     print("list_mod:", list_mod)
+    while not re.search("[^a-zA-Z]}[^a-zA-Z]",list_mod[offset-orig_offset]):
+        # if mod_name == 'Ca':
+        #     print(f'list_mod[offset-orig_offset]: {list_mod[offset-orig_offset]}')
+        if re.search('if',list_mod[offset-orig_offset]) and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here1')
+            if_statement = eval(re.search(tc.if_pattern,list_mod).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
+            if_recursive(list_mod[offset+1-orig_offset:],if_statement,variables_dict,offset+1,mod_name)
+        elif re.search('else',list_mod[offset-orig_offset]): #and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here2')
+            return if_recursive(list_mod[offset+1-orig_offset:],not if_statement,variables_dict,offset+1,mod_name) #return variables_dict, offset+1
+        elif re.search('=',list_mod[offset-orig_offset]) and if_statement:
+            # if mod_name == 'Ca':
+            #     print('here3')
+            #     print(list_mod[offset-orig_offset])
+            #     print(variables_dict)
+            calc_eq(list_mod[offset-orig_offset],variables_dict,mod_name=mod_name)
+            offset += 1 
+        else:
+            # if mod_name == 'Ca':
+            #     print('here4')
+            offset +=1  
+
+    return variables_dict, offset+1    
+
+
+def gating_from_PROCEDURES_old(list_mod,mod_name,Vm): #,start_executing = 0): #DEPRECATED
+    """ extract PROCEDURE block and execute all equations to retrieve alpha, beta, tau and inf from m and h
+        :list_mod: list containing all the lines from a NMODL .mod file
+        :mod_name: name of the mechanism
+        :Vm: the voltage (v in neuron)"""
+
+    #print(mod_name)
+    celsius = tc.T_C #temperature in degrees Celsius
+    proc_executing, param_executing = 0,0
+
+    variables_dict = {'v': Vm, 'celsius' : celsius} #uncomment this if v is a known parameter
+    # if mod_name == 'Ca':
+    #     print(f"voltage = {variables_dict['v']}")
+    i = 0
+    while i < len (list_mod):
+        e = list_mod[i]
+        estrip = e.strip()
+    #for i,e in enumerate(list_mod):
+        #stop when PROCEDURE BLOCK is finished
+        if re.search('^}',e):
+            proc_executing = 0
+            param_executing = 0
+        if proc_executing == 1:
+            if re.search('if',e):
+                # if mod_name == 'Ca':
+                #     variables_dict["v"] = -27
+                #     print(f'mod_name: {mod_name}, v = {variables_dict["v"]} , line: {e}')
+                if_statement = eval(eq_hoc2pyt(re.search(tc.if_pattern,e).group()),{**globals(),**variables_dict})
+                #print(re.search(tc.if_pattern,e).group())
+                # if mod_name == 'Ca':
+                #     print('if_statement: ',if_statement)
+                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,0,mod_name)
+                # if mod_name == 'Ca':
+                #     print(f"variables_dict : {variables_dict}, offset: {offset}")                    
+                i += offset
+                continue
+            #elif?
+            if re.search('=',e) and not(estrip.startswith(':')):
+                #print(estrip)
+                calc_eq(estrip,variables_dict,mod_name)
+        elif param_executing == 1:
+            if re.search('=',e) and not(estrip.startswith(':')):
+                #print(estrip)
+                if re.findall("\(.*\)",e):
+                    calc_eq(e.replace(re.findall("\(.*\)",e)[0],""),variables_dict) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
+                else:
+                    calc_eq(e,variables_dict) #don't replace anything if units are not given
+        #start when entering PROCEDURE block on the next iteration
+        if re.search('PROCEDURE',e):
+            proc_executing = 1
+        #start when entering PARAMETER block on the next iteration
+        if re.search('PARAMETER',e):
+            param_executing = 1
+        i += 1
+
+    #maybe good idea to add a suffix to each variable -> NO
+    #variables_dict[variable+'_'+mod_name.replace(".mod","")]
+    for x in ['m','h']:
+        if not x+'alpha' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
+            variables_dict[x+'alpha'] = variables_dict[x+'inf'] / variables_dict[x+'tau']
+        if not x+'beta' in variables_dict.keys() and x+'tau' in variables_dict.keys() and x+'inf' in variables_dict.keys():
+            variables_dict[x+'beta'] = (1 - variables_dict[x+'inf']) / variables_dict[x+'tau']
+    # if mod_name == 'Ca':
+    #     print("final variables_dict: ",variables_dict)
+    #     quit()
+    return variables_dict   
+
+
+def currents_from_BREAKPOINT_old(list_mod,mod_name,Vm,x_dict,g_dict,location,start_executing = 0): #DEPRECATED
+    """ extract PROCEDURE block and execute all equations to retrieve the current from m and h
+        :list_mod: list containing the lines of the NMODL .mod file
+        :mod_name: name of the mechanism
+        :Vm: voltage (v in neuron)
+        :x_dict: dictionary containing the gating parameters with their respective value of the mechanisms
+        :g_dict:dictionary containing all the conductivities of the different mechanisms
+        :location: keyword that reveals the location of the section which determines the exact conductivity
+        :start_executing: parameter that determines if a line in the NMODL file needs to be executed or not"""
+
+    celsius = tc.T_C #temperature in degrees Celsius
+    #gbar = eval('g'+mod_name.replace('.mod','')+'bar')
+    ek, ena, eleak, ehcn = tc.EK, tc.ENa, tc.ELeak, tc.ehcn
+
+    try:
+        m = x_dict['m_'+mod_name.replace('.mod','')]
+    except:
+        m = 0
+        print(f'{tc.bcolors.OKCYAN}LOG: \t {x_dict} does not contain an m for: {mod_name}{tc.bcolors.ENDC}')
+    try:
+        h = x_dict['h_'+mod_name.replace('.mod','')]
+    except:
+        h = 0
+        print(f'{tc.bcolors.OKCYAN}LOG: \t {x_dict} does not contain an h for {mod_name}{tc.bcolors.ENDC}')
+
+    variables_dict = {'v': Vm, 'celsius' : celsius, 'm' : m,\
+                      'h' : h, 'ek' : ek, 'ena' : ena,\
+                        'eleak' : eleak, 'ehcn' : ehcn} | g_dict[location]
+    variables_dict_backup = copy.copy(variables_dict)
+    i = 0
+    while i < len (list_mod):
+        e = list_mod[i]
+    #for i,e in enumerate(list_mod):
+        #stop when PROCEDURE BLOCK is finished
+        if re.search('^}',e):
+            start_executing = 0
+        if start_executing == 1:
+            if re.search('if',e):
+                if_statement = eval(re.search(tc.if_pattern,e).group().replace('exp','np.exp').replace('^','**').lower(),{**globals(),**variables_dict})
+                variables_dict,offset = if_recursive(list_mod[i+1:],if_statement,variables_dict,1)
+                i += offset
+                continue
+            #elif?
+            if re.search('=',e):
+                calc_eq(e,variables_dict)
+        #start when entering PROCEDURE block on the next iteration
+        if re.search('BREAKPOINT',e):
+            start_executing = 1
+        i += 1
+
+    #maybe good idea to add a suffix to each variable
+    #variables_dict[variable+'_'+mod_name.replace(".mod","")]
+
+    # reduced dictionary with only the newly calculated values
+    variables_reduced = copy.copy(variables_dict)
+    for e in variables_dict_backup:
+        del variables_reduced[e]
+
+    return variables_dict, variables_reduced
+
+
+def plt_LUTeff_old(variable,table,Q_refs,A_refs,plot=False,reduced_yrange=False, reduced_xrange=False): #DEPRECATED
+    """plot the given effective variable in function of the charge density for different pressure amplitudes
+    this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction"""
+
+    num_shades = len(A_refs) #number of different colors for the different curves on 1 plot
+    #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
+    step = 5
+
+    cmap = plt.cm.get_cmap('Wistia')
+    # Generate colors across the colormap
+    colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
+    #colors.reverse()
+    #colors = plt.cm.Reds(np.linspace(0, 1, len(pkldict['refs']['Q'])))
+    plt.clf()
+    no_reduc = ['tcomp','V']
+    for i,e in enumerate(table[::step]): #take only every fifth amplitude
+        plt.plot(Q_refs*1e5,e,label=f"{A_refs[::step][i]*1e-3:.1e} kPa".replace('+0','').replace('-0',''),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+        plt.legend()
+        plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
+        ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
+        plt.ylabel(f'{ylab}')
+        if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
+            change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
+            change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
+            e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
+            e_limited = [e for e in e_sorted if e < 10 and e > -10] #filter values that go out of bounds
+            if not e_limited: #if no value falls under the limited range, use the original array instead of no values
+                e_limited = e
+            # print(variable); print('before'); print(plt.ylim())
+            plt.ylim(bottom = min(np.min(e_limited),-0.5)) if change_lower else None
+            plt.ylim(top = max(np.max(e_limited),0.5)) if change_upper else None
+        if reduced_xrange:
+            plt.xlim(-100,50) #in order that the plots for different Cm0's have the same x-range (Q-range)
+            # print('after'); print(plt.ylim()); print('\n\n')
+        if plot:
+            plt.show()
+        
+
+def save_gatingplots_old(pkldict,foldername,reduced_yrange=True,reduced_xrange=False,Cm0=None): #DEPRECATED
+    """save all plots for the different LUTs, containing the effective variables of the gating kinetics
+    (this function assumes that the LUT is calculated for only 1 sonophore radius, 1 frequency and 1 sonophore coverage fraction)"""
+
+    Qrange,Arange = pkldict['refs']['Q'], pkldict['refs']['A']
+    plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
+    #plot all calculated effective variables
+    for key in pkldict['tables']:
+        table = pkldict['tables'][key] #(a,f,A,Q,Cm,fs)
+        table2 = table[0][0] #remove a and f
+        if Cm0:
+            ind = np.where(pkldict['refs']['Cm0']==Cm0)[0]
+            if len(ind):
+                ind = ind[0]
+                table2 = np.moveaxis(table2,-2,0) #move Cm to the beginning
+                table2 = table2[ind] #remove Cm
+            else:
+                print(f"Cm0 value: {Cm0} is not in LUT!\nPossible Cm0-values:{pkldict['refs']['Cm0']}")
+                quit()
+        plt_LUTeff_old(key,table2,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+        Cm0_ext = str(Cm0) if Cm0 else '' #'_' + 
+        plt.savefig(f'figs/{foldername}/{Cm0_ext}/{key}.png')
+
+    #plot the effective capacity
+    table_V = pkldict['tables']['V'][0][0]
+    if Cm0:
+        table_V = np.moveaxis(table_V,-2,0)
+        table_V = table_V[ind]
+    Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape)
+    table_C = Q_table / table_V
+    plt_LUTeff_old('C',table_C,Qrange,Arange,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+    plt.savefig(f'figs/{foldername}/{Cm0_ext}/C.png')   
