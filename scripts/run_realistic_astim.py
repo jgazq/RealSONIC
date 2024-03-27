@@ -28,6 +28,10 @@ def main():
     if args['mpi']:
         logger.warning('NEURON multiprocessing disabled')
 
+    #START DEBUGGING VALUES (normally this should be given in the command line)
+    args['fs'] = [0.75]
+    #END DEBUGGING VALUES
+
     # Run batch
     logger.info('Starting fiber A-STIM simulation batch')
     queue = [item[:2] for item in NeuronalBilayerSonophore.simQueue(

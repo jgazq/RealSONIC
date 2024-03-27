@@ -2,8 +2,6 @@
     in order to create the LUT for all the different mechanisms"""
 
 import os
-if "DISPLAY" in  os.environ:
-    del os.environ['DISPLAY']
 import numpy as np
 from neuron import h
 import shutil

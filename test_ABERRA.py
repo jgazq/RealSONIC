@@ -3,10 +3,6 @@
 #Aberra recommends: -NSTACK 100000 -NFRAME 20000
 #os.environ["NEURON_MODULE_OPTIONS"] = nrn_options
 
-import os
-if "DISPLAY" in  os.environ:
-    del os.environ['DISPLAY']
-
 from neuron import h, gui
 #h("NSTACK_size = 10000") 
 "mosinit.command"

@@ -237,7 +237,7 @@ def main():
     parser.defaults['amp'] = np.insert(
         np.logspace(np.log10(0.1), np.log10(600), num=50), 0, 0.0)  # kPa #50 different pressure amplitudes, including 0 so none
     parser.defaults['charge'] = np.nan
-    parser.defaults['Qstart'], parser.defaults['Qend'] = None, None
+    parser.defaults['Qstart'], parser.defaults['Qend'] = 0, -1
     parser.defaults['Cm0'] = np.array([1., 2.]) #np.array([0.02, 1., 2.]) #uF/cm2 #given in command line
     parser.add_argument('--novertones', type=int, default=0, help='Number of Fourier overtones') # numer of Qm overtones
     args = parser.parse()
@@ -255,12 +255,12 @@ def main():
             charges = np.arange(Qmin, Qmax + DQ_LOOKUP, DQ_LOOKUP)  # C/m2 #DQ_LOOKUP is step value
             #charges = np.linspace(Qmin, Qmax, 2) #for debugging
             Qstart, Qend = args['Qstart'][0], args['Qend'][0]
-            if Qstart:
-                if Qend:
+            if Qstart > 0:
+                if Qend > 0:
                     charges = charges[Qstart:Qend]
                 else:
                     charges = charges[Qstart:]
-            elif Qend:
+            elif Qend > 0:
                 charges = charges = charges[:Qend]
 
         # Number of Fourier overtones
