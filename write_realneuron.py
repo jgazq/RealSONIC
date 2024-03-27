@@ -2,8 +2,6 @@
     in order to create the LUT for all the different mechanisms"""
 
 import os
-if "DISPLAY" in  os.environ:
-    del os.environ['DISPLAY']
 import numpy as np
 from neuron import h
 import shutil
@@ -53,7 +51,7 @@ with open(path,'w') as filenaam:
 import numpy as np
 from neuron import h
 import sys
-sys.path.append("{this_path}")
+sys.path.append(r"{this_path}")
 import tempFunctions as tf
 
 from ..core import PointNeuron, addSonicFeatures\n\n""")

@@ -55,6 +55,7 @@ def load_pickle(dictio, path, filename = None):
     with open(fpath, 'wb') as fh:
         pickle.dump(dictio, fh)
     print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
+    
 
 def merge_LUTdicts(dict1, dict2):
     """ merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables

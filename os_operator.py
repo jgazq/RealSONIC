@@ -1,5 +1,5 @@
 import os
-from docx import Document #TURN ON
+from docx import Document
 
 def search_folder(string, non_string ,folder,case_sens=1):
     """searches in all lines of all files in a folder for a given list of strings
@@ -41,8 +41,8 @@ def search_folder(string, non_string ,folder,case_sens=1):
     print('')
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
-folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC']
-search_folder(['mod_duplicate'],[],r'/Users/joaquin/Documents/python-virtual-environments/RealSONIC')
+folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC',r'/Users/joaquin/Documents/python-virtual-environments/MorphoSONIC']
+search_folder(['TESTING'],[],r'C:\Users\jgazquez\PySONIC')
 
 
 def search_file(string, folder,filename_only=False):
@@ -85,6 +85,8 @@ def remove_dll(folder):
                 os.remove(file)
                 
 #remove_dll(os.path.join(os.getcwd(),'mechanisms\eff'))
+#remove_dll(r'C:\Users\jgazquez\MorphoSONIC\MorphoSONIC\nmodl')           
+                
 
 
 def search_docx(string,folder):
@@ -108,3 +110,15 @@ def search_docx(string,folder):
 
 # search_docx('rest',r'C:\Users\jgazquez\OneDrive - UGent\PhD') #just a test
 #search_docx('37',r'/Users/joaquin/Library/CloudStorage/OneDrive-UGent/PhD') #just a test
+    
+def print_mods(folder):
+    """print all the effective mechanisms"""
+
+    lijst = []
+    for root, dirs, files in os.walk(folder): #go through all files in the mechanics folders (all depths)
+        for file in files:
+            file = os.path.join(root,file)
+            if "eff" in file and file.endswith(".mod"):
+                lijst.append(file.split('\\')[-1].split('.mod')[0])  
+    print(lijst)
+#print_mods(os.path.join(os.getcwd(),'mechanisms'))

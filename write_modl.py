@@ -4,8 +4,6 @@
 import numpy as np
 import pandas as pd
 import os
-if "DISPLAY" in  os.environ:
-    del os.environ['DISPLAY']
 import shutil
 # import sys
 import re
@@ -18,7 +16,7 @@ h.load_file("init.hoc")
 """"--------------- INPUTS ---------------"""
 cell_nr = 7
 sec_type = 'somatic'
-pickle_folder = "/Users/joaquin/Documents/python-virtual-environments/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
+pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
 
 """"--------------------------------------"""
@@ -57,14 +55,14 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             """"the mechanisms, where there are no computed effective variables and function tables, also need some modifications for the recasting"""
             """except xtra.mod?"""
             if 'xtra' in file_repl or 'CaDynamics' in file_repl:
-                #shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #TURN ON
+                shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #DONT DO THIS IN MAC
                 continue    
             if 'pas' in file_repl:
                 #here we don't iterate over the Cm0_map as it doesn't include the value for 0.02 (which is not in LUT)
                 "Cm0 = 1"
-                #shutil.copy(root+file,root+"eff\\"+file) #TURN ON
+                shutil.copy(root+file,root+"eff\\"+file.replace(".mod","_eff.mod")) #DONT DO THIS IN MAC
                 "Cm0 = 2"
-                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace('.mod','_2.mod')),'w') as dupl: 
+                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace(".mod","_eff.mod").replace('.mod','_2.mod')),'w') as dupl: 
                     flist = list(f)
                     flist2 = tf.SUFFIX_Cm0(flist,"2")
                     dupl.writelines(flist2)
