@@ -30,6 +30,10 @@ def main():
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
     args['fs'] = [0.75]
+    args['radius'] = [16*1e-9]
+    args['freq'] = [100*1e3]
+    args['section'] = ['soma0']
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
     #END DEBUGGING VALUES
 
     # Run batch
@@ -47,7 +51,7 @@ def main():
                 fiber.fs = fs
                 for x0 in args['x0']:
                     for sigma in args['sigma']:
-                        print(f"x0 ={x0}, sigma = {sigma}")
+                        print(f"source parameters: x0 ={x0}, sigma = {sigma}")
                         if args['save']:
                             if stimulation == "gaussian":
                                 simqueue = [(

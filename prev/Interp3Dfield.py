@@ -1,6 +1,6 @@
 # Run from anaconda python-prompt with exec(open("Interp3Dfield.py").read())
 
-from neuron import h, gui
+from neuron import h#, gui
 import numpy as np
 import math
 import sys, os

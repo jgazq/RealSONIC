@@ -84,3 +84,7 @@ state_pattern = "[a-zA-Z]"
 stateder_pattern = "[a-zA-Z]\'"
 onelineBLOCK_pattern = "^[a-zA-Z]+.*\{.*\}"
 Cm0_map = {1.: '', 2.: '2'} #{0.02: '0_02', 1.: '', 2.: '2'}
+
+"""-----PLOTTING-----"""
+plotting_factors = {'a': 1e9, 'f': 1e-3, 'A': 1e-3, 'Cm0': 1e2}
+plotting_units = {'a': 'nm', 'f': 'kHz', 'A': 'kPa', 'Cm0': 'uF/cm2'}

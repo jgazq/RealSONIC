@@ -5,6 +5,8 @@
 */
 
 {load_file("nrngui.hoc")}
+//{load_file("stdlib.hoc")}
+//{load_file("stdrun.hoc")}
 {load_file("interpCoordinates.hoc")}
 {load_file("setPointers.hoc")}
 {load_file("calcVe.hoc")}
@@ -13,7 +15,6 @@
 {load_file("setParams.hoc")}
 {load_file("editMorphology.hoc")} // procs for editing cell morphology
 {load_file("rig.ses")}
-
 createPanels() // in setParams.hoc
 
 objref soma_point3
@@ -58,4 +59,3 @@ proc color_plotmax() { local plot_mode,save_fig
 		shplot.printfile(cellfile)
 	}		
 }
-

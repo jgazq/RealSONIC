@@ -167,8 +167,9 @@ def LUT_extend(filename):
         for i in range(shape[0]): #iterating over a
             for j in range(shape[1]): #iterating over f
                 for k in range(shape[2]): #iterating over A
+
                     for m in range(shape[4]): #iterating over Cm0
-                        for n in range(shape[5]):
+                        for n in range(shape[5]): #iterating over fs
                             #print(table[i,j,k,:,m,n])
                             nonzero = np.nonzero(table[i,j,k,:,m,n])[0] #returns the indexes of nonzero values
                             first_value = table[i,j,k,nonzero[0],m,n]
@@ -179,6 +180,31 @@ def LUT_extend(filename):
                                 if l > nonzero[-1]: #same for all values above the last non-zero value
                                     table[i,j,k,l,m,n] = last_value
     load_pickle(pkldict,filename.replace('.pkl','_ext.pkl'))
+
+
+def downsample_LUT(filename, down_factor=[2,2,2,2,2,2]):
+    """downsamples an already calculated LUT
+        :filename: location where the LUT that needs downsampling is located
+        :downfactor: integer for each dimension showing the downsampling reduction factor"""
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    old_dims = [len(e) for e in refs.values()]
+    #idea to only give specific dimension values
+    # if new_dims:
+    #     if len(new_dims) != 6:
+    #         print('Wrong number of dimensions in downsampling')
+    #         quit()
+    if len(down_factor) != 6:
+        print('Wrong number of dimensions in downsampling')
+        quit()    
+    for i,ref in enumerate(pkldict['refs']): 
+        pkldict['refs'][ref] = pkldict['refs'][ref][::down_factor[i]]
+    for table in pkldict['tables']:
+        pkldict['tables'][table] = pkldict['tables'][table][::down_factor[0], ::down_factor[1], ::down_factor[2],
+                                        ::down_factor[3], ::down_factor[4], ::down_factor[5]]
+    new_dims = [len(e) for e in refs.values()]
+    print(f'dimension reduction: {old_dims} ---> {new_dims}')
+    load_pickle(pkldict,filename.replace('.pkl','_ds.pkl'))
 
 
 def rm_us(name): 
@@ -549,6 +575,7 @@ def filter_mod(mod_files,mod_names):
 
     return l_alphas, l_betas, l_taus, l_infs, hits
 
+
 def state_from_line(line,pattern):
     """ look if a gating state parameter is defined in the current/given line
         :line: line that can contain a gating state parameter
@@ -902,7 +929,7 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     no_reduc = ['tcomp','V']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude
         if num_shades > 1:
-            plt.plot(Q_refs*1e5,e,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('+0','').replace('-0','-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+            plt.plot(Q_refs*1e5,e,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
             plt.legend()
         else:
             plt.plot(Q_refs*1e5,e) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
@@ -926,7 +953,7 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
             plt.show()  
 
 
-def save_gatingplots(pkldict,foldername,factor,unit,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
+def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
     """ plots the various gating parameters in function of the charge, it is possible to give multiple radius, frequencies, amplitudes or capacitances
         :pkldict: dictionary containing LUT
         :foldername: directory where the various plots will be stored
@@ -938,10 +965,16 @@ def save_gatingplots(pkldict,foldername,factor,unit,reduced_yrange=True,reduced_
 
     var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} #4 different variables can be sweeped over
     var_list = ['a', 'f', 'A', 'Cm0']
-    title = f"{[f'{k} = {v}' for (k,v) in var_dict.items()]}"
     all_list = np.where(np.array(list(var_dict.values()))=='all')[0]
+    factor = tc.plotting_factors[var_list[all_list[0]]]
+    unit = tc.plotting_units[var_list[all_list[0]]]
+    title = var_list[all_list[0]]+': all'
+    for (k,v) in var_dict.items():
+        if v != 'all':
+            title += f", {k} = {v*tc.plotting_factors[k]:.1e} {tc.plotting_units[k]}"
+    title = title.replace('e+00','').replace('e+0','e').replace('e-0','e-')
     #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
-    ind_list = [int(np.where(abs((pkldict['refs'][k]-v)/v)<0.1)[0][0]) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a value is given, the array is indexed at the given param value
+    ind_list = [int(np.where(abs((pkldict['refs'][k]-v)/(v+1e-10))<0.1)[0][0]) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a value is given, the array is indexed at the given param value, 1e-10 in case of 0
     ind_list = ind_list[:3]+[":"]+[ind_list[3]]+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
     ind_list = [str(e) for e in ind_list] #convert to strings for later on
     if len(all_list) > 1:
@@ -974,6 +1007,7 @@ def save_gatingplots(pkldict,foldername,factor,unit,reduced_yrange=True,reduced_
         plt_LUTeff('C',table_C,Qrange,factor,unit,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
     else:
         plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=pkldict['refs'][var_list[all_list[0]]],reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange)
+    plt.title(title)
     plt.savefig(f'figs/{foldername}/C.png')  
 
 
