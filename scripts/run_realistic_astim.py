@@ -29,15 +29,20 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    args['fs'] = [0.75]
-    args['radius'] = [16*1e-9]
-    args['freq'] = [100*1e3]
-    args['section'] = ['soma0']
-    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
+    args['fs'] = [0.75] #75%
+    args['radius'] = [16*1e-9] #16nm
+    args['freq'] = [100*1e3] #100kHz
+    args['section'] = ['soma0'] #soma0 is considered section
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']} #plotting variables
+    args['amp'] = 1000*1e3
+    args['tstim'] = 0.001
+
+    print(args)
     #END DEBUGGING VALUES
 
     # Run batch
     logger.info('Starting fiber A-STIM simulation batch')
+    #print(AStimParser.parseSimInputs(args)) #shows how the arguments are parsed in an array and not as keyword arguments (kwargs)
     queue = [item[:2] for item in NeuronalBilayerSonophore.simQueue(
         *AStimParser.parseSimInputs(args), outputdir=args['outputdir'])]
     if args['save']:
@@ -51,7 +56,7 @@ def main():
                 fiber.fs = fs
                 for x0 in args['x0']:
                     for sigma in args['sigma']:
-                        print(f"source parameters: x0 ={x0}, sigma = {sigma}")
+                        print(f"source parameters: x0 ={x0}, sigma = {sigma}") if 'gaussian' in stimulation else None
                         if args['save']:
                             if stimulation == "gaussian":
                                 simqueue = [(

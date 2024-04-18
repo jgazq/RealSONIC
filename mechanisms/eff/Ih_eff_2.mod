@@ -48,6 +48,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("Ih2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gIh = gIhbar*m
@@ -59,7 +61,11 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("Ih2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("Ih2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Ih(A_t, y), betam_Ih(A_t, y))
 	m = alpham_Ih(A_t, y) / (alpham_Ih(A_t, y) + betam_Ih(A_t, y))
 }
 

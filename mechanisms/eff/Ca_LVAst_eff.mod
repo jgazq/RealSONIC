@@ -51,6 +51,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("Ca_LVAst.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gCa_LVAst = gCa_LVAstbar*m*m*h
@@ -63,8 +65,14 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("Ca_LVAst.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("Ca_LVAst.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_CaLVAst(A_t, y), betam_CaLVAst(A_t, y))
 	m = alpham_CaLVAst(A_t, y) / (alpham_CaLVAst(A_t, y) + betam_CaLVAst(A_t, y))
+printf("Ca_LVAst.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_CaLVAst(A_t, y), betah_CaLVAst(A_t, y))
 	h = alphah_CaLVAst(A_t, y) / (alphah_CaLVAst(A_t, y) + betah_CaLVAst(A_t, y))
 }
 

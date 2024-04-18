@@ -15,6 +15,7 @@ import copy
 import shutil
 import zipfile
 import datetime
+import scipy.interpolate as interp
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
@@ -56,156 +57,6 @@ def load_pickle(dictio, path, filename = None):
         pickle.dump(dictio, fh)
     print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
     
-
-def merge_LUTdicts(dict1, dict2):
-    """ merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables
-        :dict1: dictionary containing the first LUT
-        :dict2: dicitonary containing the second LUT"""
-
-    refs1, tables1 = dict1['refs'], dict1['tables']
-    refs2, tables2 = dict2['refs'], dict2['tables']
-    refs_merged, tables_merged = dict1['refs'].copy(), dict1['tables'].copy() #dict 1 and 2 contain the same refs (keys)
-
-    for i,ref in enumerate(refs_merged): #iterate over the different reference variables/dimensions of the tables
-        set1 = set(refs1[ref])
-        set2 = set(refs2[ref])
-        refs_merged[ref] = list(set1.union(set2))
-        refs_merged[ref] = np.sort(refs_merged[ref])
-        if len(refs1[ref]) != len(refs_merged[ref]) or len(refs2[ref]) != len(refs_merged[ref]): #refs1 and refs2 aren't fully overlapping so tables need to be combined
-            for table in tables_merged:
-                #tables_merged[table] = np.concatenate((tables1[table],tables2[table]),axis=i) #this assumes that refs1 and refs2 are disjoints sets
-                                                                                               #and that the values of refs2 are all bigger than refs1
-                for j, ref_val in enumerate(refs_merged[ref]):
-                    index_val, whichrefs = (np.where(refs1[ref] == ref_val)[0][0], 1) if ref_val in refs1[ref] else (np.where(refs2[ref] == ref_val)[0][0], 2) if ref_val in refs2[ref] else None
-                    #print(ref_val,index_val,whichrefs)
-                    to_append = np.take(tables1[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 1 else np.take(tables2[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 2 else None
-                    #print(to_append.shape)
-                    new_table = to_append if j == 0 else np.concatenate((new_table,to_append),axis=i) 
-                tables_merged[table] = new_table
-                #check the new dimensions
-                #print(tables_merged[table].shape, tables1[table].shape, tables2[table].shape)
-        #print(len(set1),len(set2),len(refs_merged[ref]))
-
-    merged_dict = {'refs': refs_merged, 'tables': tables_merged}
-
-    return merged_dict
-
-
-def merge_LUT(path, filename1, filename2):
-    """ this reads in 2 LUT pickle files and writes out a LUT that combines the two
-        :path: directory where both LUT files are stored
-        :filename1: name of the first LUT file
-        :filename2: name of the second LUT file"""
-
-    pkldict1 = read_pickle(path,filename1)
-    pkldict2 = read_pickle(path,filename2)
-    merge_dict = merge_LUTdicts(pkldict1,pkldict2)
-    print(filename1.split('.pkl'))
-    filename1_split = filename1.split('.pkl')[0].split('_')
-    filename2_split = filename2.split('.pkl')[0].split('_')
-    merge_filename = ''
-    for e,f in zip(filename1_split, filename2_split):
-        if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
-                                                                    #relevant values need to include 
-            continue
-        if e == f:
-            merge_filename += e
-            merge_filename += '_'
-            continue
-        merge_filename += e + '_' + f + '_'   
-
-    current_time = datetime.datetime.now()
-    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
-    merge_filename += now
-    if merge_filename.endswith("_"):
-        merge_filename = merge_filename[:-1]              
-        
-    load_pickle(merge_dict,path,merge_filename+'_merged.pkl')
-
-
-def merge_LUTlist(path,filenamelist):
-    """ this reads in a list of LUT pickle files and writes out a LUT that combines them all
-        :path: directory where the various LUT files are stored
-        :filenamelist: list of filenames of the LUTs that need to be merged"""
-
-    pkldict_merged = read_pickle(path,filenamelist[0])
-    merged_name = filenamelist[0]
-    for e in filenamelist[1:]:
-
-        pkldict2 = read_pickle(path,e)
-        pkldict_merged = merge_LUTdicts(pkldict_merged,pkldict2)
-        merged_split = merged_name.split('.pkl')[0].split('_')
-        filename2_split = e.split('.pkl')[0].split('_')
-        merge_filename = ''
-        for e,f in zip(merged_split, filename2_split):
-            if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
-                                                                        #relevant values need to include 
-                continue
-            if e == f:
-                merge_filename += e
-                merge_filename += '_'
-                continue
-            merge_filename += e + '_' + f + '_'   
-        merged_name = merge_filename
-
-    current_time = datetime.datetime.now()
-    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
-    merge_filename += now
-    if merge_filename.endswith("_"):
-        merge_filename = merge_filename[:-1]              
-        
-    load_pickle(pkldict_merged,path,merge_filename+'_merged.pkl')
-
-
-def LUT_extend(filename):
-    """ extends the LUT replacing the zero value by the edge values
-        :filename: name of the LUT file that needs to be extended"""
-    pkldict = read_pickle(filename)
-    refs = pkldict['refs']
-    for table in pkldict['tables'].values():
-        shape = table.shape
-        for i in range(shape[0]): #iterating over a
-            for j in range(shape[1]): #iterating over f
-                for k in range(shape[2]): #iterating over A
-
-                    for m in range(shape[4]): #iterating over Cm0
-                        for n in range(shape[5]): #iterating over fs
-                            #print(table[i,j,k,:,m,n])
-                            nonzero = np.nonzero(table[i,j,k,:,m,n])[0] #returns the indexes of nonzero values
-                            first_value = table[i,j,k,nonzero[0],m,n]
-                            last_value = table[i,j,k,nonzero[-1],m,n]
-                            for l in range(shape[3]):
-                                if l < nonzero[0]: #all values before the first nonzero value are put equal to that value
-                                    table[i,j,k,l,m,n] = first_value
-                                if l > nonzero[-1]: #same for all values above the last non-zero value
-                                    table[i,j,k,l,m,n] = last_value
-    load_pickle(pkldict,filename.replace('.pkl','_ext.pkl'))
-
-
-def downsample_LUT(filename, down_factor=[2,2,2,2,2,2]):
-    """downsamples an already calculated LUT
-        :filename: location where the LUT that needs downsampling is located
-        :downfactor: integer for each dimension showing the downsampling reduction factor"""
-    pkldict = read_pickle(filename)
-    refs = pkldict['refs']
-    old_dims = [len(e) for e in refs.values()]
-    #idea to only give specific dimension values
-    # if new_dims:
-    #     if len(new_dims) != 6:
-    #         print('Wrong number of dimensions in downsampling')
-    #         quit()
-    if len(down_factor) != 6:
-        print('Wrong number of dimensions in downsampling')
-        quit()    
-    for i,ref in enumerate(pkldict['refs']): 
-        pkldict['refs'][ref] = pkldict['refs'][ref][::down_factor[i]]
-    for table in pkldict['tables']:
-        pkldict['tables'][table] = pkldict['tables'][table][::down_factor[0], ::down_factor[1], ::down_factor[2],
-                                        ::down_factor[3], ::down_factor[4], ::down_factor[5]]
-    new_dims = [len(e) for e in refs.values()]
-    print(f'dimension reduction: {old_dims} ---> {new_dims}')
-    load_pickle(pkldict,filename.replace('.pkl','_ds.pkl'))
-
 
 def rm_us(name): 
     """ reduce the number of underscores in a name/string to none
@@ -892,6 +743,347 @@ def eff_to_noteff(flist, Cm0):
     return flist
             
 
+def replace_str(flist,to_repl,repl_with):
+    """ replaces a certain string with another one in a given list
+        :flist: list (possibly) containing the string to replace
+        :to_repl: string that needs to be replaced with repl_with
+        :repl_with: string that needs to go in the place of to_repl"""
+    for i,e in enumerate(flist):
+        if to_repl in e:
+            flist[i] = e.replace(to_repl,repl_with)
+    return flist
+
+
+"""-----------------------------------------------------------------------------------LUT MANIPULATION-----------------------------------------------------------------------------------"""
+def merge_LUTdicts(dict1, dict2):
+    """ merging 2 LUT dictionaries by combining their reference variable values and the corresponding tables
+        :dict1: dictionary containing the first LUT
+        :dict2: dicitonary containing the second LUT"""
+
+    refs1, tables1 = dict1['refs'], dict1['tables']
+    refs2, tables2 = dict2['refs'], dict2['tables']
+    refs_merged, tables_merged = dict1['refs'].copy(), dict1['tables'].copy() #dict 1 and 2 contain the same refs (keys)
+
+    for i,ref in enumerate(refs_merged): #iterate over the different reference variables/dimensions of the tables
+        set1 = set(refs1[ref])
+        set2 = set(refs2[ref])
+        refs_merged[ref] = list(set1.union(set2))
+        refs_merged[ref] = np.sort(refs_merged[ref])
+        if len(refs1[ref]) != len(refs_merged[ref]) or len(refs2[ref]) != len(refs_merged[ref]): #refs1 and refs2 aren't fully overlapping so tables need to be combined
+            for table in tables_merged:
+                #tables_merged[table] = np.concatenate((tables1[table],tables2[table]),axis=i) #this assumes that refs1 and refs2 are disjoints sets
+                                                                                               #and that the values of refs2 are all bigger than refs1
+                for j, ref_val in enumerate(refs_merged[ref]):
+                    index_val, whichrefs = (np.where(refs1[ref] == ref_val)[0][0], 1) if ref_val in refs1[ref] else (np.where(refs2[ref] == ref_val)[0][0], 2) if ref_val in refs2[ref] else None
+                    #print(ref_val,index_val,whichrefs)
+                    to_append = np.take(tables1[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 1 else np.take(tables2[table],indices=range(index_val,index_val+1),axis=i) if whichrefs == 2 else None
+                    #print(to_append.shape)
+                    new_table = to_append if j == 0 else np.concatenate((new_table,to_append),axis=i) 
+                tables_merged[table] = new_table
+                #check the new dimensions
+                #print(tables_merged[table].shape, tables1[table].shape, tables2[table].shape)
+        #print(len(set1),len(set2),len(refs_merged[ref]))
+
+    merged_dict = {'refs': refs_merged, 'tables': tables_merged}
+
+    return merged_dict
+
+
+def merge_LUT(path, filename1, filename2):
+    """ this reads in 2 LUT pickle files and writes out a LUT that combines the two
+        :path: directory where both LUT files are stored
+        :filename1: name of the first LUT file
+        :filename2: name of the second LUT file"""
+
+    pkldict1 = read_pickle(path,filename1)
+    pkldict2 = read_pickle(path,filename2)
+    merge_dict = merge_LUTdicts(pkldict1,pkldict2)
+    print(filename1.split('.pkl'))
+    filename1_split = filename1.split('.pkl')[0].split('_')
+    filename2_split = filename2.split('.pkl')[0].split('_')
+    merge_filename = ''
+    for e,f in zip(filename1_split, filename2_split):
+        if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
+                                                                    #relevant values need to include 
+            continue
+        if e == f:
+            merge_filename += e
+            merge_filename += '_'
+            continue
+        merge_filename += e + '_' + f + '_'   
+
+    current_time = datetime.datetime.now()
+    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
+    merge_filename += now
+    if merge_filename.endswith("_"):
+        merge_filename = merge_filename[:-1]              
+        
+    load_pickle(merge_dict,path,merge_filename+'_merged.pkl')
+
+
+def merge_LUTlist(path,filenamelist):
+    """ this reads in a list of LUT pickle files and writes out a LUT that combines them all
+        :path: directory where the various LUT files are stored
+        :filenamelist: list of filenames of the LUTs that need to be merged"""
+
+    pkldict_merged = read_pickle(path,filenamelist[0])
+    merged_name = filenamelist[0]
+    for e in filenamelist[1:]:
+
+        pkldict2 = read_pickle(path,e)
+        pkldict_merged = merge_LUTdicts(pkldict_merged,pkldict2)
+        merged_split = merged_name.split('.pkl')[0].split('_')
+        filename2_split = e.split('.pkl')[0].split('_')
+        merge_filename = ''
+        for e,f in zip(merged_split, filename2_split):
+            if not(re.search('[a-zA-Z]',e) or re.search('[a-zA-Z]',f)): #if both filenames don't contain a letter, skip this part of the filename
+                                                                        #relevant values need to include 
+                continue
+            if e == f:
+                merge_filename += e
+                merge_filename += '_'
+                continue
+            merge_filename += e + '_' + f + '_'   
+        merged_name = merge_filename
+
+    current_time = datetime.datetime.now()
+    now = datetime.datetime.strftime(current_time,'%Y_%m_%d_%H_%M_%S')    
+    merge_filename += now
+    if merge_filename.endswith("_"):
+        merge_filename = merge_filename[:-1]              
+        
+    load_pickle(pkldict_merged,path,merge_filename+'_merged.pkl')
+
+
+def LUT_extend(filename):
+    """ extends the LUT replacing the zero value by the edge values
+        :filename: name of the LUT file that needs to be extended"""
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    for table in pkldict['tables'].values():
+        shape = table.shape
+        for i in range(shape[0]): #iterating over a
+            for j in range(shape[1]): #iterating over f
+                for k in range(shape[2]): #iterating over A
+
+                    for m in range(shape[4]): #iterating over Cm0
+                        for n in range(shape[5]): #iterating over fs
+                            #print(table[i,j,k,:,m,n])
+                            nonzero = np.nonzero(table[i,j,k,:,m,n])[0] #returns the indexes of nonzero values
+                            first_value = table[i,j,k,nonzero[0],m,n]
+                            last_value = table[i,j,k,nonzero[-1],m,n]
+                            for l in range(shape[3]):
+                                if l < nonzero[0]: #all values before the first nonzero value are put equal to that value
+                                    table[i,j,k,l,m,n] = first_value
+                                if l > nonzero[-1]: #same for all values above the last non-zero value
+                                    table[i,j,k,l,m,n] = last_value
+    load_pickle(pkldict,filename.replace('.pkl','_ext.pkl'))
+
+
+def downsample_LUT(filename, down_factor=[1,1,2,2,1,1], load=True):
+    """ downsamples an already calculated LUT
+        :filename: location where the LUT that needs downsampling is located
+        :down_factor: integer for each dimension showing the downsampling reduction factor"""
+    
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    old_dims = [len(e) for e in refs.values()]
+    #idea to only give specific dimension values
+    # if new_dims:
+    #     if len(new_dims) != 6:
+    #         print('Wrong number of dimensions in downsampling')
+    #         quit()
+    if len(down_factor) != 6:
+        raise ValueError('Wrong number of dimensions in downsampling')
+    for i,ref in enumerate(pkldict['refs']): 
+        pkldict['refs'][ref] = pkldict['refs'][ref][::down_factor[i]]
+    for table in pkldict['tables']:
+        pkldict['tables'][table] = pkldict['tables'][table][::down_factor[0], ::down_factor[1], ::down_factor[2],
+                                        ::down_factor[3], ::down_factor[4], ::down_factor[5]]
+    new_dims = [len(e) for e in refs.values()]
+    print(f'dimension reduction: {old_dims} ---> {new_dims}')
+
+    if load:
+        load_pickle(pkldict,filename.replace('.pkl','_ds.pkl'))
+    return pkldict
+
+
+def upsample_LUT(filename, refs_up=None, method='linear', load=True):
+    """ upsample an already calculated LUT
+        :filename: location where the LUT that needs upsampling is located
+        :up_factor: integer for each dimension showing the upsampling increase factor"""
+    
+    if not refs_up:
+        a = np.array([16.0, 32.0, 64.0])*1e-9
+        f = np.array([100., 500., 1e3, 2e3, 3e3])*1e3 #np.array([20., 100., 500., 1e3, 2e3, 3e3, 4e3])*1e3
+        P_A = np.append(0,np.logspace(np.log10(0.1), np.log10(600), 50))*1e3
+        Vm0min, Cm0max = -75, 0.02
+        Qmin, Qmax = np.array([np.round(Vm0min - 35.0), 50.0]) * Cm0max * 1e-3
+        DQ_LOOKUP = 1e-5
+        Q = np.arange(Qmin, Qmax + DQ_LOOKUP, DQ_LOOKUP)
+        Cm0 = np.array([0.01, 0.02])
+        fs = np.array([0.75])
+        refs_up = (a, f, P_A, Q, Cm0, fs)
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    old_dims = [len(e) for e in refs.values()]
+
+    new_points = (a[:, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis],
+                    f[np.newaxis, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis],
+                    P_A[np.newaxis, np.newaxis, :, np.newaxis, np.newaxis, np.newaxis],
+                    Q[np.newaxis, np.newaxis, np.newaxis, :, np.newaxis, np.newaxis],
+                    Cm0[np.newaxis, np.newaxis, np.newaxis, np.newaxis, :, np.newaxis],
+                    fs[np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis, :])
+    # refs = tuple(e for e in refs.values())
+    # print([e.shape for e in refs])
+    # print('-'*150)
+    # print([e.shape for e in refs_up])
+
+    for table in pkldict['tables']:
+        pkldict['tables'][table] = interp.interpn(tuple(e for e in refs.values()), pkldict['tables'][table],new_points, method=method)
+        #print(f'done {table}')
+    for i,ref in enumerate(pkldict['refs']): #this assumes that ref order is the same
+        pkldict['refs'][ref] = refs_up[i]
+    
+    new_dims = [len(e) for e in refs_up]
+    print(f'dimension increase: {old_dims} ---> {new_dims}')
+    if load:
+        load_pickle(pkldict,filename.replace('.pkl',f'_us_{method}.pkl'))
+    return pkldict
+
+
+def upsample_LUT2(filename, new_refs=None, method='linear', load=True):
+    """ upsample an already calculated LUT
+        :filename: location where the LUT that needs upsampling is located
+        :up_factor: integer for each dimension showing the upsampling increase factor"""
+    
+    if not new_refs:
+        a = np.array([16.0, 32.0, 64.0])*1e-9
+        f = np.array([100., 500., 1e3, 2e3, 3e3])*1e3 #np.array([20., 100., 500., 1e3, 2e3, 3e3, 4e3])*1e3
+        P_A = np.append(0,np.logspace(np.log10(0.1), np.log10(600), 50))*1e3
+        Vm0min, Cm0max = -75, 0.02
+        Qmin, Qmax = np.array([np.round(Vm0min - 35.0), 50.0]) * Cm0max * 1e-3
+        DQ_LOOKUP = 1e-5
+        Q = np.arange(Qmin, Qmax + DQ_LOOKUP, DQ_LOOKUP)
+        Cm0 = np.array([0.01, 0.02])
+        fs = np.array([0.75])
+        new_refs = [a, f, P_A, Q, Cm0, fs]
+    pkldict = read_pickle(filename)
+    new_pkldict = copy.deepcopy(pkldict)
+    old_refs = list((pkldict['refs']).values())
+    old_dims = [len(e) for e in old_refs]
+    new_dims = [len(e) for e in new_refs]
+    print(f'old_dims: {old_dims}, new_dims: {new_dims}')
+
+
+    new_points = (P_A[:, np.newaxis],
+                    Q[np.newaxis, :])
+    #ref_tuple = (refs['A'], refs['Q'], refs['Cm0'], refs['fs'])
+    padding_vals = tuple((e-f,0) for e,f in zip(new_dims,old_dims))
+    print(f"padding_vals: {padding_vals}")
+    for table in pkldict['tables']:
+        #print('before padding:', new_pkldict['tables'][table].shape)
+        new_pkldict['tables'][table] = np.pad(pkldict['tables'][table],padding_vals)
+        #print('after padding:', new_pkldict['tables'][table].shape)
+        for i in range(len(pkldict['tables'][table])):
+            for j in range(len(pkldict['tables'][table][i])):
+                for m in range(len(pkldict['tables'][table][i,0,0,0])):
+                    for n in range(len(pkldict['tables'][table][i,0,0,0,0])):
+                        new_pkldict['tables'][table][i,j,:,:,m,n] = interp.interpn(old_refs[2:4], pkldict['tables'][table][i,j,:,:,m,n], new_points, method=method)
+        print(f'done {table}')
+    for i,ref in enumerate(new_pkldict['refs']): #this assumes that ref order is the same
+        new_pkldict['refs'][ref] = new_refs[i]
+    
+    print(f'dimension increase: {old_dims} ---> {new_dims}')
+    if load:
+        load_pickle(new_pkldict,filename.replace('.pkl',f'_us_{method}.pkl'))
+    return new_pkldict
+
+
+def random_LUT(filename):
+    """ replaces the LUT with tables containing random values
+        :filename: location where the LUT is stored"""
+    pkldict = read_pickle(filename)
+    for table in pkldict['tables']:
+        pkldict['tables'][table] = np.random.rand(*pkldict['tables'][table].shape)
+    load_pickle(pkldict,filename.replace('.pkl','_random.pkl'))
+
+
+def lookup_LUT(filename, para = 'V', lookups = [32*1e-9, 500*1e3, 100*1e3, 50*1e-5, 0.01]):
+    """ looks up the value in table given the reference values in each dimension
+        :filename: location where the LUT is stored
+        :para: lookup for this certain parameter table
+        :lookups: the reference values for the LUT"""
+
+    pkldict = read_pickle(filename)
+    if len(lookups) != 5:
+        raise LookupError("Wrong number of LUT values given")
+    var_dict = {'a': lookups[0], 'f': lookups[1], 'A': lookups[2], 'Q': lookups[3], 'Cm0': lookups[4]}
+    ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) for (k,v) in var_dict.items()]
+    vars = pkldict['refs']
+    ref_list = [vars[e][f] for e,f in zip(['a','f','A','Q', 'Cm0'], ind_list)]
+    print(f'lookup value for: {ref_list}')
+    ind_list = f'[{ind_list[0]}, {ind_list[1]}, {ind_list[2]}, {ind_list[3]}, {ind_list[4]}, {0}]'
+    value = eval(f"pkldict['tables']['{para}']{ind_list}")
+    return value
+
+
+def LUT_padding(filename):
+    """"padding a LUT so it has the same dimensions in order to merge
+        :filename: location where the unpadded LUT is located"""
+    
+    pkldict = read_pickle(filename)
+    # for e in pkldict['refs']:
+    #     print(e)
+    pkldict['refs']['Q'] = np.pad(pkldict['refs']['Q'],(0,1))
+    for e in pkldict['tables']:
+        pkldict['tables'][e] = np.pad(pkldict['tables'][e],((0,0),(0,0),(0,0),(0,1),(0,0),(0,0)))
+        #print(pkldict['tables'][e].shape)   
+    load_pickle(pkldict,filename.replace('.pkl','_padded.pkl'))
+
+
+def compare_LUT(filename1, filename2):
+    """ compares 2 given LUT
+        :filename1: location of the first LUT
+        :filename2: location of the second LUT that needs to be compared with the first one"""
+    pkldict1 = read_pickle(filename1)
+    pkldict2 = read_pickle(filename2)
+    V1 = pkldict1['tables']['V']#[0,0]
+    V2 = pkldict2['tables']['V']
+    #V1 = V1.reshape(V2.shape)
+    diff = abs(V1-V2)
+    print(f'shapes: {V1.shape}, {V2.shape}')
+    indexmin = np.unravel_index(np.argmin(diff),V2.shape)
+    indexmax = np.unravel_index(np.argmax(diff),V2.shape)
+    print('ABSOLUTE DIFFERENCE:')
+    print(f'np.mean : {np.mean(diff)}')
+    print(f'np.min : {np.min(diff)} at : {indexmin}, V1 : {V1[indexmin]}, V2 : {V2[indexmin]}')
+    print(f'np.max : {np.max(diff)} at : {indexmax}, V1 : {V1[indexmax]}, V2 : {V2[indexmax]}')
+    print('-'*50)
+    reldiff = abs(V1-V2)/abs(V2)
+    indexrelmin = np.unravel_index(np.argmin(reldiff),V2.shape)
+    indexrelmax = np.unravel_index(np.argmax(reldiff),V2.shape)
+    print('RELATIVE DIFFERENCE:')
+    print(f'np.mean : {np.mean(reldiff)*100:.2f} %')
+    print(f'np.min : {np.min(reldiff)*100:.2f} % at : {indexrelmin}, V1 : {V1[indexrelmin]}, V2 : {V2[indexrelmin]}')
+    print(f'np.max : {np.max(reldiff)*100:.2f} % at : {indexrelmax}, V1 : {V1[indexrelmax]}, V2 : {V2[indexrelmax]}')
+
+
+def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear'):
+    """ downsamples a LUT and upsamples it again to compare with the original LUT
+        :filename: location where the (original) LUT is stored
+        :method: interpolation method for the upsampling"""
+    downsample_LUT(filename,factor)
+    LUTdfile = filename.replace('.pkl','_ds.pkl')
+    print('-'*100)
+    upsample_LUT(LUTdfile, method=method)
+    LUTufile = LUTdfile.replace('.pkl',f'_us_{method}.pkl')
+    print('-'*100)
+    compare_LUT(filename,LUTufile)
+    os.remove(LUTdfile)
+    os.remove(LUTufile)
+
+
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
 def plt_transdistr(psource,grid_type):
     """plot the distribution points of a transducer source"""
@@ -974,7 +1166,8 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
             title += f", {k} = {v*tc.plotting_factors[k]:.1e} {tc.plotting_units[k]}"
     title = title.replace('e+00','').replace('e+0','e').replace('e-0','e-')
     #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
-    ind_list = [int(np.where(abs((pkldict['refs'][k]-v)/(v+1e-10))<0.1)[0][0]) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a value is given, the array is indexed at the given param value, 1e-10 in case of 0
+    ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a value is given, the array is indexed at the given param value, 1e-10 in case of 0
+    print(f"used variables: {[pkldict['refs'][k][min] if min != ':' else 'all' for k, min in zip(var_dict,ind_list)]}")
     ind_list = ind_list[:3]+[":"]+[ind_list[3]]+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
     ind_list = [str(e) for e in ind_list] #convert to strings for later on
     if len(all_list) > 1:

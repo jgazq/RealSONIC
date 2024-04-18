@@ -46,6 +46,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("SKv3_12.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gSKv3_1 = gSKv3_1bar*m
@@ -57,7 +59,11 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("SKv3_12.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("SKv3_12.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_SKv31(A_t, y), betam_SKv31(A_t, y))
 	m = alpham_SKv31(A_t, y) / (alpham_SKv31(A_t, y) + betam_SKv31(A_t, y))
 }
 

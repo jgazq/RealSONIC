@@ -52,6 +52,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("K_Pst.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gK_Pst = gK_Pstbar*m*m*h
@@ -64,8 +66,14 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("K_Pst.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("K_Pst.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_KPst(A_t, y), betam_KPst(A_t, y))
 	m = alpham_KPst(A_t, y) / (alpham_KPst(A_t, y) + betam_KPst(A_t, y))
+printf("K_Pst.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_KPst(A_t, y), betah_KPst(A_t, y))
 	h = alphah_KPst(A_t, y) / (alphah_KPst(A_t, y) + betah_KPst(A_t, y))
 }
 

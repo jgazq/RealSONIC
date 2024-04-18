@@ -18,6 +18,7 @@ cell_nr = 7
 sec_type = 'somatic'
 pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
+DEBUG = True
 
 """"--------------------------------------"""
 
@@ -110,7 +111,11 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         var = re.findall(tc.state_pattern,LHS)[0]
                         alph = f"alpha{var}_{file_repl}(A_t, y)"
                         bet = f"beta{var}_{file_repl}(A_t, y)"
-                        dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
+                        if DEBUG:
+                            #dupl.write(f'printf("{file}: V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
+                            dupl.write(f'printf("{file}: \\n")\n') #add line for debugging
+                            dupl.write(f'printf("V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
+                            dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
                         continue
                     elif (block == "DERIVATIVE" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
@@ -133,8 +138,11 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     elif block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
                         dupl.write("\tA_t  (kPa)\n\ty\n") #add specific lines
                     elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and voltage_gated: #and mod_eff: #add extra line at the beginning of these 2 blocks
-                        # if mod_eff:
-                        #     dupl.write(f'printf("{file}")\n') #add line for debugging
+                        if DEBUG:
+                            if mod_eff:
+                                #dupl.write(f'printf("{file}: V = %g\\n",V(A_t,y))\n') #add line for debugging
+                                dupl.write(f'printf("{file}: \\n")\n') #add line for debugging
+                                dupl.write(f'printf("V = %g\\n",V(A_t,y))\n') #add line for debugging
                         dupl.write("\tupdate()\n") #add specific line
                     elif (block == "INDEPENDENT"):
                         no_indep = False
@@ -179,6 +187,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     with open(os.path.join(root,"eff",file_dupl),'r') as dupl:
                         flist = list(dupl)
                         flistCm = tf.SUFFIX_Cm0(flist,Cm0str)
+                        flistCm = tf.replace_str(flist,'.mod',Cm0str+'.mod') #DEBUG line has to be specific for the Cm0 variant mechanism
                     with open(os.path.join(root,"eff",file_dupl.replace('.mod','_'+Cm0str+'.mod')),'w') as dupl_Cm0:
                         dupl_Cm0.writelines(flistCm)
 

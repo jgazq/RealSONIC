@@ -55,6 +55,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("Nap_Et2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gNap_Et2 = gNap_Et2bar*m*m*m*h
@@ -67,8 +69,14 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("Nap_Et2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("Nap_Et2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_NapEt2(A_t, y), betam_NapEt2(A_t, y))
 	m = alpham_NapEt2(A_t, y) / (alpham_NapEt2(A_t, y) + betam_NapEt2(A_t, y))
+printf("Nap_Et2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_NapEt2(A_t, y), betah_NapEt2(A_t, y))
 	h = alphah_NapEt2(A_t, y) / (alphah_NapEt2(A_t, y) + betah_NapEt2(A_t, y))
 }
 

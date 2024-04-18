@@ -49,6 +49,11 @@ import tempConstants as tc
 
 
 
+""""to lookup a value in the tables"""
+# print(tf.lookup_LUT(r'C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_fs1.00.pkl','alpham_CaHVA'))
+
+
+
 """"to test test.hoc"""
 
 # from neuron import h,gui

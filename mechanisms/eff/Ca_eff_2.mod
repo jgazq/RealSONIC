@@ -55,6 +55,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("Ca2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gCa = gCabar*m*m*h
@@ -67,8 +69,14 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("Ca2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("Ca2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Ca(A_t, y), betam_Ca(A_t, y))
 	m = alpham_Ca(A_t, y) / (alpham_Ca(A_t, y) + betam_Ca(A_t, y))
+printf("Ca2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_Ca(A_t, y), betah_Ca(A_t, y))
 	h = alphah_Ca(A_t, y) / (alphah_Ca(A_t, y) + betah_Ca(A_t, y))
 }
 

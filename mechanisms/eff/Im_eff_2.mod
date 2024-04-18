@@ -46,6 +46,8 @@ STATE	{
 }
 
 BREAKPOINT	{
+printf("Im2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gIm = gImbar*m
@@ -57,7 +59,11 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+printf("Im2.mod: \n")
+printf("V = %g\n",V(A_t,y))
 	update()
+printf("Im2.mod: \n")
+printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Im(A_t, y), betam_Im(A_t, y))
 	m = alpham_Im(A_t, y) / (alpham_Im(A_t, y) + betam_Im(A_t, y))
 }
 
