@@ -989,7 +989,12 @@ def upsample_LUT2(filename, new_refs=None, method='linear', load=True):
             for j in range(len(pkldict['tables'][table][i])):
                 for m in range(len(pkldict['tables'][table][i,0,0,0])):
                     for n in range(len(pkldict['tables'][table][i,0,0,0,0])):
-                        new_pkldict['tables'][table][i,j,:,:,m,n] = interp.interpn(old_refs[2:4], pkldict['tables'][table][i,j,:,:,m,n], new_points, method=method)
+                        if method == 'akima':
+                            akima_A = np.array([interp.Akima1DInterpolator(old_refs[3], row)(Q) for row in pkldict['tables'][table][i,j,:,:,m,n]])
+                            akima = np.array([interp.Akima1DInterpolator(old_refs[2], col)(P_A) for col in akima_A.T]).T
+                            new_pkldict['tables'][table][i,j,:,:,m,n] = akima
+                        else:
+                            new_pkldict['tables'][table][i,j,:,:,m,n] = interp.interpn(old_refs[2:4], pkldict['tables'][table][i,j,:,:,m,n], new_points, method=method)
         print(f'done {table}')
     for i,ref in enumerate(new_pkldict['refs']): #this assumes that ref order is the same
         new_pkldict['refs'][ref] = new_refs[i]
@@ -1056,23 +1061,29 @@ def compare_LUT(filename1, filename2):
     indexmin = np.unravel_index(np.argmin(diff),V2.shape)
     indexmax = np.unravel_index(np.argmax(diff),V2.shape)
     print('ABSOLUTE DIFFERENCE:')
-    print(f'np.mean : {np.mean(diff)}')
-    print(f'np.min : {np.min(diff)} at : {indexmin}, V1 : {V1[indexmin]}, V2 : {V2[indexmin]}')
-    print(f'np.max : {np.max(diff)} at : {indexmax}, V1 : {V1[indexmax]}, V2 : {V2[indexmax]}')
+    absmean, absmin, absmax = np.mean(diff), np.min(diff), np.max(diff)
+    print(f'np.mean : {absmean}')
+    print(f'np.min : {absmin} at : {indexmin}, V1 : {V1[indexmin]}, V2 : {V2[indexmin]}')
+    print(f'np.max : {absmax} at : {indexmax}, V1 : {V1[indexmax]}, V2 : {V2[indexmax]}')
     print('-'*50)
     reldiff = abs(V1-V2)/abs(V2)
     indexrelmin = np.unravel_index(np.argmin(reldiff),V2.shape)
     indexrelmax = np.unravel_index(np.argmax(reldiff),V2.shape)
     print('RELATIVE DIFFERENCE:')
-    print(f'np.mean : {np.mean(reldiff)*100:.2f} %')
-    print(f'np.min : {np.min(reldiff)*100:.2f} % at : {indexrelmin}, V1 : {V1[indexrelmin]}, V2 : {V2[indexrelmin]}')
-    print(f'np.max : {np.max(reldiff)*100:.2f} % at : {indexrelmax}, V1 : {V1[indexrelmax]}, V2 : {V2[indexrelmax]}')
+    relmean, relmin, relmax = np.mean(reldiff)*100, np.min(reldiff)*100, np.max(reldiff)*100
+    relmeanp = f'{relmean:.2f}' if relmean < 100 else f'{relmean:.2e}'
+    relminp = f'{relmin:.2f}' if relmin < 100 else f'{relmin:.2e}'
+    relmaxp = f'{relmax:.2f}' if relmax < 100 else f'{relmax:.2e}'
+    print(f'np.mean : {relmeanp} %') 
+    print(f'np.min : {relminp} % at : {indexrelmin}, V1 : {V1[indexrelmin]}, V2 : {V2[indexrelmin]}')
+    print(f'np.max : {relmaxp} % at : {indexrelmax}, V1 : {V1[indexrelmax]}, V2 : {V2[indexrelmax]}')
 
 
-def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear'):
+def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear', save=True):
     """ downsamples a LUT and upsamples it again to compare with the original LUT
         :filename: location where the (original) LUT is stored
-        :method: interpolation method for the upsampling"""
+        :method: interpolation method for the upsampling
+        :save: the downsampled and usampled LUTs are saved in the same folder"""
     downsample_LUT(filename,factor)
     LUTdfile = filename.replace('.pkl','_ds.pkl')
     print('-'*100)
@@ -1080,8 +1091,9 @@ def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear'):
     LUTufile = LUTdfile.replace('.pkl',f'_us_{method}.pkl')
     print('-'*100)
     compare_LUT(filename,LUTufile)
-    os.remove(LUTdfile)
-    os.remove(LUTufile)
+    if save:
+        os.remove(LUTdfile)
+        os.remove(LUTufile)
 
 
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
