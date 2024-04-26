@@ -4,7 +4,7 @@
 NEURON	{
 	SUFFIX K_Tst2
 	USEION k READ ek WRITE ik
-	RANGE gK_Tstbar, gK_Tst, ik
+	RANGE gK_Tst2bar, gK_Tst2, ik
 	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
@@ -20,7 +20,7 @@ PARAMETER	{
 	Fdrive (kHz) : Stimulation frequency
 	Adrive (kPa) : Stimulation amplitude
 	detailed     : Simulation type
-	gK_Tstbar = 0.00001 (S/cm2)
+	gK_Tst2bar = 0.00001 (S/cm2)
 }
 
 ASSIGNED	{
@@ -28,7 +28,7 @@ ASSIGNED	{
 	Vm (mV)
 	ek	(mV)
 	ik	(mA/cm2)
-	gK_Tst	(S/cm2)
+	gK_Tst2	(S/cm2)
 	mInf
 	mTau
 	hInf
@@ -40,10 +40,10 @@ ASSIGNED	{
 INCLUDE "update.inc"
 
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_KTst(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_KTst(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE alphah_KTst(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betah_KTst(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alpham_KTst2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_KTst2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alphah_KTst2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betah_KTst2(A(kPa), Q(nC/cm2)) (/ms)
 
 STATE	{
 	m
@@ -55,13 +55,13 @@ printf("K_Tst2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
-	gK_Tst = gK_Tstbar*(m^4)*h
-	ik = gK_Tst*(Vm-ek)
+	gK_Tst2 = gK_Tst2bar*(m^4)*h
+	ik = gK_Tst2*(Vm-ek)
 }
 
 DERIVATIVE states	{
-	m' = alpham_KTst(A_t, y) * (1 - m) - betam_KTst(A_t, y) * m
-	h' = alphah_KTst(A_t, y) * (1 - h) - betah_KTst(A_t, y) * h
+	m' = alpham_KTst2(A_t, y) * (1 - m) - betam_KTst2(A_t, y) * m
+	h' = alphah_KTst2(A_t, y) * (1 - h) - betah_KTst2(A_t, y) * h
 }
 
 INITIAL{
@@ -69,11 +69,15 @@ printf("K_Tst2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("K_Tst2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_KTst(A_t, y), betam_KTst(A_t, y))
-	m = alpham_KTst(A_t, y) / (alpham_KTst(A_t, y) + betam_KTst(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_KTst2(A_t, y))
+printf("beta = %g\t" ,betam_KTst2(A_t, y))
+	m = alpham_KTst2(A_t, y) / (alpham_KTst2(A_t, y) + betam_KTst2(A_t, y))
 printf("K_Tst2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_KTst(A_t, y), betah_KTst(A_t, y))
-	h = alphah_KTst(A_t, y) / (alphah_KTst(A_t, y) + betah_KTst(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alphah_KTst2(A_t, y))
+printf("beta = %g\t" ,betah_KTst2(A_t, y))
+	h = alphah_KTst2(A_t, y) / (alphah_KTst2(A_t, y) + betah_KTst2(A_t, y))
 }
 
 INDEPENDENT {

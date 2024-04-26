@@ -5,7 +5,7 @@ NEURON {
        SUFFIX SK_E22
        USEION k READ ek WRITE ik
        USEION ca READ cai
-       RANGE gSK_E2bar, gSK_E2, ik
+       RANGE gSK_E22bar, gSK_E22, ik
 	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
@@ -23,7 +23,7 @@ PARAMETER {
 	detailed     : Simulation type
 	v (nC/cm2)
 	Vm (mV)
-          gSK_E2bar = .000001 (mho/cm2)
+          gSK_E22bar = .000001 (mho/cm2)
           zTau = 1              (ms)
           ek           (mV)
           cai          (mM)
@@ -32,7 +32,7 @@ PARAMETER {
 ASSIGNED {
          zInf
          ik            (mA/cm2)
-         gSK_E2	       (S/cm2)
+         gSK_E22	       (S/cm2)
 	A_t  (kPa)
 	y
 }
@@ -47,8 +47,8 @@ STATE {
 BREAKPOINT {
 	update()
            SOLVE states METHOD cnexp
-           gSK_E2  = gSK_E2bar * z
-           ik   =  gSK_E2 * (Vm - ek)
+           gSK_E22  = gSK_E22bar * z
+           ik   =  gSK_E22 * (Vm - ek)
 }
 
 DERIVATIVE states {

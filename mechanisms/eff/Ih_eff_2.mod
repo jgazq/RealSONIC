@@ -4,7 +4,7 @@
 NEURON	{
 	SUFFIX Ih2
 	NONSPECIFIC_CURRENT ihcn
-	RANGE gIhbar, gIh, ihcn 
+	RANGE gIh2bar, gIh2, ihcn 
 	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
@@ -20,7 +20,7 @@ PARAMETER	{
 	Fdrive (kHz) : Stimulation frequency
 	Adrive (kPa) : Stimulation amplitude
 	detailed     : Simulation type
-	gIhbar = 0.00001 (S/cm2) 
+	gIh2bar = 0.00001 (S/cm2) 
 	ehcn =  -45.0 (mV)
 }
 
@@ -28,7 +28,7 @@ ASSIGNED	{
 	v (nC/cm2)
 	Vm (mV)
 	ihcn	(mA/cm2)
-	gIh	(S/cm2)
+	gIh2	(S/cm2)
 	mInf
 	mTau
 	mAlpha
@@ -40,8 +40,8 @@ ASSIGNED	{
 INCLUDE "update.inc"
 
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_Ih(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_Ih(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alpham_Ih2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_Ih2(A(kPa), Q(nC/cm2)) (/ms)
 
 STATE	{ 
 	m
@@ -52,12 +52,12 @@ printf("Ih2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
-	gIh = gIhbar*m
-	ihcn = gIh*(Vm-ehcn)
+	gIh2 = gIh2bar*m
+	ihcn = gIh2*(Vm-ehcn)
 }
 
 DERIVATIVE states	{
-	m' = alpham_Ih(A_t, y) * (1 - m) - betam_Ih(A_t, y) * m
+	m' = alpham_Ih2(A_t, y) * (1 - m) - betam_Ih2(A_t, y) * m
 }
 
 INITIAL{
@@ -65,8 +65,10 @@ printf("Ih2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("Ih2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Ih(A_t, y), betam_Ih(A_t, y))
-	m = alpham_Ih(A_t, y) / (alpham_Ih(A_t, y) + betam_Ih(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_Ih2(A_t, y))
+printf("beta = %g\t" ,betam_Ih2(A_t, y))
+	m = alpham_Ih2(A_t, y) / (alpham_Ih2(A_t, y) + betam_Ih2(A_t, y))
 }
 
 INDEPENDENT {

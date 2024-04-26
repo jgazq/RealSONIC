@@ -57,7 +57,7 @@ def main():
                             print(func)
                             batch = Batch(func, simqueue) #a batch is created with a simulate (and save) function and a simulation queue
                             output += batch(loglevel=args['loglevel']) #batch is added to the output
-                            quit()
+                            #quit()
 
     # Plot resulting profiles
     if args['plot'] is not None: # variables that need to be plotted -> 'all' plots all variables

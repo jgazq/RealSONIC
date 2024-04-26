@@ -48,10 +48,10 @@ ASSIGNED {
 INCLUDE "update.inc"
 
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_KdShu2007(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_KdShu2007(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE alphah_KdShu2007(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betah_KdShu2007(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alpham_KdShu20072(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_KdShu20072(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alphah_KdShu20072(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betah_KdShu20072(A(kPa), Q(nC/cm2)) (/ms)
  
 
 STATE {
@@ -70,16 +70,20 @@ printf("KdShu20072.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("KdShu20072.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_KdShu2007(A_t, y), betam_KdShu2007(A_t, y))
-	m= alpham_KdShu2007(A_t, y) / (alpham_KdShu2007(A_t, y) + betam_KdShu2007(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_KdShu20072(A_t, y))
+printf("beta = %g\t" ,betam_KdShu20072(A_t, y))
+	m= alpham_KdShu20072(A_t, y) / (alpham_KdShu20072(A_t, y) + betam_KdShu20072(A_t, y))
 printf("KdShu20072.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_KdShu2007(A_t, y), betah_KdShu2007(A_t, y))
-	h= alphah_KdShu2007(A_t, y) / (alphah_KdShu2007(A_t, y) + betah_KdShu2007(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alphah_KdShu20072(A_t, y))
+printf("beta = %g\t" ,betah_KdShu20072(A_t, y))
+	h= alphah_KdShu20072(A_t, y) / (alphah_KdShu20072(A_t, y) + betah_KdShu20072(A_t, y))
 }
 
 DERIVATIVE states {   
-        m' = alpham_KdShu2007(A_t, y) * (1 - m) - betam_KdShu2007(A_t, y) * m
-        h' = alphah_KdShu2007(A_t, y) * (1 - h) - betah_KdShu2007(A_t, y) * h
+        m' = alpham_KdShu20072(A_t, y) * (1 - m) - betam_KdShu20072(A_t, y) * m
+        h' = alphah_KdShu20072(A_t, y) * (1 - h) - betah_KdShu20072(A_t, y) * h
 }
 
 INDEPENDENT {

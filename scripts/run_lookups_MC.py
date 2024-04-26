@@ -183,9 +183,6 @@ def computeAStimLookup(pneuron, aref, fref, Aref, Cm0ref, fsref, Qref, novertone
 
     # Reshape effvars into nD arrays and add them to lookups dictionary
     logger.info(f'Reshaping {nout}-entries output into {tuple(dims)} lookup tables')
-    for e in effvars:
-        print(f'keys:{list(e.keys())[:2]}')
-    #print(f'keys for items in list:{[list(e.keys()) for e in effvars]}')
     varkeys = list(effvars[0].keys()) #list containing all the calculated output variables (this is the same for all input combinations so we take it from the first one)
     tables = {}
     for key in varkeys:

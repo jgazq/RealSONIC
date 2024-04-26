@@ -3,7 +3,7 @@
 NEURON	{
 	SUFFIX NaTs2_t2
 	USEION na READ ena WRITE ina
-	RANGE gNaTs2_tbar, gNaTs2_t, ina
+	RANGE gNaTs2_t2bar, gNaTs2_t2, ina
 	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
@@ -19,7 +19,7 @@ PARAMETER	{
 	Fdrive (kHz) : Stimulation frequency
 	Adrive (kPa) : Stimulation amplitude
 	detailed     : Simulation type
-	gNaTs2_tbar = 0.00001 (S/cm2)
+	gNaTs2_t2bar = 0.00001 (S/cm2)
 }
 
 ASSIGNED	{
@@ -27,7 +27,7 @@ ASSIGNED	{
 	Vm (mV)
 	ena	(mV)
 	ina	(mA/cm2)
-	gNaTs2_t	(S/cm2)
+	gNaTs2_t2	(S/cm2)
 	mInf
 	mTau
 	mAlpha
@@ -43,10 +43,10 @@ ASSIGNED	{
 INCLUDE "update.inc"
 
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_NaTs2t(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_NaTs2t(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE alphah_NaTs2t(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betah_NaTs2t(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alpham_NaTs2t2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_NaTs2t2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alphah_NaTs2t2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betah_NaTs2t2(A(kPa), Q(nC/cm2)) (/ms)
 
 STATE	{
 	m
@@ -58,13 +58,13 @@ printf("NaTs2_t2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
-	gNaTs2_t = gNaTs2_tbar*m*m*m*h
-	ina = gNaTs2_t*(Vm-ena)
+	gNaTs2_t2 = gNaTs2_t2bar*m*m*m*h
+	ina = gNaTs2_t2*(Vm-ena)
 }
 
 DERIVATIVE states	{
-	m' = alpham_NaTs2t(A_t, y) * (1 - m) - betam_NaTs2t(A_t, y) * m
-	h' = alphah_NaTs2t(A_t, y) * (1 - h) - betah_NaTs2t(A_t, y) * h
+	m' = alpham_NaTs2t2(A_t, y) * (1 - m) - betam_NaTs2t2(A_t, y) * m
+	h' = alphah_NaTs2t2(A_t, y) * (1 - h) - betah_NaTs2t2(A_t, y) * h
 }
 
 INITIAL{
@@ -72,11 +72,15 @@ printf("NaTs2_t2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("NaTs2_t2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_NaTs2t(A_t, y), betam_NaTs2t(A_t, y))
-	m = alpham_NaTs2t(A_t, y) / (alpham_NaTs2t(A_t, y) + betam_NaTs2t(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_NaTs2t2(A_t, y))
+printf("beta = %g\t" ,betam_NaTs2t2(A_t, y))
+	m = alpham_NaTs2t2(A_t, y) / (alpham_NaTs2t2(A_t, y) + betam_NaTs2t2(A_t, y))
 printf("NaTs2_t2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alphah_NaTs2t(A_t, y), betah_NaTs2t(A_t, y))
-	h = alphah_NaTs2t(A_t, y) / (alphah_NaTs2t(A_t, y) + betah_NaTs2t(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alphah_NaTs2t2(A_t, y))
+printf("beta = %g\t" ,betah_NaTs2t2(A_t, y))
+	h = alphah_NaTs2t2(A_t, y) / (alphah_NaTs2t2(A_t, y) + betah_NaTs2t2(A_t, y))
 }
 
 INDEPENDENT {

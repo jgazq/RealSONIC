@@ -18,7 +18,8 @@ cell_nr = 7
 sec_type = 'somatic'
 pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
-DEBUG = True
+DEBUG = 1
+Cm0_var = 1
 
 """"--------------------------------------"""
 
@@ -58,22 +59,23 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             if 'xtra' in file_repl or 'CaDynamics' in file_repl:
                 shutil.copy(root+file,root+"eff\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #DONT DO THIS IN MAC
                 continue    
-            if 'pas' in file_repl:
-                #here we don't iterate over the Cm0_map as it doesn't include the value for 0.02 (which is not in LUT)
-                "Cm0 = 1"
-                shutil.copy(root+file,root+"eff\\"+file.replace(".mod","_eff.mod")) #DONT DO THIS IN MAC
-                "Cm0 = 2"
-                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace(".mod","_eff.mod").replace('.mod','_2.mod')),'w') as dupl: 
-                    flist = list(f)
-                    flist2 = tf.SUFFIX_Cm0(flist,"2")
-                    dupl.writelines(flist2)
-                "Cm0 = 0.02"
-                with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace('.mod','_0_02.mod')),'w') as dupl: 
-                    flist = list(f)
-                    flist = tf.eff_to_noteff(flist,0.02)
-                    flist2 = tf.SUFFIX_Cm0(flist,"0_02")
-                    dupl.writelines(flist2)             
-                continue   
+            if Cm0_var:
+                if 'pas' in file_repl:
+                    #here we don't iterate over the Cm0_map as it doesn't include the value for 0.02 (which is not in LUT)
+                    "Cm0 = 1"
+                    shutil.copy(root+file,root+"eff\\"+file.replace(".mod","_eff.mod")) #DONT DO THIS IN MAC
+                    "Cm0 = 2"
+                    with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace(".mod","_eff.mod").replace('.mod','_2.mod')),'w') as dupl: 
+                        flist = list(f)
+                        flist2 = tf.SUFFIX_Cm0(flist,"2")
+                        dupl.writelines(flist2)
+                    "Cm0 = 0.02"
+                    with open(os.path.join(root,file)) as f, open(os.path.join(root,"eff",file.replace('.mod','_0_02.mod')),'w') as dupl: 
+                        flist = list(f)
+                        flist = tf.eff_to_noteff(flist,0.02)
+                        flist2 = tf.SUFFIX_Cm0(flist,"0_02")
+                        dupl.writelines(flist2)             
+                    continue   
 
 
             # if not mod_eff: #just copy the file if the mechanism is not voltage dependent and go to the next mechanism (hence the continue)
@@ -114,8 +116,11 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         if DEBUG:
                             #dupl.write(f'printf("{file}: V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
                             dupl.write(f'printf("{file}: \\n")\n') #add line for debugging
-                            dupl.write(f'printf("V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
-                            dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
+                            dupl.write(f'printf("V = %g\\t",V(A_t,y))\n')
+                            dupl.write(f'printf("alpha = %g\\t" ,{alph})\n')
+                            dupl.write(f'printf("beta = %g\\t" ,{bet})\n')
+                            #dupl.write(f'printf("V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
+                        dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
                         continue
                     elif (block == "DERIVATIVE" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
@@ -178,7 +183,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 dupl.writelines(flist)
                     
                 #print(any(['LOCAL' in e for e in flist]),file)
-            if voltage_gated:
+            if Cm0_var and voltage_gated:
                 if "Prob" in file:
                     continue
                 for Cm0fl, Cm0str in tc.Cm0_map.items():
@@ -186,8 +191,14 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         continue
                     with open(os.path.join(root,"eff",file_dupl),'r') as dupl:
                         flist = list(dupl)
-                        flistCm = tf.SUFFIX_Cm0(flist,Cm0str)
-                        flistCm = tf.replace_str(flist,'.mod',Cm0str+'.mod') #DEBUG line has to be specific for the Cm0 variant mechanism
+                        "following lines: only to add a Cm0-suffix to the SUFFIX and the .mod debug prints"
+                        #flistCm = tf.SUFFIX_Cm0(flist,Cm0str)
+                        #flistCm = tf.replace_str(flist,'.mod',Cm0str+'.mod') #DEBUG line has to be specific for the Cm0 variant mechanism
+                        "following lines: add a Cm0-suffix to all variables that contain the mechanism name"
+                        torepl1 = file.replace('.mod','')
+                        replwith1 = torepl1+Cm0str
+                        torepl2, replwith2 = torepl1.replace('_',''), replwith1.replace('_','')
+                        flistCm = tf.replace_str(flist,[torepl1, torepl2],[replwith1, replwith2]) 
                     with open(os.path.join(root,"eff",file_dupl.replace('.mod','_'+Cm0str+'.mod')),'w') as dupl_Cm0:
                         dupl_Cm0.writelines(flistCm)
 

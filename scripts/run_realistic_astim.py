@@ -19,7 +19,7 @@ def main():
     #TODO: add these variables to parser
     cell_nr = 7
     se = 0
-    stimulation = "uniform"#"gaussian3D" #"gaussian"
+    stimulation = "gaussian" #"uniform" #"gaussian3D"
     # Parse command line arguments
     parser = AStimRealisticNeuronParser()
     args = parser.parse()
@@ -29,15 +29,18 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    args['fs'] = [0.75] #75%
-    args['radius'] = [16*1e-9] #16nm
-    args['freq'] = [100*1e3] #100kHz
-    args['section'] = ['soma0'] #soma0 is considered section
-    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']} #plotting variables
-    args['amp'] = 1000*1e3
-    args['tstim'] = 0.001
+    args['fs'] = [0.75] #75%                                                                #default: 1
+    args['radius'] = [16*1e-9] #16nm                                                        #default: 3.2e-08
+    args['freq'] = [100*1e3] #100kHz                                                        #default: 500000.
+    args['section'] = ['soma0'] #soma0 is considered section                                #default: None
+    args['plot'] = ['Vm', 'Cm', 'Qm']                                                         #default: None
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']} #plotting variables      #default: {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
+    args['amp'] = [1000*1e3]                                                                #default: 100000.
+    args['tstim'] = [0.1]  
+    args['toffset'] = [0.04]                                                           #default: 0.0001
+    args['neuron'] = ['realneuron']
 
-    print(args)
+    print(f'cmd arguments: \n{args}')
     #END DEBUGGING VALUES
 
     # Run batch
@@ -95,7 +98,7 @@ def main():
                         output += batch(loglevel=args['loglevel'])
     print(args['section'])
     refsec = fiber.sections[args['section'][0][:-1]][args['section'][0]] #fiber.refsection
-    amplitude = gaussian(refsec.x_xtra,x0,sigma,queue[0].A) if stimulation == 'gaussian' else gaussian3D(refsec.x_xtra, refsec.y_xtra, refsec.y_xtra,x0,x0,x0,sigma,sigma,sigma,queue[0].A) if stimulation == 'gaussian3D' else queue[0][0].A
+    amplitude = gaussian(refsec.x_xtra,x0,sigma,queue[0][0].A) if stimulation == 'gaussian' else gaussian3D(refsec.x_xtra, refsec.y_xtra, refsec.y_xtra,x0,x0,x0,sigma,sigma,sigma,queue[0][0].A) if stimulation == 'gaussian3D' else queue[0][0].A
     print(f'{"-"*50}\nrefsection:\nlocation:\t({refsec.x_xtra}, {refsec.y_xtra}, {refsec.z_xtra})\namplitude = {amplitude}')
     args['plot'] = 'Vm' #for debugging the plot section
     # Plot resulting profiles

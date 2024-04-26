@@ -65,7 +65,9 @@ printf("Ih.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("Ih.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Ih(A_t, y), betam_Ih(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_Ih(A_t, y))
+printf("beta = %g\t" ,betam_Ih(A_t, y))
 	m = alpham_Ih(A_t, y) / (alpham_Ih(A_t, y) + betam_Ih(A_t, y))
 }
 

@@ -2,7 +2,7 @@
 NEURON	{
 	SUFFIX Im2
 	USEION k READ ek WRITE ik
-	RANGE gImbar, gIm, ik
+	RANGE gIm2bar, gIm2, ik
 	RANGE Adrive, Vm, y, Fdrive, A_t : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
@@ -18,7 +18,7 @@ PARAMETER	{
 	Fdrive (kHz) : Stimulation frequency
 	Adrive (kPa) : Stimulation amplitude
 	detailed     : Simulation type
-	gImbar = 0.00001 (S/cm2) 
+	gIm2bar = 0.00001 (S/cm2) 
 }
 
 ASSIGNED	{
@@ -26,7 +26,7 @@ ASSIGNED	{
 	Vm (mV)
 	ek	(mV)
 	ik	(mA/cm2)
-	gIm	(S/cm2)
+	gIm2	(S/cm2)
 	mInf
 	mTau
 	mAlpha
@@ -38,8 +38,8 @@ ASSIGNED	{
 INCLUDE "update.inc"
 
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_Im(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_Im(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alpham_Im2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_Im2(A(kPa), Q(nC/cm2)) (/ms)
 
 STATE	{ 
 	m
@@ -50,12 +50,12 @@ printf("Im2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
-	gIm = gImbar*m
-	ik = gIm*(Vm-ek)
+	gIm2 = gIm2bar*m
+	ik = gIm2*(Vm-ek)
 }
 
 DERIVATIVE states	{
-	m' = alpham_Im(A_t, y) * (1 - m) - betam_Im(A_t, y) * m
+	m' = alpham_Im2(A_t, y) * (1 - m) - betam_Im2(A_t, y) * m
 }
 
 INITIAL{
@@ -63,8 +63,10 @@ printf("Im2.mod: \n")
 printf("V = %g\n",V(A_t,y))
 	update()
 printf("Im2.mod: \n")
-printf("V = %g, alpha = %g, beta = %g\n",V(A_t,y), alpham_Im(A_t, y), betam_Im(A_t, y))
-	m = alpham_Im(A_t, y) / (alpham_Im(A_t, y) + betam_Im(A_t, y))
+printf("V = %g\t",V(A_t,y))
+printf("alpha = %g\t" ,alpham_Im2(A_t, y))
+printf("beta = %g\t" ,betam_Im2(A_t, y))
+	m = alpham_Im2(A_t, y) / (alpham_Im2(A_t, y) + betam_Im2(A_t, y))
 }
 
 INDEPENDENT {
