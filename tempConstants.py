@@ -88,3 +88,4 @@ Cm0_map = {1.: '', 2.: '2'} #{0.02: '0_02', 1.: '', 2.: '2'}
 """-----PLOTTING-----"""
 plotting_factors = {'a': 1e9, 'f': 1e-3, 'A': 1e-3, 'Cm0': 1e2}
 plotting_units = {'a': 'nm', 'f': 'kHz', 'A': 'kPa', 'Cm0': 'uF/cm2'}
+all_factors = {'a': 1e9, 'f': 1e-3, 'A': 1e-3, 'Q' : 1e5, 'Cm0': 1e2, 'fs' : 1e2}

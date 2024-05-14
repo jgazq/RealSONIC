@@ -51,8 +51,6 @@ STATE	{
 }
 
 BREAKPOINT	{
-printf("K_Tst.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gK_Tst = gK_Tstbar*(m^4)*h
@@ -65,18 +63,8 @@ DERIVATIVE states	{
 }
 
 INITIAL{
-printf("K_Tst.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
-printf("K_Tst.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alpham_KTst(A_t, y))
-printf("beta = %g\t" ,betam_KTst(A_t, y))
 	m = alpham_KTst(A_t, y) / (alpham_KTst(A_t, y) + betam_KTst(A_t, y))
-printf("K_Tst.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alphah_KTst(A_t, y))
-printf("beta = %g\t" ,betah_KTst(A_t, y))
 	h = alphah_KTst(A_t, y) / (alphah_KTst(A_t, y) + betah_KTst(A_t, y))
 }
 

@@ -46,8 +46,6 @@ STATE	{
 }
 
 BREAKPOINT	{
-printf("Im2.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gIm2 = gIm2bar*m
@@ -59,13 +57,7 @@ DERIVATIVE states	{
 }
 
 INITIAL{
-printf("Im2.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
-printf("Im2.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alpham_Im2(A_t, y))
-printf("beta = %g\t" ,betam_Im2(A_t, y))
 	m = alpham_Im2(A_t, y) / (alpham_Im2(A_t, y) + betam_Im2(A_t, y))
 }
 

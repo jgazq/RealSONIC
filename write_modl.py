@@ -18,7 +18,7 @@ cell_nr = 7
 sec_type = 'somatic'
 pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
 pickle_file = "realneuron_lookups_fs1.00.pkl"
-DEBUG = 1
+DEBUG = 0
 Cm0_var = 1
 
 """"--------------------------------------"""

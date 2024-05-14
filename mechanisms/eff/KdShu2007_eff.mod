@@ -58,26 +58,14 @@ STATE {
 	 m h
 }
 BREAKPOINT {
-printf("KdShu2007.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
         SOLVE states METHOD cnexp
        ik = gkbar * m*h*(Vm-ek)
 } 
 
 INITIAL {
-printf("KdShu2007.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
-printf("KdShu2007.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alpham_KdShu2007(A_t, y))
-printf("beta = %g\t" ,betam_KdShu2007(A_t, y))
 	m= alpham_KdShu2007(A_t, y) / (alpham_KdShu2007(A_t, y) + betam_KdShu2007(A_t, y))
-printf("KdShu2007.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alphah_KdShu2007(A_t, y))
-printf("beta = %g\t" ,betah_KdShu2007(A_t, y))
 	h= alphah_KdShu2007(A_t, y) / (alphah_KdShu2007(A_t, y) + betah_KdShu2007(A_t, y))
 }
 

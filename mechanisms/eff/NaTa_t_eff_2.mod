@@ -53,8 +53,6 @@ STATE	{
 }
 
 BREAKPOINT	{
-printf("NaTa_t2.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gNaTa_t2 = gNaTa_t2bar*m*m*m*h
@@ -67,18 +65,8 @@ DERIVATIVE states	{
 }
 
 INITIAL{
-printf("NaTa_t2.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
-printf("NaTa_t2.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alpham_NaTat2(A_t, y))
-printf("beta = %g\t" ,betam_NaTat2(A_t, y))
 	m = alpham_NaTat2(A_t, y) / (alpham_NaTat2(A_t, y) + betam_NaTat2(A_t, y))
-printf("NaTa_t2.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alphah_NaTat2(A_t, y))
-printf("beta = %g\t" ,betah_NaTat2(A_t, y))
 	h = alphah_NaTat2(A_t, y) / (alphah_NaTat2(A_t, y) + betah_NaTat2(A_t, y))
 }
 

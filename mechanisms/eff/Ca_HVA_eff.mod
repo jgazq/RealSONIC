@@ -55,8 +55,6 @@ STATE	{
 }
 
 BREAKPOINT	{
-printf("Ca_HVA.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
 	SOLVE states METHOD cnexp
 	gCa = gCa_HVAbar*m*m*h
@@ -69,18 +67,8 @@ DERIVATIVE states	{
 }
 
 INITIAL{
-printf("Ca_HVA.mod: \n")
-printf("V = %g\n",V(A_t,y))
 	update()
-printf("Ca_HVA.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alpham_CaHVA(A_t, y))
-printf("beta = %g\t" ,betam_CaHVA(A_t, y))
 	m = alpham_CaHVA(A_t, y) / (alpham_CaHVA(A_t, y) + betam_CaHVA(A_t, y))
-printf("Ca_HVA.mod: \n")
-printf("V = %g\t",V(A_t,y))
-printf("alpha = %g\t" ,alphah_CaHVA(A_t, y))
-printf("beta = %g\t" ,betah_CaHVA(A_t, y))
 	h = alphah_CaHVA(A_t, y) / (alphah_CaHVA(A_t, y) + betah_CaHVA(A_t, y))
 }
 

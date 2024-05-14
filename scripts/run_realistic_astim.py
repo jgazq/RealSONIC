@@ -19,7 +19,7 @@ def main():
     #TODO: add these variables to parser
     cell_nr = 7
     se = 0
-    stimulation = "gaussian" #"uniform" #"gaussian3D"
+    stimulation = "uniform" #"gaussian" #"gaussian3D"
     # Parse command line arguments
     parser = AStimRealisticNeuronParser()
     args = parser.parse()
@@ -29,15 +29,15 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    args['fs'] = [0.75] #75%                                                                #default: 1
-    args['radius'] = [16*1e-9] #16nm                                                        #default: 3.2e-08
-    args['freq'] = [100*1e3] #100kHz                                                        #default: 500000.
-    args['section'] = ['soma0'] #soma0 is considered section                                #default: None
-    args['plot'] = ['Vm', 'Cm', 'Qm']                                                         #default: None
-    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']} #plotting variables      #default: {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
-    args['amp'] = [1000*1e3]                                                                #default: 100000.
-    args['tstim'] = [0.1]  
-    args['toffset'] = [0.04]                                                           #default: 0.0001
+    args['fs'] = [0.75] #75%                                                                                #default: 1
+    args['radius'] = [16*1e-9] #16nm                                                                        #default: 3.2e-08
+    args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000.
+    args['section'] = ['soma0'] #soma0 is considered section                                                #default: None
+    args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
+    args['amp'] = [1000*1e3]                                                                                #default: 100000.
+    args['tstim'] = [0.01]                                                                                 #default: 0.0001
+    #args['toffset'] = [0.004]                                                                              #default: 0.003
     args['neuron'] = ['realneuron']
 
     print(f'cmd arguments: \n{args}')

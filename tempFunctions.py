@@ -16,6 +16,7 @@ import shutil
 import zipfile
 import datetime
 import scipy.interpolate as interp
+import csv
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
@@ -36,7 +37,7 @@ def read_pickle(path, filename=None, prints=False):
         return pkl
     print('shape of V in tables',pkl['tables']['V'].shape) #dimensions of refs
     print('refs(inputs): ',pkl['refs'].keys()) #which variables are sweeped over
-    print('refs values (inputs): ',pkl['refs'].values())
+    #print('refs values (inputs): ',pkl['refs'].values())
     #print('refs: ',pkl['refs'].values()) #the arrays of each variable(length of each variable is given in the dimensions above)
     print('tables(outputs): ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
     if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value -> NOT TRUE!!! I ?accidentaly? removed the tcomp line in run_lookups_MC.py
@@ -866,6 +867,7 @@ def merge_LUTlist(path,filenamelist):
 def LUT_extend(filename):
     """ extends the LUT replacing the zero value by the edge values
         :filename: name of the LUT file that needs to be extended"""
+    
     pkldict = read_pickle(filename)
     refs = pkldict['refs']
     for table in pkldict['tables'].values():
@@ -1082,46 +1084,65 @@ def LUT_padding(filename):
     load_pickle(pkldict,filename.replace('.pkl','_padded.pkl'))
 
 
-def compare_LUT(filename1, filename2):
+def compare_LUT(filename1, filename2, nvar=5, violin=False):
     """ compares 2 given LUT
-        :filename1: location of the first LUT
-        :filename2: location of the second LUT that needs to be compared with the first one"""
+        :filename1: location of the first LUT -> original (actual values)
+        :filename2: location of the second LUT that needs to be compared with the first one
+        :nvar: number of variables that are considered"""
+    
+    ABSOLUTE, RELATIVE = 0, 1
+    ivar = 0
     pkldict1 = read_pickle(filename1)
     pkldict2 = read_pickle(filename2)
-    V1 = pkldict1['tables']['V']#[0,0]
-    V2 = pkldict2['tables']['V']
     if pkldict1['refs'].keys() != pkldict2['refs'].keys():
         # for e,f in zip(pkldict1['refs'].values(),pkldict2['refs'].values()):
         #     print(e,f,e-f)
         raise KeyError("reference values differ")
+    print(f"shapes: {pkldict1['tables']['V'].shape}, {pkldict2['tables']['V'].shape}")
+    print('     [  a,      f,       A,      Q,      Cm0,     fs]')
     refs = pkldict1['refs']
-    #V1 = V1.reshape(V2.shape)
-    print(f'shapes: {V1.shape}, {V2.shape}')
-    print('[a, f, A, Q, Cm0, fs]')
     factors = [1e9, 1e-3, 1e-3, 1e5, 1e2,1e2]
-    print('ABSOLUTE DIFFERENCE:')
-    diff = abs(V1-V2)
-    indexmin = np.unravel_index(np.argmin(diff),V2.shape)
-    indexmax = np.unravel_index(np.argmax(diff),V2.shape)
-    absmean, absmin, absmax = np.mean(diff), np.min(diff), np.max(diff)
-    print(f'np.mean : {absmean}')
-    print(f'np.min : {absmin} at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexmin,factors)]}, V1 : {V1[indexmin]}, V2 : {V2[indexmin]}')
-    print(f'np.max : {absmax} at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexmax,factors)]}, V1 : {V1[indexmax]}, V2 : {V2[indexmax]}')
-    print('-'*50)
+    print(f"min: {[f'{e[0]*f:.1f}' for e,f in zip(refs.values(), factors)]}")
+    print(f"max: {[f'{e[-1]*f:.1f}' for e,f in zip(refs.values(), factors)]}")
+    for var, V1, V2 in zip(pkldict1['tables'], pkldict1['tables'].values(), pkldict2['tables'].values()):
+        #V1 = V1.reshape(V2.shape)
+        print(var)
+        if ABSOLUTE:
+            print('ABSOLUTE DIFFERENCE:')
+            diff = abs(V1-V2)
+            indexmin = np.unravel_index(np.argmin(diff),V2.shape)
+            indexmax = np.unravel_index(np.argmax(diff),V2.shape)
+            absmean, absmin, absmax = np.mean(diff), np.min(diff), np.max(diff)
+            #print(f'np.mean : {absmean}')
+            #print(f'np.min : {absmin} at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexmin,factors)]}, V1 : {V1[indexmin]}, V2 : {V2[indexmin]}')
+            print(f'np.max : {absmax} at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexmax,factors)]}, V1 : {V1[indexmax]}, V2 : {V2[indexmax]}')
+            print('-'*50)
 
-    print('RELATIVE DIFFERENCE:')
-    reldiff = abs(V1-V2)/abs(V2)
-    indexrelmin = np.unravel_index(np.argmin(reldiff),V2.shape)
-    indexrelmax = np.unravel_index(np.argmax(reldiff),V2.shape)
-    relmean, relmin, relmax = np.mean(reldiff)*100, np.min(reldiff)*100, np.max(reldiff)*100
-    relmeanp = f'{relmean:.2f}' if relmean < 100 else f'{relmean:.2e}'
-    relminp = f'{relmin:.2f}' if relmin < 100 else f'{relmin:.2e}'
-    relmaxp = f'{relmax:.2f}' if relmax < 100 else f'{relmax:.2e}'
-    print(f'np.mean : {relmeanp} %') 
-    print(f'np.min : {relminp} % at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexrelmin,factors)]}, V1 : {V1[indexrelmin]}, V2 : {V2[indexrelmin]}')
-    print(f'np.max : {relmaxp} % at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexrelmax,factors)]}, V1 : {V1[indexrelmax]}, V2 : {V2[indexrelmax]}')
-    print([e[f] for e,f in zip(refs.values(),indexmin)])
-    print('\n')
+        if RELATIVE:
+            print('RELATIVE DIFFERENCE:')
+            reldiff = abs(V1-V2)/abs(V1)
+            indexrelmin = np.unravel_index(np.argmin(reldiff),V2.shape)
+            indexrelmax = np.unravel_index(np.argmax(reldiff),V2.shape)
+            relmean, relmed, relmin, relmax = np.mean(reldiff)*100, np.median(reldiff)*100, np.min(reldiff)*100, np.max(reldiff)*100
+            percentile = 75
+            relpercentile = np.percentile(reldiff,percentile)*100
+            relmeanp = f'{relmean:.2f}' if relmean < 1e3 else f'{relmean:.2e}'
+            relmedp = f'{relmed:.2f}' if relmed < 1e3 else f'{relmed:.2e}'
+            relperp = f'{relpercentile:.2f}' if relpercentile < 1e3 else f'{relpercentile:.2e}'
+            relminp = f'{relmin:.2f}' if relmin < 1e3 else f'{relmin:.2e}'
+            relmaxp = f'{relmax:.2f}' if relmax < 1e3 else f'{relmax:.2e}'
+            #print(f'np.mean : {relmeanp} %') 
+            print(f'np.median : {relmedp} %')
+            print(f'np.percentile({percentile}) : {relperp} %')
+            #print(f'np.min : {relminp} % at : {[f"{e[f]*h:.2f}" for e,f,h in zip(refs.values(),indexrelmin,factors)]}, V1 : {V1[indexrelmin]}, V2 : {V2[indexrelmin]}')
+            print(f'np.max : {relmaxp} % at : {[f"{e} = {refs[e][f]*tc.all_factors[e]:.2f}" for e,f in zip(refs.keys(),indexrelmax)]}, {var}1 : {V1[indexrelmax]}, {var}2 : {V2[indexrelmax]}')
+            if violin:
+                plt.violinplot(reldiff.reshape(-1)*100)
+                plt.show()
+        print('\n')
+        ivar += 1
+        if ivar == nvar:
+            break
 
 
 def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear', save=True):
@@ -1129,6 +1150,7 @@ def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear', save=True)
         :filename: location where the (original) LUT is stored
         :method: interpolation method for the upsampling
         :save: the downsampled and usampled LUTs are saved in the same folder"""
+    
     downsample_LUT(filename,factor)
     LUTdfile = filename.replace('.pkl','_ds.pkl')
     print('-'*100)
@@ -1139,6 +1161,30 @@ def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear', save=True)
     if save:
         os.remove(LUTdfile)
         os.remove(LUTufile)
+
+
+def LUT_to_LUT2(filename, remove_zeros=False):
+    """ converts a LUT gating parameters to a LUT where the values for Cm0=0.01 and 0.02 are separated into different parameters
+        :filename: location of the original LUT
+        :remove_zeros"""
+    
+    pkldict = read_pickle(filename)
+    tables = list(pkldict['tables'].keys())
+    for table in tables:
+        pkldict['tables'][table+'2'] = pkldict['tables'][table][:,:,:,:,1,:]
+        pkldict['tables'][table] = pkldict['tables'][table][:,:,:,:,0,:]
+        if remove_zeros:
+            #print(pkldict['tables'][table].shape)
+            if table == 'tcomp': #this table doesn't contain zeros so needs to be reduced
+                pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros]
+                continue
+            nonzeros = np.nonzero(pkldict['tables'][table][0,0,0])[0]
+            pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros] #remove zeros in the Q-axis
+            #print(pkldict['tables'][table].shape)
+    del pkldict['refs']['Cm0'] #delete reference key as this is not a dimension anymore
+    pkldict['refs']['Q'] = pkldict['refs']['Q'][nonzeros]
+    #print(tables)
+    load_pickle(pkldict,filename.replace('.pkl','_LUT2.pkl'))
 
 
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
@@ -1285,7 +1331,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
             table_V = np.swapaxes(table_V,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
         table_V = np.reshape(table_V,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q)
     #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
-    table_C = Qrange / table_V #Q = C x V
+    table_C = Qrange / table_V * 1e5 #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C.png')  
@@ -1363,6 +1409,51 @@ def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xr
         plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C.png')  
+
+
+def plot_astim(csv_file, separate=False):
+    """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
+        :csv_file: file containing the time variable and all variables during the timelapse
+        :separate: plot all the variables also on separate plots"""
+    
+    with open(csv_file, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            titles = row[1:] #first string in header is empty (row index)
+            break
+    sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
+    sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
+    titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
+    factors = [1e3, 1, 1e5, 1]
+    labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]']
+    factors_add = [1e3 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
+    labels_add = [f'{e} [1/ms]' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
+    factors += factors_add
+    labels += labels_add
+    print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.2f} ms")
+    if separate:
+        for i in range(0,len(sim_csv)-1): #len(sim_csv)
+            plt.plot(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
+            plt.title(titles[i+1])
+            plt.xlabel(labels[0])
+            plt.ylabel(labels[i+1])
+            plt.show()
+
+    nrows = int(np.ceil((len(sim_csv)-1)/2))
+    fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
+    for i in range(0,len(sim_csv)-1): #len(sim_csv)
+        if i//2 == nrows-1:
+            axs[i//2,i%2].set_xlabel(labels[0])
+        else:
+            axs[i//2,i%2].set_xticks([])
+        axs[i//2,i%2].plot(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
+        axs[i//2,i%2].set_ylabel(labels[i+1],fontsize=8,rotation=0,labelpad=30)
+        #axs[i//2,i%2].set_title(titles[i+1])
+    axs[nrows-1,1].set_xlabel(labels[0])
+    plt.subplots_adjust(hspace=.0)
+    fig1.suptitle("Stim")
+    fig1.tight_layout()
+    plt.show()
 
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""
