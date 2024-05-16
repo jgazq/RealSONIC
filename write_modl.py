@@ -118,7 +118,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                             dupl.write(f'printf("{file}: \\n")\n') #add line for debugging
                             dupl.write(f'printf("V = %g\\t",V(A_t,y))\n')
                             dupl.write(f'printf("alpha = %g\\t" ,{alph})\n')
-                            dupl.write(f'printf("beta = %g\\t" ,{bet})\n')
+                            dupl.write(f'printf("beta = %g\\n" ,{bet})\n')
                             #dupl.write(f'printf("V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
                         dupl.write(f"{LHS}= {alph} / ({alph} + {bet})\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in steadyStates
                         continue

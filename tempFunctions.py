@@ -1180,9 +1180,13 @@ def LUT_to_LUT2(filename, remove_zeros=False):
                 continue
             nonzeros = np.nonzero(pkldict['tables'][table][0,0,0])[0]
             pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros] #remove zeros in the Q-axis
+            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][0,0,0])[0]
+            pkldict['tables'][table+'2'] = pkldict['tables'][table+'2'][:,:,:,nonzeros2] #remove zeros in the Q-axis
             #print(pkldict['tables'][table].shape)
     del pkldict['refs']['Cm0'] #delete reference key as this is not a dimension anymore
-    pkldict['refs']['Q'] = pkldict['refs']['Q'][nonzeros]
+    if remove_zeros:
+        pkldict['tables']['Q_ext'] = pkldict['refs']['Q'][nonzeros2]
+        pkldict['refs']['Q'] = pkldict['refs']['Q'][nonzeros]
     #print(tables)
     load_pickle(pkldict,filename.replace('.pkl','_LUT2.pkl'))
 
@@ -1285,8 +1289,8 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
         :reduced_xrange: to reduce the charge range when using different Cm0-values
         :a, f, A, Cm0: both specific values as the keyword 'all' can be given to specify which values need to be plugged in the independent parameters"""
 
-    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} #4 different variables can be sweeped over
-    var_list = ['a', 'f', 'A', 'Cm0']
+    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} #4 different variables can be sweeped over #{'a': a, 'f': f, 'A': A}
+    var_list = ['a', 'f', 'A', 'Cm0'] #['a', 'f', 'A']
     all_list = np.where(np.array(list(var_dict.values()))=='all')[0] #looks which of the parameters has the 'all' keywoard
     if all_list: #only do this if there is a parameter that needs to be plotted for multiple values
         factor = tc.plotting_factors[var_list[all_list[0]]] #conversion factor from SI unit to a more conventional unit
@@ -1302,7 +1306,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
     ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a single value is given, the array is indexed at the value that is closest to the given value
     print(f"used variables: {[pkldict['refs'][k][min] if min != ':' else 'all' for k, min in zip(var_dict,ind_list)]}")
-    ind_list = ind_list[:3]+[":"]+[ind_list[3]]+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
+    ind_list = ind_list[:3]+[":"]+list(ind_list[3:])+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
     ind_list = [str(e) for e in ind_list] #convert the indexing list to strings for later on
     if len(all_list) > 1:
         raise ValueError('only 1 parameter can be plotted for all')
@@ -1426,8 +1430,8 @@ def plot_astim(csv_file, separate=False):
     titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
     factors = [1e3, 1, 1e5, 1]
     labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]']
-    factors_add = [1e3 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
-    labels_add = [f'{e} [1/ms]' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
+    factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
+    labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
     factors += factors_add
     labels += labels_add
     print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.2f} ms")
@@ -1442,14 +1446,17 @@ def plot_astim(csv_file, separate=False):
     nrows = int(np.ceil((len(sim_csv)-1)/2))
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
     for i in range(0,len(sim_csv)-1): #len(sim_csv)
-        if i//2 == nrows-1:
-            axs[i//2,i%2].set_xlabel(labels[0])
-        else:
-            axs[i//2,i%2].set_xticks([])
         axs[i//2,i%2].plot(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
         axs[i//2,i%2].set_ylabel(labels[i+1],fontsize=8,rotation=0,labelpad=30)
+        if i//2 == nrows-1:
+            print(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
+            axs[i//2,i%2].set_xlabel(labels[0])
+            axs[i//2,i%2].set_xticks((sim_csv[0]*factors[0])[::600]) #so time is plotted correctly on x-axis
+        else:
+            axs[i//2,i%2].set_xticks([])
         #axs[i//2,i%2].set_title(titles[i+1])
     axs[nrows-1,1].set_xlabel(labels[0])
+    axs[i//2,i%2].set_xticks((sim_csv[0]*factors[0])[::600]) #so time is plotted correctly on x-axis
     plt.subplots_adjust(hspace=.0)
     fig1.suptitle("Stim")
     fig1.tight_layout()

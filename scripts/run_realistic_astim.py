@@ -32,12 +32,12 @@ def main():
     args['fs'] = [0.75] #75%                                                                                #default: 1
     args['radius'] = [16*1e-9] #16nm                                                                        #default: 3.2e-08
     args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000.
-    args['section'] = ['soma0'] #soma0 is considered section                                                #default: None
+    args['section'] = ['node0']#['node0'] #['soma0'] #soma0 is considered section                                                #default: None
     args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
     args['amp'] = [1000*1e3]                                                                                #default: 100000.
     args['tstim'] = [0.01]                                                                                 #default: 0.0001
-    #args['toffset'] = [0.004]                                                                              #default: 0.003
+    args['toffset'] = [0.003]                                                                              #default: 0.003
     args['neuron'] = ['realneuron']
 
     print(f'cmd arguments: \n{args}')
