@@ -75,14 +75,14 @@ class RealisticNeuron(PointNeuron):
     #TODO\n""")
     filenaam.write(f"""         
     # Maximal channel conductances (S/m2)\n""")
-    for e,f in g_dict[sec_type].items():
-        filenaam.write(f"    {e} = {f}\n")
+    # for e,f in g_dict[sec_type].items(): #this is skipped as the g_bar differs per section type and distance to the soma
+    #     filenaam.write(f"    {e} = {f}\n")
     filenaam.write(f"""         
     # Additional parameters
     VT = -56.2  # Spike threshold adjustment parameter (mV)
-    dist_2_soma = {dist_2_soma} # Distance from the considered segment to the soma (um?)\n\n""")
+    #dist_2_soma = {dist_2_soma} # Distance from the considered segment to the soma (um?)\n\n""") #skipped
     filenaam.write(f"    mod_files, mod_names = tf.read_mod(\"{mech_folder}\")\n")
-    filenaam.write(f"    g_dict = tf.read_gbars(\"cells/\"+\"{cell_folder}\"+\"/\",dist_2_soma)\n\n")
+    filenaam.write(f"    #g_dict = tf.read_gbars(\"cells/\"+\"{cell_folder}\"+\"/\",dist_2_soma)\n\n") #also skipped (see comment above)
 
 # write the states names & descriptions
 
@@ -160,21 +160,27 @@ class RealisticNeuron(PointNeuron):
                     current_var += f'x[\'{gating_param}\'], '
                     x_actual.append(x)
             if gating_var != '':
-                #code between quotation marks is original code but has been replaced with single line code
-                """return cls.g_{name_mod}*Vm \n\n"""
+                curr_lines = tf.currents_from_BREAKPOINT_list(list_mod=mod_files[mod_number], mod_name=f, gating_var=x_actual) #lines of code that are written to the electric current method
+                gbar = ''
+                for i,line in enumerate(curr_lines):
+                    if 'g' in line and 'bar' in line:
+                        gbar = curr_lines.pop(i).strip() #remove the gbar line as this will be added to the input arguments of the method instead of putting it in the file
+                        break
+
                 filenaam.write(f"""    @classmethod
-    def i_{name_mod}(cls,{gating_var}Vm):
+    def i_{name_mod}(cls,{gating_var}Vm,{gbar}):
         ''' i{name_mod} current '''\n""")
-                for e in tf.currents_from_BREAKPOINT_list(list_mod=mod_files[mod_number], mod_name=f, gating_var=x_actual):
+                for e in curr_lines[:-1]:
                     filenaam.write(f"""{e}\n""")
-                filenaam.write(f"""
-        currents = [e for e in vars if (e.startswith(\'i\') or e.startswith(\'I\'))]
-        print(currents)
-        if currents:
-            return eval(vars[currents[0]])
-        else:
-            return 0\n\n""")
-                currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x: cls.i_{name_mod}({current_var}Vm),'
+                filenaam.write(f'\n{curr_lines[-1]}\n\n')
+        #         filenaam.write(f"""
+        # currents = [e for e in variables if (e.startswith(\'i\') or e.startswith(\'I\'))]
+        # print(currents)
+        # if currents:
+        #     return eval(variables[currents[0]])
+        # else:
+        #     return 0\n\n""")
+                currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x, g_bar: cls.i_{name_mod}({current_var}Vm) if g_bar is None else cls.i_{name_mod}({current_var}Vm, g_bar),'
             
         mod_number += 1 
     filenaam.write("""    @classmethod

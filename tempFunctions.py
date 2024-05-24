@@ -532,10 +532,10 @@ def gating_from_PROCEDURES_list(list_mod,mod_name): #,start_executing = 0):
                 else:
                     equations_list.append(4*indents*' '+eq_hoc2pyt(e)) #don't replace anything if units are not given
         #start when entering PROCEDURE block on the next iteration
-        if re.search('PROCEDURE',e):
+        if re.search('PROCEDURE',e): #to get the gating parameter formulas
             proc_executing = 1
         #start when entering PARAMETER block on the next iteration
-        if re.search('PARAMETER',e):
+        if re.search('PARAMETER',e): #to get the conductance
             param_executing = 1
     #maybe good idea to add a suffix to each variable -> NO
     #variables_dict[variable+'_'+mod_name.replace(".mod","")]
@@ -620,13 +620,18 @@ def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
                     equations_list.append(4*indents*' '+eq_hoc2pyt(e.replace(re.findall("\(.*\)",e)[0],""))) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
                 else:
                     equations_list.append(4*indents*' '+eq_hoc2pyt(e)) #don't replace anything if units are not given
-        #start when entering PROCEDURE block on the next iteration
+        #start when entering BREAKPOINT block on the next iteration
         if re.search('BREAKPOINT',e):
             break_executing = 1
         #start when entering PARAMETER block on the next iteration
         if re.search('PARAMETER',e):
             param_executing = 1
-    equations_list.append(4*indents*' '+'vars='+str([eq.split('=')[0].strip()for eq in equations_list]))
+    variables = [eq.split('=')[0].strip()for eq in equations_list] #the variables of all the equation lines that will be written to the current method are separated
+    #equations_list.append(4*indents*" "+"variables="+str(variables))
+    currents = [e for e in variables if (e.startswith('i') or e.startswith('I'))] #from all the equations, there should be exactly 1 variable that represents the current
+    if len(currents) != 1: #we expect 1 current to be calculated
+        TypeError(f'Wrong amount of currents: {currents}')
+    equations_list.append(4*indents*" "+"return "+currents[0]) #this current will be returned at the end of the method
     return equations_list
 
 
@@ -1415,7 +1420,7 @@ def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xr
     plt.savefig(f'figs/{foldername}/C.png')  
 
 
-def plot_astim(csv_file, separate=False):
+def plot_astim(csv_file, separate=False, section_id=None):
     """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
         :csv_file: file containing the time variable and all variables during the timelapse
         :separate: plot all the variables also on separate plots"""
@@ -1428,39 +1433,46 @@ def plot_astim(csv_file, separate=False):
     sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
     sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
     titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
-    factors = [1e3, 1, 1e5, 1]
-    labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]']
-    factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
-    labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]]
+    factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
+    labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
+    factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    #factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
+    #labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
     factors += factors_add
     labels += labels_add
-    print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.2f} ms")
-    if separate:
+    print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.3f} ms")
+    if separate: #to plot every variable separately
         for i in range(0,len(sim_csv)-1): #len(sim_csv)
-            plt.plot(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
+            plt.plot((sim_csv[0]*factors[0])[:], (sim_csv[i+1]*factors[i+1])[:]) #slicing until x for debugging
             plt.title(titles[i+1])
             plt.xlabel(labels[0])
             plt.ylabel(labels[i+1])
             plt.show()
 
-    nrows = int(np.ceil((len(sim_csv)-1)/2))
+    nrows = int(np.ceil((len(sim_csv)-1)/2)) #number of columns = 2, number of rows depends on the number of variables
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
     for i in range(0,len(sim_csv)-1): #len(sim_csv)
-        axs[i//2,i%2].plot(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
+        axs[i//2,i%2].plot((sim_csv[0]*factors[0])[:], (sim_csv[i+1]*factors[i+1])[:])
         axs[i//2,i%2].set_ylabel(labels[i+1],fontsize=8,rotation=0,labelpad=30)
         if i//2 == nrows-1:
-            print(sim_csv[0]*factors[0], sim_csv[i+1]*factors[i+1])
-            axs[i//2,i%2].set_xlabel(labels[0])
-            axs[i//2,i%2].set_xticks((sim_csv[0]*factors[0])[::600]) #so time is plotted correctly on x-axis
+            axs[i//2,i%2].set_xlabel(labels[0]) #only set x label at the bottom
+            axs[i//2,i%2].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #only set x ticks at the bottom
         else:
             axs[i//2,i%2].set_xticks([])
         #axs[i//2,i%2].set_title(titles[i+1])
-    axs[nrows-1,1].set_xlabel(labels[0])
-    axs[i//2,i%2].set_xticks((sim_csv[0]*factors[0])[::600]) #so time is plotted correctly on x-axis
+    axs[nrows-1,1].set_xlabel(labels[0]) #do this again in case there is no curve plotted on the last subplot
+    axs[nrows-1,1].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #in case of odd number of plots as explained in line above
     plt.subplots_adjust(hspace=.0)
     fig1.suptitle("Stim")
     fig1.tight_layout()
-    plt.show()
+    #plt.show()
+    path_pieces = csv_file.split('\\') #path is splitted into its directories
+    directory = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 6\\'+path_pieces[-2]+'_ext\\'
+    if not os.path.exists(directory):
+        os.mkdir(directory)  
+    plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
+    print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
 
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""

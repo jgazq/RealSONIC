@@ -29,15 +29,15 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    args['fs'] = [0.75] #75%                                                                                #default: 1
-    args['radius'] = [16*1e-9] #16nm                                                                        #default: 3.2e-08
-    args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000.
-    args['section'] = ['node0']#['node0'] #['soma0'] #soma0 is considered section                                                #default: None
+    args['fs'] = [0.75] #75%                                                                                #default: 1 (100%)
+    args['radius'] = [64*1e-9] #16nm                                                                        #default: 3.2e-08 nm
+    args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000. Hz
+    args['section'] = ['soma0'] #         'myelin0', 'unmyelin0', 'node0', 'apical0', 'basal0'              #default: None
     args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
-    args['amp'] = [1000*1e3]                                                                                #default: 100000.
-    args['tstim'] = [0.01]                                                                                 #default: 0.0001
-    args['toffset'] = [0.003]                                                                              #default: 0.003
+    args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
+    args['tstim'] = [0.1]                                                                                  #default: 0.0001 s
+    args['toffset'] = [0.01]                                                                               #default: 0.003 s
     args['neuron'] = ['realneuron']
 
     print(f'cmd arguments: \n{args}')
@@ -52,7 +52,7 @@ def main():
         queue = [(item[0][:2], item[1]) for item in queue]
     output = []
     for fiber_class in args['type']:
-        fiber = fiber_class(cell_nr, se)
+        fiber = fiber_class(cell_nr, se) #BREAKPOINT
         for a in args['radius']:
             fiber.a = a
             for fs in args['fs']:
@@ -95,15 +95,17 @@ def main():
                                     for item in queue]                                                        
                             func = fiber.simulate
                         batch = Batch(func, simqueue)
-                        output += batch(loglevel=args['loglevel'])
+                        output += batch(loglevel=args['loglevel']) #BREAKPOINT
     print(args['section'])
     refsec = fiber.sections[args['section'][0][:-1]][args['section'][0]] #fiber.refsection
     amplitude = gaussian(refsec.x_xtra,x0,sigma,queue[0][0].A) if stimulation == 'gaussian' else gaussian3D(refsec.x_xtra, refsec.y_xtra, refsec.y_xtra,x0,x0,x0,sigma,sigma,sigma,queue[0][0].A) if stimulation == 'gaussian3D' else queue[0][0].A
-    print(f'{"-"*50}\nrefsection:\nlocation:\t({refsec.x_xtra}, {refsec.y_xtra}, {refsec.z_xtra})\namplitude = {amplitude}')
+    print(f'{"-"*50}\nrefsection:\nlocation:\t({refsec.x_xtra}, {refsec.y_xtra}, {refsec.z_xtra}) um\namplitude = {amplitude*1e-3}kPa')
+    args['ref_loc'] = (refsec.x_xtra, refsec.y_xtra, refsec.z_xtra)
     args['plot'] = 'Vm' #for debugging the plot section
     # Plot resulting profiles
     if args['plot'] is not None:
-        parser.parsePlot(args, output)
+        args['fiber'] = fiber
+        parser.parsePlot(args, output) #BREAKPOINT
 
 
 if __name__ == '__main__': 

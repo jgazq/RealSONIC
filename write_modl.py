@@ -143,6 +143,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     elif block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
                         dupl.write("\tA_t  (kPa)\n\ty\n") #add specific lines
                     elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and voltage_gated: #and mod_eff: #add extra line at the beginning of these 2 blocks
+                        if (block == "INITIAL" and flist[i].startswith("INITIAL")) and voltage_gated:
+                            pass #in order to write v = init-value
                         if DEBUG:
                             if mod_eff:
                                 #dupl.write(f'printf("{file}: V = %g\\n",V(A_t,y))\n') #add line for debugging
