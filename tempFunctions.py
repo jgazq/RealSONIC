@@ -1232,11 +1232,12 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     plt.clf()
     no_reduc = ['tcomp','V']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude or other variable
+        mul = 1 if variable == 'V' else 1e5 if variable == 'C' else 1e-3 if ('alpha' in variable or 'beta' in variable) else 1
         if num_shades > 1:
-            plt.plot(Q_refs*1e5,e,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+            plt.plot(Q_refs*1e5,e*mul,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
             plt.legend()
         else:
-            plt.plot(Q_refs*1e5,table) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
+            plt.plot(Q_refs*1e5,table*mul) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
                                         #plot the whole table as iterating over the elements will result in a reduced size of matrix
         plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
         ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
@@ -1294,8 +1295,8 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
         :reduced_xrange: to reduce the charge range when using different Cm0-values
         :a, f, A, Cm0: both specific values as the keyword 'all' can be given to specify which values need to be plugged in the independent parameters"""
 
-    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} #4 different variables can be sweeped over #{'a': a, 'f': f, 'A': A}
-    var_list = ['a', 'f', 'A', 'Cm0'] #['a', 'f', 'A']
+    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} if Cm0 else {'a': a, 'f': f, 'A': A} #4 different variables can be sweeped over
+    var_list = ['a', 'f', 'A', 'Cm0'] if Cm0 else ['a', 'f', 'A']
     all_list = np.where(np.array(list(var_dict.values()))=='all')[0] #looks which of the parameters has the 'all' keywoard
     if all_list: #only do this if there is a parameter that needs to be plotted for multiple values
         factor = tc.plotting_factors[var_list[all_list[0]]] #conversion factor from SI unit to a more conventional unit
@@ -1311,7 +1312,8 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
     ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a single value is given, the array is indexed at the value that is closest to the given value
     print(f"used variables: {[pkldict['refs'][k][min] if min != ':' else 'all' for k, min in zip(var_dict,ind_list)]}")
-    ind_list = ind_list[:3]+[":"]+list(ind_list[3:])+[0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed and fs can only have 1 value
+    ind_list = ind_list[:3]+[":"] + list(ind_list[3:]) + [0] if Cm0 else ind_list[:3]+[":"] + [0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed, and fs can only have 1 value
+    #only add Cm0 if LUT contains Cm0 dimension
     ind_list = [str(e) for e in ind_list] #convert the indexing list to strings for later on
     if len(all_list) > 1:
         raise ValueError('only 1 parameter can be plotted for all')
@@ -1340,7 +1342,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
             table_V = np.swapaxes(table_V,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
         table_V = np.reshape(table_V,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q)
     #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
-    table_C = Qrange / table_V * 1e5 #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
+    table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C.png')  
@@ -1420,10 +1422,11 @@ def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xr
     plt.savefig(f'figs/{foldername}/C.png')  
 
 
-def plot_astim(csv_file, separate=False, section_id=None):
+def plot_astim(csv_file, separate=False, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 6\\'):
     """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
         :csv_file: file containing the time variable and all variables during the timelapse
-        :separate: plot all the variables also on separate plots"""
+        :separate: plot all the variables also on separate plots
+        :folder: directory where the plot is saved """
     
     with open(csv_file, newline='') as csvfile:
         reader = csv.reader(csvfile)
@@ -1468,7 +1471,7 @@ def plot_astim(csv_file, separate=False, section_id=None):
     fig1.tight_layout()
     #plt.show()
     path_pieces = csv_file.split('\\') #path is splitted into its directories
-    directory = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 6\\'+path_pieces[-2]+'_ext\\'
+    directory = folder+path_pieces[-2]+'_ext\\'
     if not os.path.exists(directory):
         os.mkdir(directory)  
     plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
