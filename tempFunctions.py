@@ -1318,20 +1318,26 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     if len(all_list) > 1:
         raise ValueError('only 1 parameter can be plotted for all')
     Qrange = pkldict['refs']['Q'] #list containing the Q values on the x-axis
+    if 'Q_ext' in pkldict['tables']:
+        Q_ext = pkldict['tables']['Q_ext'] #define Q_ext if it is defined in the LUT
+        del pkldict['tables']['Q_ext'] #remove it from the LUT as it is not needed to plot
     var_refs = pkldict['refs'][var_list[all_list[0]]] if (len(all_list) > 0) else None #list containing all the values for the legend in the plot (each value results in a different curve)
     plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
 
     #plot all calculated effective variables
     for key in pkldict['tables']: #iterate over the output gating parameters
+        if 'tcomp' in key:
+            continue #don't plot the computation time tcomp as these plots are not important
         table = pkldict['tables'][key] #gating parameter matrix, dims:(a,f,A,Q,Cm,fs)
+        Q_array = Qrange if len(Qrange) in table.shape else Q_ext #if the length of Qrange is the same as on of the dimensions in the table, use this array, otherwise use the extended Q array
         table2 = eval(f"table[{(',').join(ind_list)}]") #index the table according to the given indexing list: 1 value for each parameter except all Q and a chosen variable
         if all_list:
             ind_colon = np.where(np.array(ind_list)==":")[0] #determine which variables keep all values (Q and a chosen variable)
             ind = ind_colon[ind_colon !=3][0] #except from Q (which has index 3), check the index of the variable that has all its values
             if ind > 3: #if the variable is further in the array than Q:
                 table2 = np.swapaxes(table2,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
-            table2 = np.reshape(table2,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q) (this is partly done because of fs-dimension)
-        plt_LUTeff(key,table2,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
+            table2 = np.reshape(table2,(-1,len(Q_array))) #reshape the table to dim(variable) x dim(Q) (this is partly done because of fs-dimension)
+        plt_LUTeff(key,table2,Q_array,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
         plt.title(title)
         plt.savefig(f'figs/{foldername}/{key}.png')
 
@@ -1422,7 +1428,7 @@ def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xr
     plt.savefig(f'figs/{foldername}/C.png')  
 
 
-def plot_astim(csv_file, separate=False, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 6\\'):
+def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\\'):
     """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
         :csv_file: file containing the time variable and all variables during the timelapse
         :separate: plot all the variables also on separate plots
@@ -1456,6 +1462,13 @@ def plot_astim(csv_file, separate=False, folder = r'C:\Users\jgazquez\OneDrive -
     nrows = int(np.ceil((len(sim_csv)-1)/2)) #number of columns = 2, number of rows depends on the number of variables
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
     for i in range(0,len(sim_csv)-1): #len(sim_csv)
+        if 'nC/cm2' in labels[i+1]:
+            Qrow = (sim_csv[i+1]*factors[i+1])
+        if 'mV' in labels[i+1]:
+            Vrow = (sim_csv[i+1]*factors[i+1])
+        if 'uF/cm2' in labels[i+1]:
+            Crow = (sim_csv[i+1]*factors[i+1])
+        trow = sim_csv[0]
         axs[i//2,i%2].plot((sim_csv[0]*factors[0])[:], (sim_csv[i+1]*factors[i+1])[:])
         axs[i//2,i%2].set_ylabel(labels[i+1],fontsize=8,rotation=0,labelpad=30)
         if i//2 == nrows-1:
@@ -1464,18 +1477,32 @@ def plot_astim(csv_file, separate=False, folder = r'C:\Users\jgazquez\OneDrive -
         else:
             axs[i//2,i%2].set_xticks([])
         #axs[i//2,i%2].set_title(titles[i+1])
+    if debug:
+        arg = np.argmin(abs(Vrow))
+        print(arg/len(Vrow))
+        #print((Qrow)[arg-2:arg+2])
+        #print((Vrow)[arg-2:arg+2])
+        #print(Crow[arg-2:arg+2])
+        print((Qrow)[:5])
+        print((Vrow)[:5])
+        print(Crow[:5])
+        print(trow[:5])
     axs[nrows-1,1].set_xlabel(labels[0]) #do this again in case there is no curve plotted on the last subplot
     axs[nrows-1,1].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #in case of odd number of plots as explained in line above
     plt.subplots_adjust(hspace=.0)
     fig1.suptitle("Stim")
     fig1.tight_layout()
-    #plt.show()
     path_pieces = csv_file.split('\\') #path is splitted into its directories
     directory = folder+path_pieces[-2]+'_ext\\'
     if not os.path.exists(directory):
         os.mkdir(directory)  
-    plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
-    print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
+
+    if debug:
+        quit()
+        plt.show()
+    if not debug:
+        plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
+        print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
 
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""

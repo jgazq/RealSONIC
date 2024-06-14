@@ -55,10 +55,16 @@ STATE	{
 }
 
 BREAKPOINT	{
+	printf("BREAKPOINT before at %g:\n",t)
+	printf("Qm = :%g\n", v)
+	printf("Vm = :%g\n", Vm)
 	update()
 	SOLVE states METHOD cnexp
 	gCa = gCa_HVAbar*m*m*h
 	ica = gCa*(Vm-eca)
+	printf("BREAKPOINT after at %g:\n",t)
+	printf("Qm = :%g\n", v)
+	printf("Vm = :%g\n", Vm)
 }
 
 DERIVATIVE states	{
@@ -67,9 +73,15 @@ DERIVATIVE states	{
 }
 
 INITIAL{
+	printf("INITIAL before: at %g\n",t)
+	printf("Qm = :%g\n", v)
+	printf("Vm = :%g\n", Vm)
 	update()
 	m = alpham_CaHVA(A_t, y) / (alpham_CaHVA(A_t, y) + betam_CaHVA(A_t, y))
 	h = alphah_CaHVA(A_t, y) / (alphah_CaHVA(A_t, y) + betah_CaHVA(A_t, y))
+	printf("INITIAL after at %g:\n",t)
+	printf("Qm = :%g\n", v)
+	printf("Vm = :%g\n", Vm)
 }
 
 INDEPENDENT {
