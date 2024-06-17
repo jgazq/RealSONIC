@@ -30,17 +30,17 @@ def main():
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
     args['fs'] = [0.75] #75%                                                                                #default: 1 (100%)
-    args['radius'] = [64*1e-9] #16nm                                                                        #default: 3.2e-08 nm
-    args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000. Hz
+    args['radius'] = [32*1e-9] #16nm                                                                        #default: 3.2e-08 nm
+    args['freq'] = [500*1e3] #100kHz                                                                        #default: 500000. Hz
     args['section'] = ['soma0'] #      'myelin0', 'unmyelin0', 'node0', 'apical0', 'basal0'                 #default: None
     args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
-    args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
-    args['tstim'] = [0.1]                                                                                  #default: 0.0001 s
-    args['toffset'] = [0.1]                                                                               #default: 0.003 s
+    args['amp'] = [250*1e3]                                                                                 #default: 100000. Pa
+    args['tstim'] = [0.1]                                                                                   #default: 0.0001 s
+    args['toffset'] = [0.1]                                                                                 #default: 0.003 s
     args['neuron'] = ['realneuron']
 
-    print(f'cmd arguments: \n{args}')
+    #print(f'cmd arguments: \n{args}')
     #END DEBUGGING VALUES
 
     # Run batch
