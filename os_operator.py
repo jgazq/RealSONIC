@@ -42,7 +42,7 @@ def search_folder(string, non_string ,folder,case_sens=1):
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
 folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC',r'/Users/joaquin/Documents/python-virtual-environments/MorphoSONIC']
-search_folder(['SpatiallyExtendedTimeSeries'],[],r'C:\Users\jgazquez\PySONIC')
+search_folder(['g_dict'],[],r'C:\Users\jgazquez\PySONIC')
 
 
 def search_file(string, folder,filename_only=False):
@@ -65,7 +65,7 @@ def remove_eff(folder):
     """remove the effective dulicates of mechanisms
     inverse operator of write_modl.py"""
 
-    for root, dirs, files in os.walk(folder): #go through all files in the mechanics folders (all depths)
+    for root, dirs, files in os.walk(folder): #go through all files in the mechanisms folders (all depths)
         for file in files:
             file = os.path.join(root,file)
             if "eff" in file and file.endswith(".mod"):

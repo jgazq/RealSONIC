@@ -382,7 +382,7 @@ def mod_duplicate(mech_folder, restrictions = None):
     return mod_files, mod_names 
 
 
-def read_gbars(cell_folder,d_2_s):
+def read_gbars(cell_folder, d_2_s):
     """ read all all gbars from biophysics.hoc and put them into a dictionary
         :cell_folder: directory of the considered cell where the biophysics file is present
         :d_2_s: distance to the soma"""
@@ -390,7 +390,7 @@ def read_gbars(cell_folder,d_2_s):
     #d_2_s = 0.001 #distance to soma is taken here as a constant but should be adapted to each section
 
     gbar_dict = {}
-    lines_list = []
+    #lines_list = []
     for root, dirs, files in os.walk(cell_folder):
         for file in files:
             if file.endswith("biophysics.hoc"):
@@ -406,8 +406,57 @@ def read_gbars(cell_folder,d_2_s):
                 gbar_dict[location][gbar] = eval(expression)*1e4  #(S/cm2 -> S/m2)
             else:
                 gbar_dict[location] = {gbar : eval(expression)*1e4} #(S/cm2 -> S/m2)
-
+        # if 'pas' in line and '=' in line:
+        #     equation = eq_hoc2pyt(re.search(tc.equation_pattern,line.strip()).group())
+        #     if 'pas' in gbar_dict.keys():
+        #         gbar_dict['pas'] = np.append(gbar_dict['pas'],equation)
+        #     else:
+        #         gbar_dict['pas'] = [equation]
     return gbar_dict 
+
+
+def read_biophysics(cell_folder, d_2_s):
+    """ read all all gbars from biophysics.hoc and put them into a dictionary
+        :cell_folder: directory of the considered cell where the biophysics file is present
+        :d_2_s: distance to the soma"""
+
+    #d_2_s = 0.001 #distance to soma is taken here as a constant but should be adapted to each section
+
+    var_dict = {}
+    #lines_list = []
+
+    #read the biophysics.hoc file
+    for root, _, files in os.walk(cell_folder):
+        for file in files:
+            if file.endswith("biophysics.hoc"):
+                with open(os.path.join(root,file)) as f:
+                    lines_list = f.readlines()
+
+    #save the variables into a dictionary
+    curr_loc = None
+    for line in lines_list:
+        search = re.search('forsec.*{',line) #search the start of a section type
+        location = re.search("\$o1\.[a-zA-Z]*",line) #extract the section type
+        if search and location:
+            location = location.group().replace('$o1.','').lower()
+            if curr_loc:
+                TypeError(f'Already an assigned location: {curr_loc} so not possible to change it to: {location}')
+            curr_loc = location #now we are inside {} brackets
+            continue
+        elif '}' in line:
+            curr_loc = None #now we are oustide {} brackets
+            continue
+        elif curr_loc and '=' in line:
+            equation = eq_hoc2pyt(line) #convert the equation from hoc to python
+            var,expression = equation.split('=') #splot the equation in a LHS and RHS
+            #if curr_loc == 'all': 
+            #    var_dict[var] = eval(expression) #put the parameters directly into the dictionary if it is for all parameters (main reason is for the passive mechanism pas)
+            #otherwise put it in a specific section type dictionary
+            if curr_loc in var_dict: 
+                var_dict[curr_loc][var] = eval(expression)
+            else:
+                var_dict[curr_loc] = {var : eval(expression)}
+    return var_dict 
 
 
 def filter_mod(mod_files,mod_names):
@@ -1444,9 +1493,9 @@ def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgaz
     titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
     factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
     labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
-    factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
     #factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
-    labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
+    labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
     #labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
     factors += factors_add
     labels += labels_add
@@ -1458,7 +1507,10 @@ def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgaz
             plt.xlabel(labels[0])
             plt.ylabel(labels[i+1])
             plt.show()
-
+    plot_QmVm = 1
+    if plot_QmVm: #plot Qm/Vm which should be Cm (with or without a delay)
+        plt.plot((sim_csv[0]*factors[0])[:], (sim_csv[2]*factors[2]/sim_csv[7]*factors[7])[:])
+        plt.show()
     nrows = int(np.ceil((len(sim_csv)-1)/2)) #number of columns = 2, number of rows depends on the number of variables
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
     for i in range(0,len(sim_csv)-1): #len(sim_csv)
@@ -1483,10 +1535,10 @@ def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgaz
         #print((Qrow)[arg-2:arg+2])
         #print((Vrow)[arg-2:arg+2])
         #print(Crow[arg-2:arg+2])
-        print((Qrow)[:5])
-        print((Vrow)[:5])
-        print(Crow[:5])
-        print(trow[:5])
+        # print((Qrow)[:5])
+        # print((Vrow)[:5])
+        # print(Crow[:5])
+        # print(trow[:5])
     axs[nrows-1,1].set_xlabel(labels[0]) #do this again in case there is no curve plotted on the last subplot
     axs[nrows-1,1].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #in case of odd number of plots as explained in line above
     plt.subplots_adjust(hspace=.0)
@@ -1498,7 +1550,117 @@ def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgaz
         os.mkdir(directory)  
 
     if debug:
-        quit()
+        #quit()
+        plt.show()
+    if not debug:
+        plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
+        print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
+
+
+def plot_astim2(csv_file, separate=False, debug = False, variables = None, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\\'):
+    """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
+        :csv_file: file containing the time variable and all variables during the timelapse
+        :separate: plot all the variables also on separate plots
+        :folder: directory where the plot is saved """
+    
+    with open(csv_file, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader: #iterate trough it as first row cannot be accessed that easily from the reader
+            titles = row[1:] #first string in header is empty (row index)
+            break
+    sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
+    sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
+    titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
+    factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
+    labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
+    factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    #factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
+    #labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
+    factors += factors_add
+    labels += labels_add
+    print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.3f} ms")
+
+    plot_dict = {}
+    loc = 0
+
+    vars = [e.split(' ')[0] for e in labels]
+    variables = variables if variables else copy.copy(vars)
+    variables.remove('t') if 't' in variables else None
+    for label, factor, array, title, var in zip(labels, factors, sim_csv, titles, vars):
+        if 'nC/cm2' in label:
+            Qrow = (array*factor)
+        if 'mV' in label:
+            Vrow = (array*factor)
+        if var in variables:
+            if var not in plot_dict.keys():
+                plot_dict[var] = {'label': label, 'array': array, 'title': title, 'factor': factor}
+                if var.startswith('m_') or var.startswith('h_'):
+                        suffix = var.split('_')[-1] 
+                        if 'm_'+ suffix in plot_dict.keys():
+                            plot_dict['m_'+ suffix]['loc'] = loc
+                        elif 'm_'+ suffix in variables:
+                            plot_dict['m_'+ suffix] = {'loc': loc}
+                        if 'h_'+ suffix in plot_dict.keys():
+                            plot_dict['h_'+ suffix]['loc'] = loc
+                        elif 'h_'+ suffix in variables:
+                            plot_dict['h_'+ suffix] = {'loc': loc}
+                        loc += 1
+                elif not var.startswith('i') and var != 't':
+                    plot_dict[var]['loc'] = loc
+                    loc += 1
+            else:
+                plot_dict[var].update({'label': label, 'array': array, 'title': title, 'factor': factor})
+    for e in plot_dict: #plot all the currents at the end
+        if e.startswith('i'):
+            plot_dict[e]['loc'] = loc
+    if 'Cm' in plot_dict:
+        Crow = Qrow / np.concatenate((Vrow[1:], [Vrow[-1]])) / 1e2 # uF/cm2 -> F/m2
+        plot_dict['Cm']['array'] = Crow
+    if debug:
+        plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
+        plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
+    if separate: #to plot every variable separately
+        for var in variables:
+            plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:]) #slicing until x for debugging
+            plt.title(plot_dict[var]['title'])
+            plt.xlabel(labels[0])
+            plt.ylabel(plot_dict[var]['label'])
+            plt.show()             
+    
+    nrows = int(np.ceil((loc+1)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
+    fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
+    for i,var in enumerate(plot_dict.keys()): #len(sim_csv)
+        var_dict = plot_dict[var]
+        trow = sim_csv[0]
+        axs[var_dict['loc']//2,var_dict['loc']%2].plot((sim_csv[0]*factors[0])[:], (var_dict['array']*var_dict['factor'])[:],label = var_dict['label'])
+        axs[var_dict['loc']//2,var_dict['loc']%2].set_ylabel(var_dict['label'],fontsize=8,rotation=0,labelpad=30)
+        if var_dict['loc']//2 == nrows-1:
+            axs[var_dict['loc']//2,var_dict['loc']%2].set_xlabel(labels[0]) #only set x label at the bottom
+            #axs[var_dict['loc']//2,var_dict['loc']%2].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #only set x ticks at the bottom
+        elif nrows >3:
+            axs[var_dict['loc']//2,var_dict['loc']%2].set_xticks([])
+        #axs[i//2,i%2].set_title(titles[i+1])      
+    if debug:
+        arg = np.argmin(abs(Vrow))
+        #print(arg/len(Vrow))
+        #print((Qrow)[arg-2:arg+2]); print((Vrow)[arg-2:arg+2]); print(Crow[arg-2:arg+2])
+        # print((Qrow)[:5]); print((Vrow)[:5]); print(Crow[:5]); print(trow[:5])
+    axs[nrows-1,1].set_xlabel(labels[0]) #do this again in case there is no curve plotted on the last subplot
+    #axs[nrows-1,1].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #in case of odd number of plots as explained in line above
+    plt.subplots_adjust(hspace=.0)
+    fig1.suptitle("Stim")
+    fig1.tight_layout()
+    path_pieces = csv_file.split('\\') #path is splitted into its directories
+    directory = folder+path_pieces[-2]+'_ext\\'
+    if not os.path.exists(directory):
+        os.mkdir(directory)  
+
+    if debug:
+        #quit()
+        for i in range(nrows):
+            for j in range(2):
+                axs[i,j].legend(loc='upper right', fontsize=7)
         plt.show()
     if not debug:
         plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image

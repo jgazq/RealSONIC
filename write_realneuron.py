@@ -28,6 +28,7 @@ for i,e in enumerate(mod_names):
 l_alphas, l_betas, l_taus, l_infs, hits = tf.filter_mod(mod_files,mod_names)
 states = tf.states_from_lists(l_alphas, l_betas, l_taus, l_infs) #dimensionless
 g_dict = tf.read_gbars("cells/"+cell_folder+"/",dist_2_soma) #S/m2
+bio_dict = tf.read_biophysics("cells/"+cell_folder+"/",dist_2_soma)
 
 current_time = datetime.datetime.now()
 now = datetime.datetime.strftime(current_time,'%Y-%m-%d %H:%M:%S')
@@ -70,19 +71,19 @@ class RealisticNeuron(PointNeuron):
     # Resting parameters
     Cm0 = 1e-2   # Membrane capacitance (F/m2)
     Vm0 = -75  # Membrane potential (mV)\n\n""")
-    filenaam.write(f"""         
-    # Reversal potentials (mV)
-    #TODO\n""")
-    filenaam.write(f"""         
-    # Maximal channel conductances (S/m2)\n""")
-    # for e,f in g_dict[sec_type].items(): #this is skipped as the g_bar differs per section type and distance to the soma
-    #     filenaam.write(f"    {e} = {f}\n")
-    filenaam.write(f"""         
-    # Additional parameters
-    VT = -56.2  # Spike threshold adjustment parameter (mV)
-    #dist_2_soma = {dist_2_soma} # Distance from the considered segment to the soma (um?)\n\n""") #skipped
-    filenaam.write(f"    mod_files, mod_names = tf.read_mod(\"{mech_folder}\")\n")
-    filenaam.write(f"    #g_dict = tf.read_gbars(\"cells/\"+\"{cell_folder}\"+\"/\",dist_2_soma)\n\n") #also skipped (see comment above)
+    # filenaam.write(f"""         
+    # # Reversal potentials (mV)
+    # #TODO\n""")
+    # filenaam.write(f"""         
+    # # Maximal channel conductances (S/m2)\n""")
+    # # for e,f in g_dict[sec_type].items(): #this is skipped as the g_bar differs per section type and distance to the soma
+    # #     filenaam.write(f"    {e} = {f}\n")
+    # filenaam.write(f"""         
+    # # Additional parameters
+    # VT = -56.2  # Spike threshold adjustment parameter (mV)
+    # #dist_2_soma = {dist_2_soma} # Distance from the considered segment to the soma (um?)\n\n""") #skipped
+    #filenaam.write(f"    mod_files, mod_names = tf.read_mod(\"{mech_folder}\")\n")
+    #filenaam.write(f"    #g_dict = tf.read_gbars(\"cells/\"+\"{cell_folder}\"+\"/\",dist_2_soma)\n\n") #also skipped (see comment above)
 
 # write the states names & descriptions
 
@@ -173,16 +174,18 @@ class RealisticNeuron(PointNeuron):
                 for e in curr_lines[:-1]:
                     filenaam.write(f"""{e}\n""")
                 filenaam.write(f'\n{curr_lines[-1]}\n\n')
-        #         filenaam.write(f"""
-        # currents = [e for e in variables if (e.startswith(\'i\') or e.startswith(\'I\'))]
-        # print(currents)
-        # if currents:
-        #     return eval(variables[currents[0]])
-        # else:
-        #     return 0\n\n""")
                 currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x, g_bar: cls.i_{name_mod}({current_var}Vm) if g_bar is None else cls.i_{name_mod}({current_var}Vm, g_bar),'
             
         mod_number += 1 
+    filenaam.write(f"""    @classmethod
+    def i_pas(cls, Vm):
+        ''' ipas current '''\n""")
+    for e in bio_dict['all']:
+        filenaam.write(f"""        {e} = {bio_dict['all'][e]}\n""")
+    filenaam.write(f"""        ipas = g_pas*(Vm-e_pas)\n""")
+    filenaam.write(f"""\n        return ipas\n\n""")
+    currents_dict += f'\n\t\t\t\'i_pas\': lambda Vm: cls.i_pas(Vm),'
+
     filenaam.write("""    @classmethod
     def currents(cls):
         return {""")
