@@ -66,14 +66,14 @@ def main():
                             if stimulation == "gaussian":
                                 simqueue = [(
                                     [GaussianAcousticSource(
-                                        x0, sigma, item[0][0].f, item[0][0].A), *item[0][1:]],
-                                    item[1]
+                                        x0, sigma, item[0][0].f, item[0][0].A), *item[0][1:]], #[1:]: the AcousticDrive is replaced by and AcousticSource
+                                    item[1]                                                    #both Drive and Source inherit from StimObject
                                 ) for item in queue]
                             elif stimulation == "uniform":
                                 simqueue = [(
                                     [UniformAcousticSource(
                                         item[0][0].f, item[0][0].A), *item[0][1:]],
-                                    item[1]
+                                    item[1] #here you can add the arguments of dt and atol
                                 ) for item in queue]   
                             elif stimulation == "gaussian3D":
                                 simqueue = [(

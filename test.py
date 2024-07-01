@@ -26,7 +26,7 @@ import tempConstants as tc
 # tf.save_gatingplots(pkldict,r'test',A='all',Cm0=None)
 
 """analysis of the Q/V mismatch resulting in unphysical values for C"""
-tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_06_21_17_21_11_basal0.csv",debug=True)
+tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_06_25_17_57_25_soma0.csv",debug=True)
 #tf.plot_astim(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\csv\ASTIM_RS_CW_32nm_f_500kHz_A_100.00kPa_tstim_100ms_toffset_50ms_tstart_10ms_sonic\2024_06_20_11_58_35.csv", debug=1)
 # pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_64nm_100kHz_fs0.75.pkl")
 # Q = pkldict['refs']['Q']*1e5

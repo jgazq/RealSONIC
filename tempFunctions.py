@@ -1614,9 +1614,9 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     for e in plot_dict: #plot all the currents at the end
         if e.startswith('i'):
             plot_dict[e]['loc'] = loc
-    if 'Cm' in plot_dict:
-        Crow = Qrow / np.concatenate((Vrow[1:], [Vrow[-1]])) / 1e2 # uF/cm2 -> F/m2
-        plot_dict['Cm']['array'] = Crow
+    # if 'Cm' in plot_dict:
+    #     Crow = Qrow / np.concatenate((Vrow[1:], [Vrow[-1]])) / 1e2 # uF/cm2 -> F/m2
+    #     plot_dict['Cm']['array'] = Crow
     if debug:
         plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
         plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
@@ -1660,7 +1660,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
         #quit()
         for i in range(nrows):
             for j in range(2):
-                axs[i,j].legend(loc='upper right', fontsize=7)
+                axs[i,j].legend(loc='upper right', fontsize=5)
         plt.show()
     if not debug:
         plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
