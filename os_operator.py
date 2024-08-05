@@ -1,5 +1,5 @@
 import os
-from docx import Document
+#from docx import Document
 
 def search_folder(string, non_string ,folder,case_sens=1):
     """searches in all lines of all files in a folder for a given list of strings
@@ -42,7 +42,7 @@ def search_folder(string, non_string ,folder,case_sens=1):
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
 folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC',r'/Users/joaquin/Documents/python-virtual-environments/MorphoSONIC']
-search_folder(['daspk'],[],r'C:\Users\jgazquez\RealSONIC')
+search_folder(['setFuncTables'],[],r'C:\Users\jgazquez\PySONIC')
 
 
 def search_file(string, folder,filename_only=False):

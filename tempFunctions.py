@@ -1281,7 +1281,7 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     plt.clf()
     no_reduc = ['tcomp','V']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude or other variable
-        mul = 1 if variable == 'V' else 1e5 if variable == 'C' else 1e-3 if ('alpha' in variable or 'beta' in variable) else 1
+        mul = 1 if variable == 'V' else 1e5 if variable == 'C' else 1 if ('alpha' in variable or 'beta' in variable) else 1 #factor is 1 for alpha and beta if in 1/ms, 1e3 if 1/s 
         if num_shades > 1:
             plt.plot(Q_refs*1e5,e*mul,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
             plt.legend()
@@ -1289,7 +1289,11 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
             plt.plot(Q_refs*1e5,table*mul) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
                                         #plot the whole table as iterating over the elements will result in a reduced size of matrix
         plt.xlabel('$\mathrm{Q [nC/cm^2]}$')
-        ylab = 'V [mV]' if variable == 'V' else 'C $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else variable+ ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
+        if 'alpha' in variable:
+            var, suf = r'\alpha', variable.split('_')[0][-1]+", "+variable.split('_')[1] 
+        elif 'beta' in variable:
+            var, suf = r'\alpha', variable.split('_')[0][-1]+", "+variable.split('_')[1]
+        ylab = '${V_m}^*$ [mV]' if variable == 'V' else '${C_m}^*$ $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else f'${{{var}}}_{{{suf}}}^{{*}}$' + ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
         plt.ylabel(f'{ylab}') #ylabel can be V, C or a gating parameter
         if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
             change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
@@ -1387,7 +1391,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
                 table2 = np.swapaxes(table2,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
             table2 = np.reshape(table2,(-1,len(Q_array))) #reshape the table to dim(variable) x dim(Q) (this is partly done because of fs-dimension)
         plt_LUTeff(key,table2,Q_array,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
-        plt.title(title)
+        #plt.title(title)
         plt.savefig(f'figs/{foldername}/{key}.png')
 
     #plot the effective capacity
@@ -1400,7 +1404,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
-    plt.savefig(f'figs/{foldername}/C.png')  
+    plt.savefig(f'figs/{foldername}/C.svg')  
 
 
 def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01, overtones=1, overtone=1, heatmap=False):
@@ -1561,6 +1565,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
         :csv_file: file containing the time variable and all variables during the timelapse
         :separate: plot all the variables also on separate plots
+        :variables: simulated variables that need to be plotted
         :folder: directory where the plot is saved """
     
     with open(csv_file, newline='') as csvfile:
@@ -1570,15 +1575,20 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
             break
     sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
     sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
+    for i,e in enumerate(titles):
+        print(f'{e}: {sim_csv[i]}')
+    #print(titles)
+    #print(sim_csv)
+    #plt.plot(sim_csv[2])
     titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
-    factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
-    labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
-    factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
-    #factors_add = [1 if ('_' in e) else 1e2 if 'Cm' in e else 1 if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
-    labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
-    #labels_add = [f'{e}' if ('_' in e) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e} [mA/m2]' if ('i' in e or 'I' in e) else 0 for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
-    factors += factors_add
-    labels += labels_add
+    factors =  [1e3 if e=='t' else 1 if e=='stimsate' else 1e5 if e=='Qm' else 1 if e=='Vm' else 1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles]
+    labels = ['t [ms]' if e=='t' else 'stimstate' if e=='stimstate' else 'Q [nC/cm2]' if e=='Qm' else 'V [mV]' if e=='Vm' else f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles]
+    #factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
+    #labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
+    #factors_add = [1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles[4:]] #the factors are added for the gating parameters, membrane capacitance and currents
+    #labels_add = [f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles[4:]] #labels are added for the gating parameters, membrane capacitance and currents
+    #factors += factors_add
+    #labels += labels_add
     print(f"sim step: {sim_csv[0][2]*1e6} us, end sim: {sim_csv[0][-1]*1e3:.3f} ms")
 
     plot_dict = {}
@@ -1611,6 +1621,9 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
                     loc += 1
             else:
                 plot_dict[var].update({'label': label, 'array': array, 'title': title, 'factor': factor})
+    if '' in plot_dict:
+        del plot_dict['']
+        loc -=1
     for e in plot_dict: #plot all the currents at the end
         if e.startswith('i'):
             plot_dict[e]['loc'] = loc
@@ -1622,13 +1635,15 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
         plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
     if separate: #to plot every variable separately
         for var in variables:
-            plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:]) #slicing until x for debugging
-            plt.title(plot_dict[var]['title'])
+            plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=' section ') #slicing until x for debugging
+            #plt.title(''plot_dict[var]['title']'')
             plt.xlabel(labels[0])
             plt.ylabel(plot_dict[var]['label'])
-            plt.show()             
+            plt.legend()
+            plt.show()         
+            quit()    
     
-    nrows = int(np.ceil((loc+1)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
+    nrows = int(np.ceil((loc)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
     for i,var in enumerate(plot_dict.keys()): #len(sim_csv)
         var_dict = plot_dict[var]

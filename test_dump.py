@@ -73,6 +73,18 @@ import tempConstants as tc
 
 
 
+""""to change the units of the LUT"""
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups_1.pkl")
+# print(pkldict['tables']['alpham_Ih'][0,0,0,0])
+# for e in pkldict['tables']:
+#     #print(e)
+#     if '_' in e:
+#         pkldict['tables'][e] *= 1e6
+# print(pkldict['tables']['alpham_Ih'][0,0,0,0])
+# tf.load_pickle(pkldict,r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups.pkl")
+
+
+
 """"to lookup a value in the tables"""
 # print(tf.lookup_LUT(r'C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_fs1.00.pkl','alpham_CaHVA'))
 

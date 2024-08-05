@@ -82,4 +82,4 @@ figs['a'] = fig
 # figs['c'] = fig
 
 plt.show()
-saveFigsAsPDF(figs, figindex,pneur_name)
+#saveFigsAsPDF(figs, figindex,pneur_name)

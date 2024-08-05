@@ -9,13 +9,23 @@
 
 from PySONIC.core import NeuronalBilayerSonophore, Batch
 from PySONIC.utils import logger
-from PySONIC.parsers import AStimParser
+from PySONIC.parsers import AStimParser, getPointNeuron
 
 
 def main():
     # Parse command line arguments
     parser = AStimParser()
     args = parser.parse()
+    print(args); #quit()
+    args['neuron'] = [getPointNeuron('soma')]
+    args['fs'] = [.75]
+    args['radius'] = [64*1e-9] 
+    args['freq'] = [100*1e3] 
+    args['amp'] = [600*1e3] 
+    args['tstim'] = [0.1] 
+    args['toffset'] = [0.01]
+    args['plot'] = ['Vm', 'Cm', 'Qm']   
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
     logger.setLevel(args['loglevel'])
     sim_inputs = parser.parseSimInputs(args)
     simQueue_func = {9: 'simQueue', 10: 'simQueueBurst'}[len(sim_inputs)]

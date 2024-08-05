@@ -38,7 +38,8 @@ def main():
     args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
     args['tstim'] = [0.1]                                                                                   #default: 0.0001 s
     args['toffset'] = [0.01]                                                                                #default: 0.003 s
-    args['neuron'] = ['realneuron']
+    #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
+                                     #but this is irrelevant as 
     #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                 #default: 1
     #args['DC'] = [.5] #this argument needs to be changed for PW mode                                        #default: 1.
 
