@@ -1220,7 +1220,7 @@ def LUT_comparison(filename, factor = [1,1,2,2,1,1], method='linear', save=True)
 def LUT_to_LUT2(filename, remove_zeros=False):
     """ converts a LUT gating parameters to a LUT where the values for Cm0=0.01 and 0.02 are separated into different parameters
         :filename: location of the original LUT
-        :remove_zeros"""
+        :remove_zeros: remove the uncalculated 0-values in the 0.01-variant"""
     
     pkldict = read_pickle(filename)
     tables = list(pkldict['tables'].keys())
@@ -1229,13 +1229,41 @@ def LUT_to_LUT2(filename, remove_zeros=False):
         pkldict['tables'][table] = pkldict['tables'][table][:,:,:,:,0,:]
         if remove_zeros:
             #print(pkldict['tables'][table].shape)
-            if table == 'tcomp': #this table doesn't contain zeros so needs to be reduced
+            if table == 'tcomp': #this table doesn't contain zeros but needs to be reduced to comply with the shape
                 pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros]
                 continue
-            nonzeros = np.nonzero(pkldict['tables'][table][0,0,0])[0]
+            nonzeros = np.nonzero(pkldict['tables'][table][0,0,0,:,0])[0] # array is given inside a tuple hence the slicing
             pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros] #remove zeros in the Q-axis
-            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][0,0,0])[0]
+            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][0,0,0,:,0])[0] # array is given inside a tuple hence the slicing
             pkldict['tables'][table+'2'] = pkldict['tables'][table+'2'][:,:,:,nonzeros2] #remove zeros in the Q-axis
+            #print(pkldict['tables'][table].shape)
+    del pkldict['refs']['Cm0'] #delete reference key as this is not a dimension anymore
+    if remove_zeros:
+        pkldict['tables']['Q_ext'] = pkldict['refs']['Q'][nonzeros2]
+        pkldict['refs']['Q'] = pkldict['refs']['Q'][nonzeros]
+    #print(tables)
+    load_pickle(pkldict,filename.replace('.pkl','_LUT2.pkl'))
+
+
+def LUT_to_LUT2_1overtone(filename, remove_zeros=False):
+    """ converts a LUT gating parameters to a LUT where the values for Cm0=0.01 and 0.02 are separated into different parameters
+        :filename: location of the original LUT
+        :remove_zeros: remove the uncalculated 0-values in the 0.01-variant"""
+    
+    pkldict = read_pickle(filename)
+    tables = list(pkldict['tables'].keys())
+    for table in tables:
+        pkldict['tables'][table+'2'] = pkldict['tables'][table][:,:,:,:,:,:,1,:]
+        pkldict['tables'][table] = pkldict['tables'][table][:,:,:,:,:,:,0,:]
+        if remove_zeros:
+            #print(pkldict['tables'][table].shape)
+            if table == 'tcomp': #this table doesn't contain zeros but needs to be reduced to comply with the shape
+                pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros,:,:]
+                continue
+            nonzeros = np.nonzero(pkldict['tables'][table][0,0,0,:,0,0,0])[0] 
+            pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros,:,:,:] #remove zeros in the Q-axis
+            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][0,0,0,:,0,0,0])[0]
+            pkldict['tables'][table+'2'] = pkldict['tables'][table+'2'][:,:,:,nonzeros2,:,:,:] #remove zeros in the Q-axis
             #print(pkldict['tables'][table].shape)
     del pkldict['refs']['Cm0'] #delete reference key as this is not a dimension anymore
     if remove_zeros:
@@ -1259,7 +1287,7 @@ def plt_transdistr(psource,grid_type):
     plt.show()
 
 
-def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduced_yrange=False, reduced_xrange=False):
+def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduced_yrange=False, reduced_xrange=False, label = False):
     """ plots a certain gating parameter in function of the charge, possibility to provide multiple values for a tunable parameter
         :variable: the gating parameter that needs to be plotted
         :table: a table containing the y-values (for different values of a certain parameter)
@@ -1269,7 +1297,8 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
         :var_refs: the parameter for which different plots is rendered given the different values
         :plot: showing the plot
         :reduced_yrange: reduction in y-range values
-        :reduced_xrange: reduction in x-range values"""
+        :reduced_xrange: reduction in x-range values
+        :label: specific label can be added if there is no var_refs given"""
 
     num_shades = len(var_refs) if type(var_refs) == np.ndarray else 1 #number of different colors for the different curves on 1 plot
     #actually it needs to be len(Arefs) but this results in a smaller range of colors which makes it more clear?
@@ -1278,13 +1307,24 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     # Generate colors across the colormap
     colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
     #colors.reverse()
-    plt.clf()
+    #plt.clf()
     no_reduc = ['tcomp','V']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude or other variable
         mul = 1 if variable == 'V' else 1e5 if variable == 'C' else 1 if ('alpha' in variable or 'beta' in variable) else 1 #factor is 1 for alpha and beta if in 1/ms, 1e3 if 1/s 
         if num_shades > 1:
             plt.plot(Q_refs*1e5,e*mul,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
             plt.legend()
+        elif label:
+            if 'beta' in variable:
+                if 'betah' in variable:
+                    plt.plot(Q_refs*1e5,table*mul,'r--',label=variable)
+                else:
+                    plt.plot(Q_refs*1e5,table*mul,'y--',label=variable)
+            else:
+                if 'alpham' in variable:
+                    plt.plot(Q_refs*1e5,table*mul,'y-',label=variable)
+                else:
+                    plt.plot(Q_refs*1e5,table*mul,'r-',label=variable)
         else:
             plt.plot(Q_refs*1e5,table*mul) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
                                         #plot the whole table as iterating over the elements will result in a reduced size of matrix
@@ -1379,6 +1419,7 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
 
     #plot all calculated effective variables
     for key in pkldict['tables']: #iterate over the output gating parameters
+        plt.clf()
         if 'tcomp' in key:
             continue #don't plot the computation time tcomp as these plots are not important
         table = pkldict['tables'][key] #gating parameter matrix, dims:(a,f,A,Q,Cm,fs)
@@ -1405,6 +1446,93 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C.svg')  
+
+
+def save_gatingplots_group(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
+    """ plots the various gating parameters, where they are grouped based on the mechanism, in function of the charge, it is possible to give multiple radius, frequencies, amplitudes or capacitances
+        :pkldict: dictionary containing LUT
+        :foldername: directory where the various plots will be stored
+        :factor: multiplier to comply with given unit
+        :unit: unit in which the parameter is expressed in
+        :reduced_yrange: if a reduction in the gating parameter range is needed (most necessary when going to infinity)
+        :reduced_xrange: to reduce the charge range when using different Cm0-values
+        :a, f, A, Cm0: both specific values as the keyword 'all' can be given to specify which values need to be plugged in the independent parameters"""
+
+    var_dict = {'a': a, 'f': f, 'A': A, 'Cm0': Cm0} if Cm0 else {'a': a, 'f': f, 'A': A} #4 different variables can be sweeped over
+    var_list = ['a', 'f', 'A', 'Cm0'] if Cm0 else ['a', 'f', 'A']
+    all_list = np.where(np.array(list(var_dict.values()))=='all')[0] #looks which of the parameters has the 'all' keywoard
+    if all_list: #only do this if there is a parameter that needs to be plotted for multiple values
+        factor = tc.plotting_factors[var_list[all_list[0]]] #conversion factor from SI unit to a more conventional unit
+        unit = tc.plotting_units[var_list[all_list[0]]] #the conventional unit
+        title = var_list[all_list[0]]+': all' #the title starts with the parameter that contains the keywoard 'all' (for this parameter all values will be plotted)
+    else:
+        factor, unit = None, None
+        title = ''
+    for (k,v) in var_dict.items():
+        if v != 'all':
+            title += f", {k} = {v*tc.plotting_factors[k]:.1e} {tc.plotting_units[k]}" #each parameter is converted and then added with its respective conventional unit to the title
+    title = title.replace('e+00','').replace('e+0','e').replace('e-0','e-') #shortening of scientific notation
+    #all_list = [e=="all" for e in var_list.values()] #look which of the variables needs to be plotted over the whole range
+    ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) if v != 'all' else ':' for (k,v) in var_dict.items()] #where a single value is given, the array is indexed at the value that is closest to the given value
+    print(f"used variables: {[pkldict['refs'][k][min] if min != ':' else 'all' for k, min in zip(var_dict,ind_list)]}")
+    ind_list = ind_list[:3]+[":"] + list(ind_list[3:]) + [0] if Cm0 else ind_list[:3]+[":"] + [0] #a,f,A are indexed, Q needs to be plotted at the x-axis, Cm0 is indexed, and fs can only have 1 value
+    #only add Cm0 if LUT contains Cm0 dimension
+    ind_list = [str(e) for e in ind_list] #convert the indexing list to strings for later on
+    if len(all_list) > 1:
+        raise ValueError('only 1 parameter can be plotted for all')
+    Qrange = pkldict['refs']['Q'] #list containing the Q values on the x-axis
+    if 'Q_ext' in pkldict['tables']:
+        Q_ext = pkldict['tables']['Q_ext'] #define Q_ext if it is defined in the LUT
+        del pkldict['tables']['Q_ext'] #remove it from the LUT as it is not needed to plot
+    var_refs = pkldict['refs'][var_list[all_list[0]]] if (len(all_list) > 0) else None #list containing all the values for the legend in the plot (each value results in a different curve)
+    plt.figure(figsize=(8, 6)) #change figsize so all plots are shown properly and fit in the box
+
+    group_dict = {}
+    for key in pkldict['tables']:
+        if '_' in key:
+            pre,suf = key.split('_')
+            if suf in group_dict:
+                print('in table')
+                group_dict[suf].append(key)
+            else:
+                group_dict[suf] = [key]
+        else:
+            group_dict[key] = [key]
+
+
+    #plot all calculated effective variables
+    for var,vars in group_dict.items():
+        plt.clf()
+        print(f'var = {var}')
+        for key in vars: #iterate over the output gating parameters
+            print(f'key = {key}')
+            if 'tcomp' in key:
+                continue #don't plot the computation time tcomp as these plots are not important
+            table = pkldict['tables'][key] #gating parameter matrix, dims:(a,f,A,Q,Cm,fs)
+            Q_array = Qrange if len(Qrange) in table.shape else Q_ext #if the length of Qrange is the same as on of the dimensions in the table, use this array, otherwise use the extended Q array
+            table2 = eval(f"table[{(',').join(ind_list)}]") #index the table according to the given indexing list: 1 value for each parameter except all Q and a chosen variable
+            if all_list:
+                ind_colon = np.where(np.array(ind_list)==":")[0] #determine which variables keep all values (Q and a chosen variable)
+                ind = ind_colon[ind_colon !=3][0] #except from Q (which has index 3), check the index of the variable that has all its values
+                if ind > 3: #if the variable is further in the array than Q:
+                    table2 = np.swapaxes(table2,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
+                table2 = np.reshape(table2,(-1,len(Q_array))) #reshape the table to dim(variable) x dim(Q) (this is partly done because of fs-dimension)
+            plt_LUTeff(key,table2,Q_array,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange, label = 1) #plotting
+            #plt.title(title)
+        plt.legend()
+        plt.savefig(f'figs/{foldername}/{key}.png')
+
+    #plot the effective capacity
+    table_V = eval(f"pkldict['tables']['V'][{(',').join(ind_list)}]") #index the table according to the calculated indexing list
+    if all_list:
+        if ind > 3: #if the variable is further in the array than Q:
+            table_V = np.swapaxes(table_V,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
+        table_V = np.reshape(table_V,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q)
+    #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
+    table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
+    plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
+    plt.title(title)
+    plt.savefig(f'figs/{foldername}/C.png')  
 
 
 def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01, overtones=1, overtone=1, heatmap=False):
@@ -1449,6 +1577,7 @@ def save_gatingplots_overtones(pkldict,foldername,reduced_yrange=True,reduced_xr
 
     #plot all calculated effective variables
     for key in pkldict['tables']: #iterate over the output gating parameters
+        plt.clf()
         table = pkldict['tables'][key] #gating parameter matrix, dims:(a,f,A,Q,  A_Qx,phi_Qx  ,Cm,fs)
         table2 = eval(f"table[{(',').join(ind_list)}]") #index the table according to the given indexing list: 1 value for each parameter except all Q and a chosen variable
         if all_list:
@@ -1575,6 +1704,14 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
             break
     sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
     sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
+
+    #to save a certain state vector
+    pre_offset = np.argmin(abs(sim_csv[0] - (1)*1e-3))
+    post_offset = pre_offset+1
+    pre = [sim_csv[i][pre_offset] for i in range(len(sim_csv))]
+    post = [sim_csv[i][post_offset] for i in range(len(sim_csv))]
+    #print(pre,'\n', post,'\n', np.array(pre)-np.array(post));quit()
+
     for i,e in enumerate(titles):
         print(f'{e}: {sim_csv[i]}')
     #print(titles)
@@ -1597,6 +1734,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     vars = [e.split(' ')[0] for e in labels]
     variables = variables if variables else copy.copy(vars)
     variables.remove('t') if 't' in variables else None
+    #print(vars,variables)
     for label, factor, array, title, var in zip(labels, factors, sim_csv, titles, vars):
         if 'nC/cm2' in label:
             Qrow = (array*factor)
@@ -1631,8 +1769,9 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     #     Crow = Qrow / np.concatenate((Vrow[1:], [Vrow[-1]])) / 1e2 # uF/cm2 -> F/m2
     #     plot_dict['Cm']['array'] = Crow
     if debug:
-        plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
-        plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
+        pass
+        #plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
+        #plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
     if separate: #to plot every variable separately
         for var in variables:
             plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=' section ') #slicing until x for debugging
@@ -1643,8 +1782,9 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
             plt.show()         
             quit()    
     
-    nrows = int(np.ceil((loc)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
+    nrows = int(np.ceil((loc+1)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
+    print(f'figure created with dimensions: {nrows}, 2')
     for i,var in enumerate(plot_dict.keys()): #len(sim_csv)
         var_dict = plot_dict[var]
         trow = sim_csv[0]
@@ -1653,7 +1793,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
         if var_dict['loc']//2 == nrows-1:
             axs[var_dict['loc']//2,var_dict['loc']%2].set_xlabel(labels[0]) #only set x label at the bottom
             #axs[var_dict['loc']//2,var_dict['loc']%2].set_xticks((sim_csv[0]*factors[0])[::len(sim_csv[0])//9]) #so time is plotted correctly on x-axis #only set x ticks at the bottom
-        elif nrows >3:
+        elif loc > 3:
             axs[var_dict['loc']//2,var_dict['loc']%2].set_xticks([])
         #axs[i//2,i%2].set_title(titles[i+1])      
     if debug:
@@ -1671,11 +1811,11 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     if not os.path.exists(directory):
         os.mkdir(directory)  
 
+    for i in range(nrows):
+        for j in range(2):
+            axs[i,j].legend(loc='upper left', fontsize=5)
     if debug:
         #quit()
-        for i in range(nrows):
-            for j in range(2):
-                axs[i,j].legend(loc='upper right', fontsize=5)
         plt.show()
     if not debug:
         plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image

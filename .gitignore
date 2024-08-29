@@ -144,3 +144,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+#Added by Joa
+RealSONIC/figs/test
+RealSONIC/figs/delete

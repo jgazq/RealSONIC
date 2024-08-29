@@ -11,11 +11,19 @@ import tempConstants as tc
 
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_06_25_17_39_26_soma0.csv",debug=True)
 
-#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_realneuron_CW_32nm_f_500kHz_A_100.00kPa_tstim_100ms_toffset_50ms_tstart_10ms_fs75%_sonic\2024_07_10_10_38_54.csv",debug=True)
-#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_RS_CW_32nm_f_500kHz_A_100.00kPa_tstim_100ms_toffset_50ms_tstart_10ms_sonic\2024_07_31_11_27_11.csv",debug=True)
+#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_98ms_toffset_10ms_tstart_10ms_fs75%_sonic\2024_08_07_14_29_35.csv",debug=True)
+#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_98ms_toffset_10ms_tstart_10ms_fs75%_sonic\2024_08_07_14_53_36.csv",debug=True)
 
-#pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
-#tf.save_gatingplots(pkldict,r'test',A='all',Cm0=None)
+#COMPARE OVERTONES WITH 0 OVERTONES
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl",prints=True)
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\OneDrive - UGent\PhD\jgazquez - backup\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged_ext.pkl",prints=True)
+
+#tf.LUT_to_LUT2(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_merged.pkl",1)
+
+#tf.save_gatingplots_group(pkldict,r'test',Cm0=None, reduced_yrange=False)
+
+#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 10\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_08_12_09_56_01_soma0.csv",debug=1)#,variables = ['V','Q','i_net'])
+
 
 """compare original LUT with upsampled one"""
 # tf.compare_LUT(r'C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_fs1.00.pkl',

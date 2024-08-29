@@ -77,9 +77,9 @@ import tempConstants as tc
 # pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups_1.pkl")
 # print(pkldict['tables']['alpham_Ih'][0,0,0,0])
 # for e in pkldict['tables']:
-#     #print(e)
 #     if '_' in e:
-#         pkldict['tables'][e] *= 1e6
+#         #print(e)
+#         pkldict['tables'][e] *= 1e3
 # print(pkldict['tables']['alpham_Ih'][0,0,0,0])
 # tf.load_pickle(pkldict,r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups.pkl")
 
