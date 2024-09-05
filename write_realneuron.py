@@ -184,7 +184,7 @@ class RealisticNeuron(PointNeuron):
         filenaam.write(f"""        {e} = {bio_dict['all'][e]}\n""")
     filenaam.write(f"""        ipas = g_pas*(Vm-e_pas)\n""")
     filenaam.write(f"""\n        return ipas\n\n""")
-    currents_dict += f'\n\t\t\t\'i_pas\': lambda Vm: cls.i_pas(Vm),'
+    currents_dict += f'\n\t\t\t\'i_pas\': lambda Vm: cls.i_pas(Vm), x, g_bar' #added dummy argument variables for uniformity
 
     filenaam.write("""    @classmethod
     def currents(cls):

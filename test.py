@@ -9,7 +9,10 @@ from neuron import h
 import tempFunctions as tf
 import tempConstants as tc
 
-#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_06_25_17_39_26_soma0.csv",debug=True)
+# tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 13\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_98ms_toffset_10ms_tstart_10ms_fs75%_sonic\2024_09_05_11_29_27.csv",debug=True,variables=['Q','V','i_net']) #,separate=1,folder=r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 13\realistic vs soma\\"
+tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 13\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_98ms_toffset_10ms_tstart_10ms\2024_09_05_11_31_01_soma0.csv",debug=True) #,separate=1,folder=r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 13\realistic vs soma\\"
+#tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 12\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_0s_tstart_10ms_fs75%_sonic\2024_09_05_14_10_20.csv",debug=True,variables=['Q','V','i_net']) #,separate=1,folder=r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 13\realistic vs soma\\" #only SKv3_1
+
 
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_98ms_toffset_10ms_tstart_10ms_fs75%_sonic\2024_08_07_14_29_35.csv",debug=True)
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 9\csv\ASTIM_soma_CW_64nm_f_100kHz_A_600.00kPa_tstim_98ms_toffset_10ms_tstart_10ms_fs75%_sonic\2024_08_07_14_53_36.csv",debug=True)

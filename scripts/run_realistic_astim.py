@@ -36,7 +36,7 @@ def main():
     args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
     args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
-    args['tstim'] = [0.1]                                                                                   #default: 0.0001 s
+    args['tstim'] = [0.098]                                                                                   #default: 0.0001 s
     args['toffset'] = [0.01]                                                                                #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                      #but this is irrelevant as 

@@ -22,8 +22,8 @@ def main():
     args['radius'] = [64*1e-9] 
     args['freq'] = [100*1e3] 
     args['amp'] = [600*1e3] 
-    args['tstim'] = [0] 
-    args['toffset'] = [0]
+    args['tstim'] = [0.0]
+    args['toffset'] = [0.0]
     args['plot'] = ['Vm', 'Cm', 'Qm']   
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm']}
     logger.setLevel(args['loglevel'])

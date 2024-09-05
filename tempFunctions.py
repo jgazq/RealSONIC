@@ -1712,8 +1712,8 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     post = [sim_csv[i][post_offset] for i in range(len(sim_csv))]
     #print(pre,'\n', post,'\n', np.array(pre)-np.array(post));quit()
 
-    for i,e in enumerate(titles):
-        print(f'{e}: {sim_csv[i]}')
+    # for i,e in enumerate(titles):
+    #     print(f'{e}: {sim_csv[i]}')
     #print(titles)
     #print(sim_csv)
     #plt.plot(sim_csv[2])
@@ -1730,6 +1730,10 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
 
     plot_dict = {}
     loc = 0
+    path_pieces = csv_file.split('\\') #path is splitted into its directories
+    directory = folder+path_pieces[-2]+'_ext\\'
+    if not os.path.exists(directory):
+        os.mkdir(directory)  
 
     vars = [e.split(' ')[0] for e in labels]
     variables = variables if variables else copy.copy(vars)
@@ -1765,22 +1769,47 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     for e in plot_dict: #plot all the currents at the end
         if e.startswith('i'):
             plot_dict[e]['loc'] = loc
+
+    
     # if 'Cm' in plot_dict:
     #     Crow = Qrow / np.concatenate((Vrow[1:], [Vrow[-1]])) / 1e2 # uF/cm2 -> F/m2
     #     plot_dict['Cm']['array'] = Crow
     if debug:
         pass
-        #plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
-        #plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
+
+        #custom code
+        # for var in plot_dict.keys():#variables:
+        #     print(var)
+        #     if var == 'Q' or var == 'V':
+        #         plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+        #     elif var == 'i_net' or var == 'i_SKv31' or var == 'i_NaTs2t':
+        #         plt.plot((sim_csv[0]*factors[0])[:], 10**(-2.5)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+        #     else:
+        #         continue
+        # plt.ylabel(plot_dict[var]['label'])
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
+        # quit()
+
+        # plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': -np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
+        # plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
     if separate: #to plot every variable separately
-        for var in variables:
+        for var in plot_dict.keys():#variables:
+            plt.clf()
             plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=' section ') #slicing until x for debugging
+            #plt.axvline(x=108,color='r') #plot a vetical line when stimulation ends
             #plt.title(''plot_dict[var]['title']'')
             plt.xlabel(labels[0])
             plt.ylabel(plot_dict[var]['label'])
             plt.legend()
-            plt.show()         
-            quit()    
+            plt.grid()
+            if folder:
+                var_pure = var.replace('\\','').replace('/','')
+                plt.savefig(directory+r'\\'+f'{var_pure}.jpg')
+            else:
+                plt.show()
+            #quit()    
     
     nrows = int(np.ceil((loc+1)/2)) #number of columns = 2, number of rows depends on the number of variables # no -1 because variables doesn't contain the time (x-axis) as in plot_astim(1)
     fig1, axs = plt.subplots(nrows, 2, figsize=(15,7))
@@ -1806,14 +1835,11 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     plt.subplots_adjust(hspace=.0)
     fig1.suptitle("Stim")
     fig1.tight_layout()
-    path_pieces = csv_file.split('\\') #path is splitted into its directories
-    directory = folder+path_pieces[-2]+'_ext\\'
-    if not os.path.exists(directory):
-        os.mkdir(directory)  
 
     for i in range(nrows):
         for j in range(2):
-            axs[i,j].legend(loc='upper left', fontsize=5)
+            axs[i,j].legend(loc='upper left', fontsize=5) #left when doing stimulation, right when debugging
+            axs[i,j].grid()
     if debug:
         #quit()
         plt.show()
