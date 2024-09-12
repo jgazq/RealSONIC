@@ -1690,7 +1690,7 @@ def plot_astim(csv_file, separate=False, debug = False, folder = r'C:\Users\jgaz
         print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
 
 
-def plot_astim2(csv_file, separate=False, debug = False, variables = None, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\\'):
+def plot_astim2(csv_file, separate=False, debug = False, variables = None, folder = None):#, folder = r'C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 7\\'):
     """to plot all the plotting variables (including gating parameters) in a certain compartment of a time simulation
         :csv_file: file containing the time variable and all variables during the timelapse
         :separate: plot all the variables also on separate plots
@@ -1708,8 +1708,8 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     #to save a certain state vector
     pre_offset = np.argmin(abs(sim_csv[0] - (1)*1e-3))
     post_offset = pre_offset+1
-    pre = [sim_csv[i][pre_offset] for i in range(len(sim_csv))]
-    post = [sim_csv[i][post_offset] for i in range(len(sim_csv))]
+    #pre = [sim_csv[i][pre_offset] for i in range(len(sim_csv))]
+    #post = [sim_csv[i][post_offset] for i in range(len(sim_csv))]
     #print(pre,'\n', post,'\n', np.array(pre)-np.array(post));quit()
 
     # for i,e in enumerate(titles):
@@ -1718,7 +1718,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     #print(sim_csv)
     #plt.plot(sim_csv[2])
     titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
-    factors =  [1e3 if e=='t' else 1 if e=='stimsate' else 1e5 if e=='Qm' else 1 if e=='Vm' else 1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles]
+    factors =  [1e3 if e=='t' else 1 if e=='stimsate' else 1 if e=='Qm' else 1 if e=='Vm' else 1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles]
     labels = ['t [ms]' if e=='t' else 'stimstate' if e=='stimstate' else 'Q [nC/cm2]' if e=='Qm' else 'V [mV]' if e=='Vm' else f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles]
     #factors = [1e3, 1, 1e5, 1] #factors for time, stimstate, membrane  charge, and voltage(which is already in mV)
     #labels = ['t [ms]', 'stimstate', 'Q [nC/cm2]', 'V [mV]'] 
@@ -1731,9 +1731,10 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
     plot_dict = {}
     loc = 0
     path_pieces = csv_file.split('\\') #path is splitted into its directories
-    directory = folder+path_pieces[-2]+'_ext\\'
-    if not os.path.exists(directory):
-        os.mkdir(directory)  
+    if folder:
+        directory = folder+path_pieces[-2]+'_ext\\'
+        if not os.path.exists(directory):
+            os.mkdir(directory)  
 
     vars = [e.split(' ')[0] for e in labels]
     variables = variables if variables else copy.copy(vars)
@@ -1778,22 +1779,47 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
         pass
 
         #custom code
-        # for var in plot_dict.keys():#variables:
-        #     print(var)
-        #     if var == 'Q' or var == 'V':
-        #         plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
-        #     elif var == 'i_net' or var == 'i_SKv31' or var == 'i_NaTs2t':
-        #         plt.plot((sim_csv[0]*factors[0])[:], 10**(-2.5)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
-        #     else:
-        #         continue
-        # plt.ylabel(plot_dict[var]['label'])
-        # plt.legend()
-        # plt.grid()
-        # plt.show()
-        # quit()
+        for var in plot_dict.keys():#variables:
+            #print(var)
+            if var == 'Q' or var == 'V':
+                plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+            elif var == 'i_net' or var == 'i_SKv31' or var == 'i_NaTs2t':
+                pass
+                plt.plot((sim_csv[0]*factors[0])[:], 10**(-2.5)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+            elif 'SK' in var or 'Na' in var:
+                plt.plot((sim_csv[0]*factors[0])[:], (10**2.3)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+        # plot_dict['V']['array'] = np.linspace(-150,50,400)
+        time =  (sim_csv[0]*factors[0])[:] #np.linspace(-150,50,400)
+        mtau_SKv3_1 = 0.2*20.000/(1+np.exp(((plot_dict['V']['array'] -(-46.560))/(-44.140))))
+        minf_SKv3_1 = 1/(1+np.exp(((plot_dict['V']['array'] -(18.700))/(-9.700))))
 
-        # plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': -np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
-        # plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
+        malpha_NaTs2_t = (0.182 * (plot_dict['V']['array']- -32))/(1-(np.exp(-(plot_dict['V']['array']- -32)/6)))
+        mbeta_NaTs2_t = (0.124 * (-plot_dict['V']['array'] -32))/(1-(np.exp(-(-plot_dict['V']['array'] -32)/6)))
+        halpha_NaTs2_t = (-0.015 * (plot_dict['V']['array']- -60))/(1-(np.exp((plot_dict['V']['array']- -60)/6)))
+        hbeta_NaTs2_t = (-0.015 * (-plot_dict['V']['array'] -60))/(1-(np.exp((-plot_dict['V']['array'] -60)/6)))
+        qt = 2.3**((37-21)/10)
+
+        mtau_NaTs2_t = (1/(malpha_NaTs2_t + mbeta_NaTs2_t))/qt
+        minf_NaTs2_t = malpha_NaTs2_t/(malpha_NaTs2_t + mbeta_NaTs2_t)
+        htau_NaTs2_t = (1/(halpha_NaTs2_t + hbeta_NaTs2_t))/qt
+        hinf_NaTs2_t = halpha_NaTs2_t/(halpha_NaTs2_t + hbeta_NaTs2_t)
+        #plt.plot(time, mtau_SKv3_1*1e2,label='m_tau_SKv3_1')
+        #plt.plot(time, minf_SKv3_1*1e2,label='m_inf_SKv3_1')
+        #plt.plot(time, mtau_NaTs2_t*1e2,label='m_tau_NaTs2_t')
+        #plt.plot(time, minf_NaTs2_t*1e2,label='m_inf_NaTs2_t')
+        #plt.plot(time, htau_NaTs2_t*1e2,label='h_tau_NaTs2_t')
+        #plt.plot(time, hinf_NaTs2_t*1e2,label='h_inf_NaTs2_t')
+        # plt.ylabel(plot_dict[var]['label'])
+        plt.legend()
+        plt.grid()
+        plt.show()
+        quit()
+
+        #plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': -np.diff(plot_dict['Q']['array'])/np.diff(sim_csv[0]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc}
+        #plot_dict['dQ/dt']['array'] = np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])
+        #plt.plot(np.diff(sim_csv[0])*1e3); plt.show()
+        #plt.plot(plot_dict['dQ/dt']['array']); plt.show()
+        # quit()
     if separate: #to plot every variable separately
         for var in plot_dict.keys():#variables:
             plt.clf()
@@ -1805,6 +1831,7 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
             plt.legend()
             plt.grid()
             if folder:
+                print(directory)
                 var_pure = var.replace('\\','').replace('/','')
                 plt.savefig(directory+r'\\'+f'{var_pure}.jpg')
             else:
@@ -1847,6 +1874,78 @@ def plot_astim2(csv_file, separate=False, debug = False, variables = None, folde
         plt.savefig(directory+path_pieces[-1].replace('.csv',f'.jpg')) #save the image
         print(f"Image saved at: {directory+path_pieces[-1].replace('csv','jpg')}")
 
+
+def plot_astim_sections(csv_files,variables=None):
+    plot_dicts = {}
+    for csv_file in csv_files:
+        with open(csv_file, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader: #iterate trough it as first row cannot be accessed that easily from the reader
+                titles = row[1:] #first string in header is empty (row index)
+                break
+        sim_csv = np.genfromtxt(csv_file, delimiter=',',skip_header=1)
+        sim_csv = sim_csv.swapaxes(1,0)[1:] #first column (now row after swapping) contains row index
+        titles = [e.split(r"'")[1]+"_"+e.split(r"'")[3] if ('(' in e and ')' in e) else e for e in titles] #the gating parameters are stored as (x, mech), convert it to: x_mech
+        factors =  [1e3 if e=='t' else 1 if e=='stimsate' else 1e5 if e=='Qm' else 1 if e=='Vm' else 1 if (e.startswith('i') or e.startswith('I')) else 1e2 if 'Cm' in e else 1 if ('_' in e) else 1 for e in titles]
+        labels = ['t [ms]' if e=='t' else 'stimstate' if e=='stimstate' else 'Q [nC/cm2]' if e=='Qm' else 'V [mV]' if e=='Vm' else f'{e} [mA/m2]' if (e.startswith('i') or e.startswith('I')) else 'Cm [uF/cm2]' if 'Cm' in e else f'{e}' if ('_' in e) else '' for e in titles]
+        plot_dict = {}
+        loc = 0
+        vars = [e.split(' ')[0] for e in labels]
+        variables = variables if variables else copy.copy(vars)
+        variables.remove('t') if 't' in variables else None
+        #print(vars,variables)
+        for label, factor, array, title, var in zip(labels, factors, sim_csv, titles, vars):
+            if 'nC/cm2' in label:
+                Qrow = (array*factor)
+            if 'mV' in label:
+                Vrow = (array*factor)
+            if var in variables:
+                if var not in plot_dict.keys():
+                    plot_dict[var] = {'label': label, 'array': array, 'title': title, 'factor': factor}
+                    if var.startswith('m_') or var.startswith('h_'):
+                            suffix = var.split('_')[-1] 
+                            if 'm_'+ suffix in plot_dict.keys():
+                                plot_dict['m_'+ suffix]['loc'] = loc
+                            elif 'm_'+ suffix in variables:
+                                plot_dict['m_'+ suffix] = {'loc': loc}
+                            if 'h_'+ suffix in plot_dict.keys():
+                                plot_dict['h_'+ suffix]['loc'] = loc
+                            elif 'h_'+ suffix in variables:
+                                plot_dict['h_'+ suffix] = {'loc': loc}
+                            loc += 1
+                    elif not var.startswith('i') and var != 't':
+                        plot_dict[var]['loc'] = loc
+                        loc += 1
+                else:
+                    plot_dict[var].update({'label': label, 'array': array, 'title': title, 'factor': factor})
+        if '' in plot_dict:
+            del plot_dict['']
+            loc -=1
+        for e in plot_dict: #plot all the currents at the end
+            if e.startswith('i'):
+                plot_dict[e]['loc'] = loc
+        plot_dicts[csv_file.split('_')[-1]] = plot_dict
+    for e,f in plot_dicts.items():
+        var_plot = 'Q'
+        x, y = 0, -1
+        #dict_keys(['stimstate', 'Q', 'V', 'Cm', 'iax', 'i_net', 'i_pas'])
+        if 'node' in e:
+            var_dict = f[var_plot]
+            plt.plot((sim_csv[0]*factors[0])[x:y], (var_dict['array']*var_dict['factor'])[x:y],label = e)
+            a = var_dict['array']*var_dict['factor']
+        elif e.startswith('myelin'):
+            var_dict = f[var_plot]
+            plt.plot((sim_csv[0]*factors[0])[x:y], 16.65*(var_dict['array']*var_dict['factor'])[x:y],label = e)
+            b = var_dict['array']*var_dict['factor']
+        else: continue
+        # var_dict = f[var_plot]
+        # plt.plot((sim_csv[0]*factors[0])[:], 20*(var_dict['array']*var_dict['factor'])[:],label = e)
+    if var_plot:
+        plt.title(var_plot)
+    print(np.mean(a/b),np.max(a/b),np.min(a/b))
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""
 def formula_from_line(line, pattern, kinetic): #DEPRECATED?

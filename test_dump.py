@@ -97,6 +97,15 @@ import tempConstants as tc
 
 
 
+""""to look up for specific connections in the test.txt file"""
+# with open ('test.txt','r') as f:
+#     file = f.readlines()
+# for e in file:
+#     if 'Myelin[0]' in e:
+#         print(e)
+
+
+
 """to compare the different models"""
 
 # print(f"{'-'*10}Fiber{'-'*10}")
