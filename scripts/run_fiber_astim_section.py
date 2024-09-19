@@ -20,6 +20,8 @@ def main():
     parser = SectionAStimFiberParser()
     args = parser.parse()
     args['method'] = [None] #methods: full, hybrid or sonic
+    args['tstim'] = [0.1]
+    args['toffset'] = [0.01]     
     logger.setLevel(args['loglevel']) #where does this argument come from?
     if args['mpi']: #multiprocessing
         logger.warning('NEURON multiprocessing disabled') #mp is enabled??

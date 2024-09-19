@@ -15,7 +15,7 @@ h.load_file('init.hoc')
 #h.load_file('interp_coordinates.hoc') #for TMS (to calc Dx,Dy and Dz)
 
 
-cell_nr = 9
+cell_nr = 2
 h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
 h.cell_chooser(cell_nr)
 #time.sleep(200); quit()

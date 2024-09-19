@@ -142,6 +142,49 @@ import tempConstants as tc
 #print('somas:\t',soma_dupl) # to check if soma is defined multiple times
 
 
+""""to understand how LinearMechanisms work"""
+# from neuron import h
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# tstop = 5
+
+# soma = h.Section(name="soma")
+# dend = h.Section(name='dend')
+# soma.connect(dend)
+# soma.Ra=1e20
+# #soma.insert(h.pas)
+# #dend.insert(h.pas)
+
+# # ideal voltage clamp.
+# c = h.Matrix(2, 2, 2) # sparse - no elements used
+# g = h.Matrix(2, 2)
+# y = h.Vector([0, 0])       # y[1] is injected current
+# b = h.Vector([0, 0])      # b[1] is voltage clamp level
+# e = 1
+# g.setval(0, 1, -e)
+# g.setval(1, 0, -e)
+# g.setval(0, 0, e)
+# g.setval(1, 1, e)
+# seclis = h.SectionList([soma,dend])
+
+# model = h.LinearMechanism(c, g, y, b, seclis, h.Vector([0.5, 0.5]))
+
+# h.finitialize(-65)
+# soma.v = -80
+# v1, v2 = [],[]
+# t = []
+# while h.t < tstop:
+#     #print('t=%-8g v=%-8g y[0]=%-8g y[1]=%-8g' % (h.t, soma(0.5).v, y[0], y[1]))
+#     v1.append(soma(0.5).v)#(y[0])
+#     v2.append(dend(0.5).v)#(y[1])
+#     t.append(h.t)
+#     h.fadvance()
+# plt.plot(t,-np.array(v1))
+# plt.plot(t,v2)
+# plt.show()
+
+
 """to plot the expsyn and exp2syn mechanisms"""
 
 # from neuron import h, gui

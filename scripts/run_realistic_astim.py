@@ -32,8 +32,8 @@ def main():
     args['fs'] = [0.75] #75%                                                                                #default: 1 (100%)
     args['radius'] = [64*1e-9] #16nm                                                                        #default: 3.2e-08 nm
     args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000. Hz
-    args['section'] = ['myelin0',  'node0','myelin1', 'myelin2'] #'unmyelin0',   ,'apical0', 'basal0'                    #default: None
-    args['plot'] = ['Vm', 'Cm', 'Qm','iax']                                                                 #default: None
+    args['section'] = ['myelin0',  'node0','soma0','unmyelin0','apical0'] #'unmyelin0',   ,'apical0', 'basal0'                    #default: None
+    args['plot'] = True                                                            #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
     args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
     args['tstim'] = [0.1]                                                                                   #default: 0.0001 s
