@@ -13,6 +13,7 @@ from PySONIC.utils import logger, gaussian, gaussian3D
 from PySONIC.parsers import AStimParser
 from MorphoSONIC.core import GaussianAcousticSource, UniformAcousticSource, Gaussian3DAcousticSource
 from MorphoSONIC.parsers import AStimRealisticNeuronParser
+import pickle
 
 
 def main():
@@ -29,21 +30,22 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    args['fs'] = [0.75] #75%                                                                                #default: 1 (100%)
-    args['radius'] = [64*1e-9] #16nm                                                                        #default: 3.2e-08 nm
-    args['freq'] = [100*1e3] #100kHz                                                                        #default: 500000. Hz
-    args['section'] = ['myelin0',  'node0','soma0','unmyelin0','apical0'] #'unmyelin0',   ,'apical0', 'basal0'                    #default: None
-    args['plot'] = True                                                            #default: None
-    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables     #default: None
-    args['amp'] = [600*1e3]                                                                                 #default: 100000. Pa
-    args['tstim'] = [0.1]                                                                                   #default: 0.0001 s
-    args['toffset'] = [0.01]                                                                                #default: 0.003 s
+    args['fs'] = [0.75] #75%                                                                                       #default: 1 (100%)
+    args['radius'] = [64*1e-9] #16nm                                                                               #default: 3.2e-08 nm
+    args['freq'] = [100*1e3] #100kHz                                                                               #default: 500000. Hz
+    args['section'] = ['myelin0',  'node0','soma0','unmyelin0','apical0','basal0', 'axon0'] # 7 type of sections   #default: None
+    args['plot'] = False                                                                                            #default: None
+    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None
+    args['amp'] = [100*1e3]                                                                                        #default: 100000. Pa
+    args['tstim'] = [0.1]                                                                                          #default: 0.0001 s
+    args['toffset'] = [0.01]                                                                                       #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                      #but this is irrelevant as 
-    #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                 #default: 1
-    #args['DC'] = [.5] #this argument needs to be changed for PW mode                                        #default: 1.
+    #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                        #default: 1
+    #args['DC'] = [.5] #this argument needs to be changed for PW mode                                               #default: 1.
+    #args['PRF'] = [200.]
 
-    #print(f'cmd arguments: \n{args}')
+    #print(f'cmd arguments: \n{args}');quit()
     #END DEBUGGING VALUES
 
     # Run batch
@@ -104,7 +106,13 @@ def main():
     amplitude = gaussian(refsec.x_xtra,x0,sigma,queue[0][0].A) if stimulation == 'gaussian' else gaussian3D(refsec.x_xtra, refsec.y_xtra, refsec.y_xtra,x0,x0,x0,sigma,sigma,sigma,queue[0][0].A) if stimulation == 'gaussian3D' else queue[0][0].A
     print(f'{"-"*50}\nrefsection:\nlocation:\t({refsec.x_xtra}, {refsec.y_xtra}, {refsec.z_xtra}) um\namplitude = {amplitude*1e-3}kPa')
     args['ref_loc'] = (refsec.x_xtra, refsec.y_xtra, refsec.z_xtra)
-    args['plot'] = 'Vm' #for debugging the plot section
+
+    tosave = output[0][0].data
+    outdir = r"C:\Users\jgazquez\RealSONIC\pkldump\dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz" + \
+        f"_{args['amp'][0]*1e-3}kPa_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC" + ".pkl"
+    with open(outdir, 'wb') as fh:
+        pickle.dump(tosave, fh)
+
     # Plot resulting profiles
     if args['plot'] is not None:
         args['fiber'] = fiber

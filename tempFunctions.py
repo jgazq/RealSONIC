@@ -17,6 +17,7 @@ import zipfile
 import datetime
 import scipy.interpolate as interp
 import csv
+from scipy.signal import argrelextrema
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
@@ -213,7 +214,7 @@ def create_plot_dict(titles, factors, labels, vars, variables, sim_csv):
                         elif 'h_'+ suffix in variables:
                             plot_dict['h_'+ suffix] = {'loc': loc}
                         loc += 1
-                elif not var.startswith('i') and var != 't':
+                elif (not var.startswith('i')) and (var != 't') and (not var.startswith('g')):
                     plot_dict[var]['loc'] = loc
                     loc += 1
             else:
@@ -223,6 +224,10 @@ def create_plot_dict(titles, factors, labels, vars, variables, sim_csv):
         loc -=1
     for e in plot_dict: #plot all the currents at the end
         if e.startswith('i'):
+            plot_dict[e]['loc'] = loc
+    loc +=1
+    for e in plot_dict: #plot all the currents at the end
+        if e.startswith('g'):
             plot_dict[e]['loc'] = loc
     return plot_dict, Qrow, Vrow, loc
 
@@ -495,7 +500,7 @@ def read_biophysics(cell_folder, d_2_s):
         if search and location:
             location = location.group().replace('$o1.','').lower()
             if curr_loc:
-                TypeError(f'Already an assigned location: {curr_loc} so not possible to change it to: {location}')
+                raise TypeError(f'Already an assigned location: {curr_loc} so not possible to change it to: {location}')
             curr_loc = location #now we are inside {} brackets
             continue
         elif '}' in line:
@@ -508,9 +513,9 @@ def read_biophysics(cell_folder, d_2_s):
             #    var_dict[var] = eval(expression) #put the parameters directly into the dictionary if it is for all parameters (main reason is for the passive mechanism pas)
             #otherwise put it in a specific section type dictionary
             if curr_loc in var_dict: 
-                var_dict[curr_loc][var] = eval(expression)
+                var_dict[curr_loc][var.strip()] = eval(expression.strip())
             else:
-                var_dict[curr_loc] = {var : eval(expression)}
+                var_dict[curr_loc.strip()] = {var : eval(expression.strip())}
     return var_dict 
 
 
@@ -734,8 +739,70 @@ def currents_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
     #equations_list.append(4*indents*" "+"variables="+str(variables))
     currents = [e for e in variables if (e.startswith('i') or e.startswith('I'))] #from all the equations, there should be exactly 1 variable that represents the current
     if len(currents) != 1: #we expect 1 current to be calculated
-        TypeError(f'Wrong amount of currents: {currents}')
+        raise TypeError(f'Wrong amount of currents: {currents}')
     equations_list.append(4*indents*" "+"return "+currents[0]) #this current will be returned at the end of the method
+    return equations_list
+
+
+def conductances_from_BREAKPOINT_list(list_mod,mod_name, gating_var):
+    """ extract PROCEDURE block and save all equations to retrieve a list of the conductance from m and h
+        :list_mod: a list containing all the lines of the NMODL .mod file
+        :mod_name: the name of the mechanism
+        :gating_var: gating parameters that are defined in the NMODL file"""
+
+    celsius = tc.T_C #temperature in degrees Celsius
+    break_executing, param_executing = 0,0
+    indents = 2
+
+    equations_list = [4*indents*' '+'v = Vm', 4*indents*' '+f'celsius = {celsius}'] #uncomment this if v is a known parameter
+    reversals = get_reversals()
+    for e,f in reversals.items():
+        equations_list.append(4*indents*' '+f"{e} = {f[0]}")
+    for e in gating_var:
+        equations_list.append(4*indents*' '+f"{e} = {e}_{mod_name} #")
+
+    for i,e in enumerate(list_mod):
+        estrip = e.strip()
+    #for i,e in enumerate(list_mod):
+        #stop when PROCEDURE BLOCK is finished
+        if re.search('^}',e):
+            break_executing = 0
+            param_executing = 0
+        if break_executing == 1:
+            if re.search('if',e):    
+                indents -= e.count("}")
+                equations_list.append(4*indents*' '+eq_hoc2pyt(estrip)+":")
+                indents += e.count("{")
+            elif re.search('else',e):
+                indents -= e.count("}")  
+                equations_list.append(4*indents*' '+"else:")
+                indents += e.count("{") 
+            #elif e.search('if',e):
+            elif re.search('=',e) and not(estrip.startswith(':')): #no if or else or end of it: fi 
+                equation = eq_hoc2pyt(re.search(tc.equation_pattern,estrip).group())
+                equations_list.append(4*indents*' '+equation)
+            else:
+                indents += e.count("{") - e.count("}") 
+        elif param_executing == 1:
+            if re.search('=',e) and not(estrip.startswith(':')):
+                if re.findall("\(.*\)",e):
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e.replace(re.findall("\(.*\)",e)[0],""))) #when evaluating the equations in PARAM block, the units are removed that are between brackets  
+                else:
+                    equations_list.append(4*indents*' '+eq_hoc2pyt(e)) #don't replace anything if units are not given
+        #start when entering BREAKPOINT block on the next iteration
+        if re.search('BREAKPOINT',e):
+            break_executing = 1
+        #start when entering PARAMETER block on the next iteration
+        if re.search('PARAMETER',e):
+            param_executing = 1
+    variables = [eq.split('=')[0].strip()for eq in equations_list] #the variables of all the equation lines that will be written to the current method are separated
+    #equations_list.append(4*indents*" "+"variables="+str(variables))
+    conductances = [e for e in variables if (e.startswith('g') and 'bar' not in e)] #from all the equations, there should be exactly 1 variable that represents the current
+    if len(conductances) != 1: #we expect 1 current to be calculated
+        print(f'No conductance found in {mod_name}.')
+        equations_list.append(4*indents*" "+"return None")
+    else:
+        equations_list.append(4*indents*" "+"return "+conductances[0]) #this current will be returned at the end of the method
     return equations_list
 
 
@@ -1774,6 +1841,8 @@ def plot_astim2(csv_file, separate=0, debug=0, variables=None, folder=None, save
     variables.remove('t') if 't' in variables else None
 
     plot_dict ,Qrow, Vrow, loc = create_plot_dict(titles,factors,labels,vars,variables,sim_csv)
+    #plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'][1:])/np.diff(sim_csv[0][1:]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc} #remove the first value as these are the same as the second resulting in 0/0
+    #plot_dict['dQ/dt']['array'] = np.append(np.append([0],(plot_dict['dQ/dt']['array'])),[0]) #np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])    
 
     "only do this in case of backward Euler which has a delay of 1 sample"
     # if 'Cm' in plot_dict:
@@ -1815,14 +1884,15 @@ def plot_astim2(csv_file, separate=0, debug=0, variables=None, folder=None, save
                 plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
             elif var == 'i_net':# or var == 'i_SKv31' or var == 'i_NaTs2t':
                 pass
-                plt.plot((sim_csv[0]*factors[0])[:], 10**(-2.5)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
+                plt.plot((sim_csv[0]*factors[0])[:], (plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
             elif 'SK' in var or 'Na' in var:
                 continue
                 plt.plot((sim_csv[0]*factors[0])[:], (10**2.3)*abs(plot_dict[var]['array']*plot_dict[var]['factor'])[:],label=var) #slicing until x for debugging
         print(-np.diff(plot_dict['Q']['array'][1:])/np.diff(sim_csv[0][1:]))
+        print(plot_dict['Q']['factor'])
         plot_dict['dQ/dt'] = {'label': 'dQ/dt [mA/m2]', 'array': np.diff(plot_dict['Q']['array'][1:])/np.diff(sim_csv[0][1:]), 'title': 'dQ/dt', 'factor': 1e3, 'loc' : loc} #remove the first value as these are the same as the second resulting in 0/0
-        plot_dict['dQ/dt']['array'] = np.append(np.append([0],abs(plot_dict['dQ/dt']['array'])),[0]) #np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])    
-        plt.plot((sim_csv[0]*factors[0])[:],plot_dict['dQ/dt']['array'],label = 'dQ/dt')
+        plot_dict['dQ/dt']['array'] = np.append(np.append([0],(plot_dict['dQ/dt']['array'])),[0]) #np.append(plot_dict['dQ/dt']['array'][1:],plot_dict['dQ/dt']['array'][-2:])    
+        plt.plot((sim_csv[0]*factors[0])[:],-plot_dict['dQ/dt']['array']*plot_dict['Q']['factor']*1e3,label = 'dQ/dt')
         plt.legend()
         plt.grid()
         plt.show()        
@@ -1894,20 +1964,20 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
         plot_dict ,Qrow, Vrow, loc = create_plot_dict(titles,factors,labels,vars,variables,sim_csv)
         plot_dicts[csv_file.split('_')[-1]] = plot_dict
     for e,f in plot_dicts.items():
-        var_plot = 'iax'
+        var_plot = 'V'
         x, y = 0, -1
         #dict_keys(['stimstate', 'Q', 'V', 'Cm', 'iax', 'i_net', 'i_pas'])
-        if 'node' in e:
-            var_dict = f[var_plot]
-            plt.plot((sim_csv[0]*factors[0])[x:y], (var_dict['array']*var_dict['factor'])[x:y],label = e)
-            a = var_dict['array']*var_dict['factor']
-        elif e.startswith('myelin'):
-            var_dict = f[var_plot]
-            plt.plot((sim_csv[0]*factors[0])[x:y], (var_dict['array']*var_dict['factor'])[x:y],label = e)
-            b = var_dict['array']*var_dict['factor']
-        else: continue
-        # var_dict = f[var_plot]
-        # plt.plot((sim_csv[0]*factors[0])[:], 20*(var_dict['array']*var_dict['factor'])[:],label = e)
+        # if 'node' in e:
+        #     var_dict = f[var_plot]
+        #     plt.plot((sim_csv[0]*factors[0])[x:y], (var_dict['array']*var_dict['factor'])[x:y],label = e)
+        #     a = var_dict['array']*var_dict['factor']
+        # elif e.startswith('myelin'):
+        #     var_dict = f[var_plot]
+        #     plt.plot((sim_csv[0]*factors[0])[x:y], (var_dict['array']*var_dict['factor'])[x:y],label = e)
+        #     b = var_dict['array']*var_dict['factor']
+        # else: continue
+        var_dict = f[var_plot]
+        plt.plot((sim_csv[0]*factors[0])[:], (var_dict['array']*var_dict['factor'])[:],label = e)
     if var_plot:
         plt.title(var_plot)
     if debug:
@@ -1916,6 +1986,41 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
     plt.legend()
     plt.grid()
     plt.show()
+
+
+"""------------------------------------------------------------------------------------ANALYSIS------------------------------------------------------------------------------------"""
+def analyze_over_sections(pkl_file):
+    pkldict = read_pickle(pkl_file)
+    mini = 1e10
+    section = ''
+    sections = []
+    zero_crossings = []
+    for e,f in pkldict.items():
+        zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
+        sections.append(e)
+        if 'soma' in e:
+            V_soma, t_soma = f['Vm'], f['t']
+        zero_crossings.append(zero_crossing)
+        if zero_crossing < mini:
+            mini = zero_crossing
+            section = e
+
+        #plt.plot(f['t'],f['Vm'],label=e)
+    print(section,mini) #section where the first zero-crossing happens so first AP
+    # print(sections)
+    # print(zero_crossings)
+    #print([x for _, x in sorted(zip(zero_crossings, sections))])
+    # plt.legend()
+    # plt.show()
+    plt.plot(t_soma,V_soma)
+    plt.show()
+    ISI = t_soma[argrelextrema(np.array(V_soma), np.greater)[0]]
+    ISI2 = argrelextrema(np.array(V_soma), np.greater)[0]>0
+    nAPs = len(np.where(np.diff(np.sign(V_soma)))[0])/2 #number of action potentials
+    print(ISI)
+    print(ISI2)
+    print(nAPs)
+   
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""
 def formula_from_line(line, pattern, kinetic): #DEPRECATED?

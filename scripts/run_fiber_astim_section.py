@@ -20,8 +20,9 @@ def main():
     parser = SectionAStimFiberParser()
     args = parser.parse()
     args['method'] = [None] #methods: full, hybrid or sonic
-    args['tstim'] = [0.1]
+    args['tstim'] = [0.01]
     args['toffset'] = [0.01]     
+    args['plot'] = 1
     logger.setLevel(args['loglevel']) #where does this argument come from?
     if args['mpi']: #multiprocessing
         logger.warning('NEURON multiprocessing disabled') #mp is enabled??
@@ -55,7 +56,7 @@ def main():
                                 simqueue = [
                                     [SectionAcousticSource(sec_id, item[0].f, item[0].A), *item[1:]]
                                     for item in queue]
-                                func = fiber.simulate #this is the actual stimulation function
+                                func = fiber.simulate #this is the actual stimulation function -> uses simulate from sonic.py
                             print(func)
                             batch = Batch(func, simqueue) #a batch is created with a simulate (and save) function and a simulation queue
                             output += batch(loglevel=args['loglevel']) #batch is added to the output

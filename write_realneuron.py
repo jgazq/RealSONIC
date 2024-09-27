@@ -147,6 +147,7 @@ class RealisticNeuron(PointNeuron):
     filenaam.write("""    # ------------------------------ Membrane currents ------------------------------\n""")
 
     currents_dict = ''
+    conductances_dict = ''
     mod_number, variables = 0, 0
     for e,f in zip(mod_files,mod_names):
         if mod_number in hits:
@@ -162,6 +163,7 @@ class RealisticNeuron(PointNeuron):
                     x_actual.append(x)
             if gating_var != '':
                 curr_lines = tf.currents_from_BREAKPOINT_list(list_mod=mod_files[mod_number], mod_name=f, gating_var=x_actual) #lines of code that are written to the electric current method
+                cond_lines = tf.conductances_from_BREAKPOINT_list(list_mod=mod_files[mod_number], mod_name=f, gating_var=x_actual) #lines of code that are written to the electric current method
                 gbar = ''
                 for i,line in enumerate(curr_lines):
                     if 'g' in line and 'bar' in line:
@@ -175,22 +177,49 @@ class RealisticNeuron(PointNeuron):
                     filenaam.write(f"""{e}\n""")
                 filenaam.write(f'\n{curr_lines[-1]}\n\n')
                 currents_dict += f'\n\t\t\t\'i_{name_mod}\': lambda Vm, x, g_bar: cls.i_{name_mod}({current_var}Vm) if g_bar is None else cls.i_{name_mod}({current_var}Vm, g_bar),'
+
+                filenaam.write(f"""    @classmethod
+    def g_{name_mod}(cls,{gating_var}Vm,{gbar}):
+        ''' g{name_mod} conductance '''\n""")
+                for e in cond_lines[:-1]:
+                    filenaam.write(f"""{e}\n""")
+                filenaam.write(f'\n{cond_lines[-1]}\n\n')
+                conductances_dict += f'\n\t\t\t\'g_{name_mod}\': lambda Vm, x, g_bar: cls.g_{name_mod}({current_var}Vm) if g_bar is None else cls.g_{name_mod}({current_var}Vm, g_bar),'
             
         mod_number += 1 
     filenaam.write(f"""    @classmethod
     def i_pas(cls, Vm):
         ''' ipas current '''\n""")
     for e in bio_dict['all']:
-        filenaam.write(f"""        {e} = {bio_dict['all'][e]}\n""")
+        if str(e) == 'g_pas':
+            filenaam.write(f"""        {e} = {bio_dict['all'][e]} * 1e4 #S/cm2 -> S/m2 \n""")
+        else:
+            filenaam.write(f"""        {e} = {bio_dict['all'][e]}\n""")
     filenaam.write(f"""        ipas = g_pas*(Vm-e_pas)\n""")
     filenaam.write(f"""\n        return ipas\n\n""")
-    currents_dict += f'\n\t\t\t\'i_pas\': lambda Vm: cls.i_pas(Vm), x, g_bar' #added dummy argument variables for uniformity
+    filenaam.write(f"""    @classmethod
+    def g_pas(cls, Vm):
+        ''' gpas conductance '''\n""")
+    for e in bio_dict['all']:
+        if str(e) == 'g_pas':
+            filenaam.write(f"""        {e} = {bio_dict['all'][e]} * 1e4 #S/cm2 -> S/m2 \n""")
+        else:
+            filenaam.write(f"""        {e} = {bio_dict['all'][e]}\n""")
+    filenaam.write(f"""\n        return g_pas\n\n""")
+    currents_dict += f'\n\t\t\t\'i_pas\': lambda Vm, x, g_bar: cls.i_pas(Vm)' #added dummy argument variables for uniformity
+    conductances_dict += f'\n\t\t\t\'g_pas\': lambda Vm, x, g_bar: cls.g_pas(Vm)' #added dummy argument variables for uniformity
 
     filenaam.write("""    @classmethod
     def currents(cls):
         return {""")
     filenaam.write(currents_dict)
-    filenaam.write('\n        }')
+    filenaam.write('\n        }\n\n')
+
+    filenaam.write("""    @classmethod
+    def conductances(cls):
+        return {""")
+    filenaam.write(conductances_dict)
+    filenaam.write('\n        }')    
 
 # copy the file from RealSONIC/PySONIC to PySONIC/PySONIC so both contain the correct real_neuron.py file
 #shutil.copy(path, os. getcwd().replace('RealSONIC','PySONIC') + "\\PySONIC\\neurons\\real_neuron.py")

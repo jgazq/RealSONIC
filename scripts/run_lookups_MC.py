@@ -242,6 +242,12 @@ def main():
     parser.add_argument('--novertones', type=int, default=0, help='Number of Fourier overtones') # numer of Qm overtones
     args = parser.parse()
     logger.setLevel(args['loglevel'])
+    args['radius'] = np.array([3.2e-08])
+    args['Cm0'] = np.array([0.01])
+    args['charge'] = np.array([0.])
+    args['freq'] = np.array([500000.])
+    args['amp'] = np.array([0.])
+    print(args)
 
     for pneuron in args['neuron']: 
 
@@ -262,7 +268,6 @@ def main():
                     charges = charges[Qstart:]
             elif Qend > 0:
                 charges = charges = charges[:Qend]
-
         # Number of Fourier overtones
         novertones = args['novertones']
 
