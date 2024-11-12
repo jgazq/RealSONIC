@@ -18,6 +18,7 @@ import datetime
 import scipy.interpolate as interp
 import csv
 from scipy.signal import argrelextrema
+import pprint
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
@@ -57,7 +58,10 @@ def load_pickle(dictio, path, filename = None):
     fpath = path+filename if filename else path #option to give path and filename together or seperate
     with open(fpath, 'wb') as fh:
         pickle.dump(dictio, fh)
-    print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
+    try:
+        print(f'loaded pickle file with shape: {dictio["tables"]["V"].shape} in: {fpath}')
+    except:
+        pass
     
 
 def rm_us(name): 
@@ -225,10 +229,12 @@ def create_plot_dict(titles, factors, labels, vars, variables, sim_csv):
     for e in plot_dict: #plot all the currents at the end
         if e.startswith('i'):
             plot_dict[e]['loc'] = loc
-    loc +=1
-    for e in plot_dict: #plot all the currents at the end
-        if e.startswith('g'):
-            plot_dict[e]['loc'] = loc
+
+    if sum([e.startswith('g') for e in plot_dict]):
+        loc +=1
+        for e in plot_dict: #plot all the conductances at the end
+            if e.startswith('g'):
+                plot_dict[e]['loc'] = loc
     return plot_dict, Qrow, Vrow, loc
 
 
@@ -389,6 +395,57 @@ def coord_dict_type():
                     dictio[str(sec_type)][str(seg)] = (seg.x_xtra*1e-6, seg.y_xtra*1e-6, seg.z_xtra*1e-6) #um to m      
 
     return dictio
+
+
+def add_dict_entry(dictio, value, keys):
+    """adds an nested entry in a dictionary"""
+    entry = dictio
+    for i,key in enumerate(keys[:-1]):
+        if key in entry.keys():
+            entry = entry[key]
+        else:
+            for k in reversed(keys[i+1:]):
+                value = {k:  value}
+            entry[key] = value
+            return dictio
+    if keys[-1] in entry.keys():
+        if entry[keys[-1]] != value:
+            print(f'value overriden for {keys}: old value={entry[keys[-1]]}, new value={value}')
+    entry[keys[-1]] = value
+    return dictio
+
+
+def txt_to_titration(txtfile,pklfile,save):
+    """txt to a titration pkl file"""
+    read = 0
+    pkldict = read_pickle(pklfile)
+    #pprint.pprint(pkldict)
+    with open(txtfile) as tittxt:
+        for i,line in enumerate(tittxt.readlines()):
+                if '---' in line:
+                    read = 1
+                    continue
+                if read:
+                    if len(line) < 2:
+                        continue
+                    values, remainder = line.split(':')
+                    if values[0] == '(' and values[-1] == ')':
+                        values = values[1:-1]
+                    else:
+                        raise ValueError(f'Wrong values at {i}: {line}')
+                    values = values.split(',')
+                    values = [float(e) for e in values]
+                    values = [int(values[-1]), *values[:-1]]
+                    if 'unexcitable' in remainder:
+                        amp = -10*1e3
+                        add_dict_entry(pkldict, amp, values)
+                    else:
+                        amp = float(remainder.split('kPa')[0])*1e3
+                        add_dict_entry(pkldict, amp, values)
+
+    pprint.pprint(pkldict)
+    if save:
+        load_pickle(pkldict,pklfile)
 
 
 """-----------------------------------------------------------------------------------WRITE REALNEURON (AND MODL)-----------------------------------------------------------------------------------"""
@@ -1977,49 +2034,121 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
         #     b = var_dict['array']*var_dict['factor']
         # else: continue
         var_dict = f[var_plot]
-        plt.plot((sim_csv[0]*factors[0])[:], (var_dict['array']*var_dict['factor'])[:],label = e)
+        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#E22525' if 'node' in e else '#EE9325' if 'unmyelin' in e else '#262324' if 'myelin' in e else '#383292' if 'apical' in e else '#30A757' if 'basal' in e else None
+        plt.plot((sim_csv[0]*factors[0])[:], (var_dict['array']*var_dict['factor'])[:],label = e.split('0.csv')[0], color=color)
     if var_plot:
-        plt.title(var_plot)
+        pass
+        #plt.title(var_plot)
     if debug:
         print(a[0],b[0])
         print(np.mean(a/b),np.max(a/b),np.min(a/b))
-    plt.legend()
+    fs = 36
+    plt.xlabel('t [ms]',fontsize=fs)
+    plt.ylabel('V [mV]',fontsize=fs)
+    plt.xticks(fontsize = fs)
+    plt.yticks(fontsize = fs)
+    plt.legend(fontsize = fs,loc='lower right')
     plt.grid()
+    plt.show()
+
+
+def plot_titration_curves(pklfile):
+    """to plot titration curve in function of the duty cycle"""
+    pkldict = read_pickle(pklfile)
+    #print('cell freq\tradius\t fs\tDC\tPRF\tamp')
+    #pprint.pprint(pkldict)
+    cell_nr = 7
+    freq = 100000.0 #500000.0
+    radius = 1.6e-08 #3.2e-08
+    coverage = 0.75
+    DC = all
+    PRF1 = 100.0
+    PRF2 = 50.0#10.0
+    PRF3 = 1000.0
+
+    #x = np.arange(0.05,1.05,0.05)#[1:]
+    x = np.arange(0.1,0.67,0.01) #np.arange(0.1,1.01,0.01)
+    y1 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF1] for e in x])
+    y2 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF2] for e in x])
+    y3 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF3] for e in x])
+    y1 = np.array([e if e < 599965 else -1e4 for e in y1])
+    y2 = np.array([e if e < 599965 else -1e4 for e in y2])
+    y3 = np.array([e if e < 599965 else -1e4 for e in y3])
+    plt.plot(x,y1*1e-3,label=str(PRF1)+' Hz')
+    plt.plot(x,y2*1e-3,label=str(PRF2)+' Hz')
+    plt.plot(x,y3*1e-3,label=str(PRF3)+' Hz')
+    fs = 36
+    plt.xlabel('Duty cycle [%]',fontsize=fs)
+    plt.ylabel('Amplitude [kPa]',fontsize=fs)
+    plt.xticks(fontsize = fs)
+    plt.yticks(fontsize = fs)
+    plt.legend(fontsize = fs)
     plt.show()
 
 
 """------------------------------------------------------------------------------------ANALYSIS------------------------------------------------------------------------------------"""
 def analyze_over_sections(pkl_file):
+    """takes the whole dictionary (pkl file) of a simulation and analyzes different metrics accross all sections and also for a specific section"""
+
     pkldict = read_pickle(pkl_file)
-    mini = 1e10
-    section = ''
-    sections = []
-    zero_crossings = []
+    section = 'myelin12' #considered section that will be plotted
+    mini_index = 1e10
+    act_section = ''
+    sections = [] #all sections
+    zero_crossings = [] #all zero-crossings for every section
+
     for e,f in pkldict.items():
         zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
-        sections.append(e)
-        if 'soma' in e:
-            V_soma, t_soma = f['Vm'], f['t']
-        zero_crossings.append(zero_crossing)
-        if zero_crossing < mini:
-            mini = zero_crossing
-            section = e
-
-        #plt.plot(f['t'],f['Vm'],label=e)
-    print(section,mini) #section where the first zero-crossing happens so first AP
+        sections.append(e) #append every section to the sections list
+        if section in e: #if we are at the specified section: 
+            V_section, t_section = np.array(f['Vm']), np.array(f['t']) #store the t and V array of this section
+            t_stim = t_section[np.array(f['stimstate']>0)] #store the stimulation time (this is the time array when the stimulation is on)
+        zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
+        if zero_crossing < mini_index: #here we determine what the smallest first zero-crossing is
+            mini_index = zero_crossing
+            act_section = e
+        #color scheme of aberra cells
+        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#E22525' if 'node' in e else '#EE9325' if 'unmyelin' in e else '#262324' if 'myelin' in e else '#383292' if 'apical' in e else '#30A757' if 'basal' in e else None
+        #label every type of section by using the label for the section0
+        if (e[-1] == '0' and e[-2].isalpha()):
+            plt.plot(f['t']*1e3,f['Vm'],label=e[:-1], color=color)
+        else:
+            plt.plot(f['t']*1e3,f['Vm'], color=color)
     # print(sections)
     # print(zero_crossings)
-    #print([x for _, x in sorted(zip(zero_crossings, sections))])
-    # plt.legend()
-    # plt.show()
-    plt.plot(t_soma,V_soma)
+    fs =36
+    plt.xlabel('t [ms]',fontsize=fs)
+    plt.ylabel('V [mV]',fontsize=fs)
+    plt.xticks(fontsize = fs)
+    plt.yticks(fontsize = fs)
+    plt.legend(fontsize = fs)
     plt.show()
-    ISI = t_soma[argrelextrema(np.array(V_soma), np.greater)[0]]
-    ISI2 = argrelextrema(np.array(V_soma), np.greater)[0]>0
-    nAPs = len(np.where(np.diff(np.sign(V_soma)))[0])/2 #number of action potentials
-    print(ISI)
-    print(ISI2)
-    print(nAPs)
+    plt.plot(t_section*1e3,V_section)
+
+    #metrics
+    #nAPs = len(np.where(np.diff(np.sign(V_soma)))[0])/2 #number of action potentials by looking at the number of zero-crossings/2
+    Vmax_index = argrelextrema(np.array(V_section), np.greater)[0]
+    Vmax_t = t_section[Vmax_index]
+    Vmax_V = V_section[Vmax_index]
+    spiking_times = Vmax_t[Vmax_V>0]
+    spiking_and_bounds = np.append(np.append(t_stim[0],spiking_times),t_stim[-1])
+    ISI = np.diff(spiking_times)*1e3
+    ISI_with_bounds = np.diff(spiking_and_bounds)*1e3
+    for e in spiking_times:
+        pass
+        #plt.axvline(x=e*1e3,c='red')
+    nAPs = len(spiking_times)
+
+    print(f'(number of sections: {len(sections)})')
+    print(f'activation section/site:{act_section} @ {mini_index*1e3} ms') #section where the first zero-crossing happens so first AP
+    print(f"number of APs: {nAPs}")
+    print(f"ISI: {ISI}")
+    firing_rate = 1/ISI*1e3
+    plt.plot(np.cumsum(ISI),firing_rate)
+    print(f"ISI with bounds: {ISI_with_bounds}")
+    #print(f"spiking times: {spiking_times}")
+    #print([x for _, x in sorted(zip(zero_crossings, sections))]) #sections ordered by first stimulation moment
+    #plt.show()
    
 
 """-----------------------------------------------------------------------------------DEPRECATED-----------------------------------------------------------------------------------"""

@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import csv
+import pprint
 
 from neuron import h
 import tempFunctions as tf
@@ -18,7 +19,101 @@ import tempConstants as tc
 #pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups.pkl")
 #tf.save_gatingplots(pkldict,r"C:\Users\jgazquez\RealSONIC\figs\test")
 
-tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pkldump\dump_75.0%_64.0nm_100.0kHz_100.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
+
+tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC\csv\dump_75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC_600.0kPa.csv")
+
+
+#tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
+
+#tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate_HPC", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=0)
+
+#tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_100.0kHz_20.0kPa_20.0ms_10.0ms_200.0Hz_1.0DC.pkl")
+#tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_2000.0kHz_20.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
+#tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_2000.0kHz_20.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
+
+"""plots the different probes parameters for various titration/amplitude values"""
+# directory = r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20.0ms_100.0ms_100.0Hz_0.5DC\csv"
+# dirlist = os.listdir(directory)
+# dirlist_amp = [float(e.split('_')[-1].split('kPa')[0]) for e in dirlist]
+# dirlist_sorted = [name for _, name in sorted(zip(dirlist_amp, dirlist))]
+
+# for filename in dirlist_sorted:
+#     f = os.path.join(directory, filename)
+#     # checking if it is a file
+#     if os.path.isfile(f):
+#         print(f)
+#         tf.plot_astim2(f)
+""" """
+
+""""Lemaire2019 imitation"""
+# result_dict = {'refs': {'fs': [0.75], 'radius': [16*1e-9, 32*1e-9, 64*1e-9], 'freq': [100*1e3,1000*1e3], 'DC': [0.5, 1.],
+#                          'PRF': [100., 200.]}, 'table': np.array([[[[[599.4573974609375,9.9951171875],[460.0042724609375,9.9951171875]],[[599.8675537109375,9.9951171875],[460.0042724609375,9.9951171875]]],[[[20.0048828125,20.0048828125],[20.0048828125,20.0048828125]],[[20.0048828125,20.0048828125],[20.0048828125,20.0048828125]]], [[[15.0048828125,17.5048828125],[15.0048828125, 15.0048828125]],[[19.9951171875, 20.0048828125],[20.0048828125, 19.9951171875]]]]])}
+# result_matr = result_dict['table']
+# for i,e in enumerate(result_dict['refs']['radius']):
+#     print(result_matr[0,i,0,:,0])
+#     plt.plot(result_dict['refs']['DC'],result_matr[0,i,0,:,0],label=e*1e9)
+#     plt.yscale('log')
+# plt.xlabel('DC')
+# plt.ylabel('Amplitude [kPa]')
+# plt.legend()
+# plt.show()
+
+# for i,e in enumerate(result_dict['refs']['freq']):
+#     print(result_matr[0,1,i,:,0])
+#     plt.plot(result_dict['refs']['DC'],result_matr[0,1,i,:,0],label=e*1e-3)
+#     plt.yscale('log')
+# plt.xlabel('DC')
+# plt.ylabel('Amplitude [kPa]')
+# plt.legend()
+# plt.show()
+
+# for i,e in enumerate(result_dict['refs']['PRF']):
+#     print(result_matr[0,1,0,:,i])
+#     plt.plot(result_dict['refs']['DC'],result_matr[0,1,0,:,i],label=e)
+#     plt.yscale('log')
+# plt.xlabel('DC')
+# plt.ylabel('Amplitude [kPa]')
+# plt.legend()
+# plt.show()
+""" """
+
+#connected
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_01_soma0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_03_unmyelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_06_apical0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_08_basal0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_10_axon0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_12_myelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_14_node0.csv"])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_06_apical0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_08_basal0.csv",])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_03_unmyelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_12_myelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_14_node0.csv"])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_01_soma0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_12_10_axon0.csv",])
+
+#disconnected
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_03_soma0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_05_unmyelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_07_apical0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_09_basal0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_11_axon0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_13_myelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_15_node0.csv"])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_07_apical0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_09_basal0.csv",])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_05_unmyelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_13_myelin0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_15_node0.csv"])
+
+# tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_03_soma0.csv",
+#                         r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 23\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_11_08_16_17_11_axon0.csv",])
 
 #tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_05_myelin0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_07_node0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_10_soma0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_12_unmyelin0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_15_apical0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_18_basal0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 21\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_26_15_53_20_axon0.csv"])
 #tf.plot_astim_sections([r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 16\csv\mini_realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_11_15_51_31_myelin0.csv",r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 16\csv\mini_realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_11_15_51_32_node0.csv"],debug=1)

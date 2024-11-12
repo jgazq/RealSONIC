@@ -18,7 +18,7 @@ h.load_file('init.hoc')
 cell_nr = 2
 h.setParamsAdultHuman() #this needs to go before the cell chooser, otherwise it won't make a difference
 h.cell_chooser(cell_nr)
-#time.sleep(200); quit()
+#time.sleep(200); quit() #sleep so  the NEURON interface can be used
 
 for sec in h.allsec():
     # print(sec,sec.cm)
