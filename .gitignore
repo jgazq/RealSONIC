@@ -146,7 +146,7 @@ ENV/
 .ropeproject
 
 #Added by Joa
-RealSONIC/figs/test
-RealSONIC/figs/delete
-RealSONIC/pickledump
-RealSONIC/pickledump_RealSIM/
+figs/test
+figs/delete
+pickledump/
+pickledump_RealSIM/

@@ -19,14 +19,32 @@ import tempConstants as tc
 #pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\soma_lookups.pkl")
 #tf.save_gatingplots(pkldict,r"C:\Users\jgazquez\RealSONIC\figs\test")
 
+"""titrate data for worker wsub"""
+# with open ("titrate_data.txt",'w') as tf:
+#     i = 0
+#     for cell in range(1,26):
+#         for a in [32,64]:
+#             for f in [500, 1000]:
+#                 for PRF in [10, 100, 1000]:
+#                     for DC in [50,100]:
+#                         tf.write(f'{cell},{a},{f},{PRF},{DC}\n')
+#                         i+=1
+# print(i)
 
-tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC\csv\dump_75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC_600.0kPa.csv")
 
+#tf.load_pickle({},r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
+
+#tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=1)
 
 #tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 
-#tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate_HPC", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=0)
+#tf.plot_titration_curves_cells(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 
+#tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC\csv\dump_75.0%_16.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_0.5DC_600.0kPa.csv")
+
+# to investigate if first simulation influences the second on
+# tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC\pkl\dump_75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC_600.0kPa.pkl", 
+#                          r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC\pkl\dump_75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC_10.0kPa.pkl")
 #tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_100.0kHz_20.0kPa_20.0ms_10.0ms_200.0Hz_1.0DC.pkl")
 #tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_2000.0kHz_20.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
 #tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_2000.0kHz_20.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
@@ -128,7 +146,8 @@ tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20
 
 #tf.LUT_to_LUT2(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_merged.pkl",1)
 
-#tf.save_gatingplots_group(pkldict,r'test',Cm0=None, reduced_yrange=False)
+pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
+tf.save_gatingplots(pkldict,r'test',Cm0=None, reduced_yrange=False,A='all')
 
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 10\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_08_12_09_56_01_soma0.csv",debug=1)#,variables = ['V','Q','i_net'])
 

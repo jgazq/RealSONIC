@@ -20,6 +20,7 @@ from scipy.signal import argrelextrema
 import matplotlib.pyplot as plt
 import os
 from neuron import h
+import sys
 
 
 def simulate_realnrn(args,amp,stimulation,x0,sigma, fiber, iter):
@@ -106,6 +107,9 @@ def thresh_excited(pkldict):
     ISI = np.diff(spiking_times)*1e3
     ISI_with_bounds = np.diff(spiking_and_bounds)*1e3
     nAPs = len(spiking_times)
+    print('\n\nDEBUG:')
+    for e in dir():
+        print(e,sys.getsizeof(e))
     if nAPs > 0:
         return 1
     else:
@@ -140,18 +144,18 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
 
     #START DEBUGGING VALUES (normally this should be given in the command line)
-    fs_array = [0.75] #75%                                                                                       #default: 1 (100%)
-    radius_array = [16*1e-9] #[16*1e-9, 32*1e-9, 64*1e-9] # #16nm                                                                               #default: 3.2e-08 nm
-    freq_array = [100*1e3]#[100*1e3, 500*1e3, 3000*1e3] # #100kHz                                                                               #default: 500000. Hz
+    fs_array = [0.75] #75%                                                                                         #default: 1 (100%)
+    radius_array = args['radius'] #[64*1e-9] #[16*1e-9, 32*1e-9, 64*1e-9] # #16nm                                  #default: 3.2e-08 nm
+    freq_array = args['freq'] # [100*1e3]#[100*1e3, 500*1e3, 3000*1e3] # #100kHz                                   #default: 500000. Hz
     args['section'] = ['myelin0',  'node0','soma0','unmyelin0','apical0','basal0', 'axon0'] # 7 type of sections   #default: None                                                                                         #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None                                                                                     #default: 100000. Pa
     args['tstim'] = [0.1]                                                                                          #default: 0.0001 s
     args['toffset'] = [0.02]                                                                                       #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                         #but this is irrelevant as 
-    #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                        #default: 1
-    DC_array = [0.5] #[0.1,0.5, 1.] # #this argument needs to be changed for PW mode                                               #default: 1.
-    PRF_array = [100.] #[50., 100., 1000.] #
+    #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                       #default: 1
+    DC_array = args['DC'] #[1.0] #[0.1,0.5, 1.] # #this argument needs to be changed for PW mode                   #default: 1.
+    PRF_array = args['PRF'] # [100.] #[50., 100., 1000.] #
 
     #print(f'cmd arguments: \n{args}');quit()
     #END DEBUGGING VALUES
@@ -159,9 +163,9 @@ def main():
 
     # Run batch
 
-    cell_nr = 7
-    se = 0
-    stimulation = "uniform" #"gaussian" #"gaussian3D"
+    cell_nr = args['cell'][0]
+    se = args['se'][0]
+    stimulation = args['stimulation'][0] #"uniform" #"gaussian" #"gaussian3D"
 
     #with open('titrate','w') as ftit:
     #    ftit.write(f'Titration proces: \n\n\n')
@@ -194,13 +198,12 @@ def main():
                                 for itPRF,PRF in enumerate(PRF_array):
                                     args['fs'] = [fs] #75%                                                                         
                                     args['radius'] = [a] #16nm                                                                        
-                                    args['freq'] = [freq] #100kHz                                                                                                                                                                                                 #default: 100000. Pa
-                                    args['tstim'] = [0.02]                                                                                                   
+                                    args['freq'] = [freq] #100kHz                                                                           
                                     args['DC'] = [DC] #this argument needs to be changed for PW mode                           
                                     args['PRF'] = [PRF]
 
                                     #titration
-                                    low_amp, high_amp = 0, 600*1e3
+                                    low_amp, high_amp = 0*1e3, 600*1e3
                                     amp = 10*1e3
                                     iter = 0
                                     #print(args)

@@ -423,7 +423,7 @@ def txt_to_titration(txtfile,pklfile,save):
     with open(txtfile) as tittxt:
         for i,line in enumerate(tittxt.readlines()):
                 if '---' in line:
-                    read = 1
+                    read = not read
                     continue
                 if read:
                     if len(line) < 2:
@@ -434,8 +434,9 @@ def txt_to_titration(txtfile,pklfile,save):
                     else:
                         raise ValueError(f'Wrong values at {i}: {line}')
                     values = values.split(',')
-                    values = [float(e) for e in values]
-                    values = [int(values[-1]), *values[:-1]]
+                    #values: cell - freq - radius - coverage - DC - PRF
+                    values = [float(f"{float(e):.2g}") for e in values] #round all values up to 2 decimals
+                    values = [int(values[-1]), *values[:-1]] #cell can only be integer
                     if 'unexcitable' in remainder:
                         amp = -10*1e3
                         add_dict_entry(pkldict, amp, values)
@@ -443,7 +444,7 @@ def txt_to_titration(txtfile,pklfile,save):
                         amp = float(remainder.split('kPa')[0])*1e3
                         add_dict_entry(pkldict, amp, values)
 
-    pprint.pprint(pkldict)
+    #pprint.pprint(pkldict)
     if save:
         load_pickle(pkldict,pklfile)
 
@@ -1616,15 +1617,20 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
 
     #plot the effective capacity
     table_V = eval(f"pkldict['tables']['V'][{(',').join(ind_list)}]") #index the table according to the calculated indexing list
+    table_V2 = eval(f"pkldict['tables']['V2'][{(',').join(ind_list)}]")
     if all_list:
         if ind > 3: #if the variable is further in the array than Q:
             table_V = np.swapaxes(table_V,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
         table_V = np.reshape(table_V,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q)
     #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
     table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
+    table_C2 = Q_ext / table_V2
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
-    plt.savefig(f'figs/{foldername}/C.svg')  
+    plt.savefig(f'figs/{foldername}/C.png')  
+    plt_LUTeff('C2',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
+    plt.title(title)
+    plt.savefig(f'figs/{foldername}/C2.png') 
 
 
 def save_gatingplots_group(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
@@ -2034,7 +2040,7 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
         #     b = var_dict['array']*var_dict['factor']
         # else: continue
         var_dict = f[var_plot]
-        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#E22525' if 'node' in e else '#EE9325' if 'unmyelin' in e else '#262324' if 'myelin' in e else '#383292' if 'apical' in e else '#30A757' if 'basal' in e else None
+        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#FF0000' if 'node' in e else '#FFA500' if 'unmyelin' in e else '#000000' if 'myelin' in e else '#0000FF' if 'apical' in e else '#00FF00' if 'basal' in e else None
         plt.plot((sim_csv[0]*factors[0])[:], (var_dict['array']*var_dict['factor'])[:],label = e.split('0.csv')[0], color=color)
     if var_plot:
         pass
@@ -2043,11 +2049,11 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
         print(a[0],b[0])
         print(np.mean(a/b),np.max(a/b),np.min(a/b))
     fs = 36
-    plt.xlabel('t [ms]',fontsize=fs)
-    plt.ylabel('V [mV]',fontsize=fs)
+    plt.xlabel('time [ms]',fontsize=fs)
+    plt.ylabel('membrane voltage [mV]',fontsize=fs)
     plt.xticks(fontsize = fs)
     plt.yticks(fontsize = fs)
-    plt.legend(fontsize = fs,loc='lower right')
+    plt.legend(fontsize = fs-4,loc='lower right')
     plt.grid()
     plt.show()
 
@@ -2055,29 +2061,71 @@ def plot_astim_sections(csv_files,variables=None, debug=0):
 def plot_titration_curves(pklfile):
     """to plot titration curve in function of the duty cycle"""
     pkldict = read_pickle(pklfile)
+    PRF_var = 0
+    freq_var = 0
+    rad_var = 1
+    fs = 36
+
+    plt.rc('xtick',labelsize=fs)
+    plt.rc('ytick',labelsize=fs)
+
+    #pprint.pprint(pkldict)
     #print('cell freq\tradius\t fs\tDC\tPRF\tamp')
     #pprint.pprint(pkldict)
     cell_nr = 7
-    freq = 100000.0 #500000.0
-    radius = 1.6e-08 #3.2e-08
+    freq = 500000.0 #500000.0 #100000.0
+    freq1 = 100000.0
+    freq2 = 500000.0
+    freq3 = 1000000.0
+    radius = 6.4e-08 #3.2e-08 #1.6e-08
+    radius1 = 1.6e-08
+    radius2 = 3.2e-08
+    radius3 = 6.4e-08
     coverage = 0.75
     DC = all
-    PRF1 = 100.0
-    PRF2 = 50.0#10.0
+    PRF = 1000.0
+    PRF1 = 10.0
+    PRF2 = 100.0 #10.0 #50.0
     PRF3 = 1000.0
 
     #x = np.arange(0.05,1.05,0.05)#[1:]
-    x = np.arange(0.1,0.67,0.01) #np.arange(0.1,1.01,0.01)
-    y1 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF1] for e in x])
-    y2 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF2] for e in x])
-    y3 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF3] for e in x])
-    y1 = np.array([e if e < 599965 else -1e4 for e in y1])
-    y2 = np.array([e if e < 599965 else -1e4 for e in y2])
-    y3 = np.array([e if e < 599965 else -1e4 for e in y3])
-    plt.plot(x,y1*1e-3,label=str(PRF1)+' Hz')
-    plt.plot(x,y2*1e-3,label=str(PRF2)+' Hz')
-    plt.plot(x,y3*1e-3,label=str(PRF3)+' Hz')
-    fs = 36
+    #x = np.arange(0.1,0.67,0.01) #np.arange(0.1,1.01,0.01)
+    x = np.array(range(15,101))/100
+    x2 = np.array(range(15,101,5))/100
+    DC = np.array(range(15,101))/100
+    DC1, DC2, DC3 = DC, DC, DC
+    #print(x2)
+    #print(pkldict[7].keys())
+    if PRF_var:
+        TIT1 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF1] for e in DC1])
+        TIT2 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF2] for e in DC2])
+        TIT3 = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF3] for e in DC3])
+        #filtering of unexcited values
+        DC1, DC2, DC3 = DC1[TIT1>0], DC2[TIT2>0], DC3[TIT3>0]
+        TIT1, TIT2, TIT3 = TIT1[TIT1>0], TIT2[TIT2>0], TIT3[TIT3>0]        
+        plt.plot(DC1,TIT1*1e-3,label=str(PRF1)+' Hz',color='cyan')
+        plt.plot(DC2,TIT2*1e-3,label=str(PRF2)+' Hz',color='deepskyblue')
+        plt.plot(DC3,TIT3*1e-3,label=str(PRF3)+' Hz',color='royalblue')
+    if freq_var:
+        TIT1 = np.array([pkldict[cell_nr][freq1][radius][coverage][e][PRF] for e in DC1])
+        TIT2 = np.array([pkldict[cell_nr][freq2][radius][coverage][e][PRF] for e in DC2])
+        TIT3 = np.array([pkldict[cell_nr][freq3][radius][coverage][e][PRF] for e in DC3])
+        #filtering of unexcited values
+        DC1, DC2, DC3 = DC1[TIT1>0], DC2[TIT2>0], DC3[TIT3>0]
+        TIT1, TIT2, TIT3 = TIT1[TIT1>0], TIT2[TIT2>0], TIT3[TIT3>0]
+        plt.semilogy(DC1,TIT1*1e-3,label=str(freq1*1e-3)+' kHz',color='cyan')
+        plt.semilogy(DC2,TIT2*1e-3,label=str(freq2*1e-3)+' kHz',color='deepskyblue')
+        plt.semilogy(DC3,TIT3*1e-3,label=str(freq3*1e-3)+' kHz',color='royalblue')
+    if rad_var:
+        TIT1 = np.array([pkldict[cell_nr][freq][radius1][coverage][e][PRF] for e in DC1])
+        TIT2 = np.array([pkldict[cell_nr][freq][radius2][coverage][e][PRF] for e in DC2])
+        TIT3 = np.array([pkldict[cell_nr][freq][radius3][coverage][e][PRF] for e in DC3])
+        #filtering of unexcited values
+        DC1, DC2, DC3 = DC1[TIT1>0], DC2[TIT2>0], DC3[TIT3>0]
+        TIT1, TIT2, TIT3 = TIT1[TIT1>0], TIT2[TIT2>0], TIT3[TIT3>0]
+        plt.semilogy(DC1,TIT1*1e-3,label=str(radius1*1e9)+' nm',color='cyan')
+        plt.semilogy(DC2,TIT2*1e-3,label=str(radius2*1e9)+' nm',color='deepskyblue')
+        plt.semilogy(DC3,TIT3*1e-3,label=str(radius3*1e9)+' nm',color='royalblue')
     plt.xlabel('Duty cycle [%]',fontsize=fs)
     plt.ylabel('Amplitude [kPa]',fontsize=fs)
     plt.xticks(fontsize = fs)
@@ -2086,16 +2134,56 @@ def plot_titration_curves(pklfile):
     plt.show()
 
 
+def plot_titration_curves_cells(pklfile):
+    """to plot titration curve in function of the duty cycle"""
+    pkldict = read_pickle(pklfile)
+    #pprint.pprint(pkldict)
+    #print('cell freq\tradius\t fs\tDC\tPRF\tamp')
+    #pprint.pprint(pkldict)
+    cell_nr = 7
+    freq = 500000.0 #500000.0 #100000.0
+    radius = 3.2e-08 #3.2e-08 #1.6e-08
+    coverage = 0.75
+    DC = all
+    PRF1 = 100.0
+    PRF2 = 10.0 #10.0 #50.0
+    PRF3 = 1000.0
+    
+    for freq in [500000.0, 1000000.0]:
+        for radius in [3.2e-8, 6.4e-8]:
+            for PRF in [10.0, 100.0, 1000.0]:
+                for cell_group in range(5):
+                    bp = np.empty((5,2))
+                    for i,cell_nr in enumerate(np.array([e for e in range(5)]) + cell_group*5 + 1):
+                        DC = [0.5, 1.0]
+                        TIT = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF] for e in DC])
+                        bp[i] = TIT*1e-3
+                        #plt.plot(DC,TIT*1e-3,label=cell_nr)
+                    plt.plot(DC,np.median(bp,axis=0),label=i)
+                    plt.fill_between(DC,np.quantile(bp,0.25,axis=0),np.quantile(bp,0.75,axis=0),alpha=0.3)
+                    #plt.boxplot(bp,positions=range(2),labels=DC)
+                fs = 36
+                plt.xlabel('Duty cycle [%]',fontsize=fs)
+                plt.ylabel('Amplitude [kPa]',fontsize=fs)
+                plt.xticks(fontsize = fs)
+                plt.yticks(fontsize = fs)
+                plt.legend(fontsize = fs)
+                plt.show()
+
+
 """------------------------------------------------------------------------------------ANALYSIS------------------------------------------------------------------------------------"""
-def analyze_over_sections(pkl_file):
+def analyze_over_sections(pkl_file,pkl_file2=None):
     """takes the whole dictionary (pkl file) of a simulation and analyzes different metrics accross all sections and also for a specific section"""
 
     pkldict = read_pickle(pkl_file)
+    if pkl_file2:
+        pkldict2 = read_pickle(pkl_file2)
     section = 'myelin12' #considered section that will be plotted
     mini_index = 1e10
     act_section = ''
     sections = [] #all sections
     zero_crossings = [] #all zero-crossings for every section
+    V0, V0_2 = [],[]
 
     for e,f in pkldict.items():
         zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
@@ -2104,21 +2192,41 @@ def analyze_over_sections(pkl_file):
             V_section, t_section = np.array(f['Vm']), np.array(f['t']) #store the t and V array of this section
             t_stim = t_section[np.array(f['stimstate']>0)] #store the stimulation time (this is the time array when the stimulation is on)
         zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
+        V0.append(f['Vm'][0])
+        if pkl_file2:
+            V0_2.append(pkldict2[e]['Vm'][0])
         if zero_crossing < mini_index: #here we determine what the smallest first zero-crossing is
             mini_index = zero_crossing
             act_section = e
         #color scheme of aberra cells
-        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#E22525' if 'node' in e else '#EE9325' if 'unmyelin' in e else '#262324' if 'myelin' in e else '#383292' if 'apical' in e else '#30A757' if 'basal' in e else None
+        color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#FF0000' if 'node' in e else '#FFA500' if 'unmyelin' in e else '#000000' if 'myelin' in e else '#0000FF' if 'apical' in e else '#00FF00' if 'basal' in e else None
         #label every type of section by using the label for the section0
         if (e[-1] == '0' and e[-2].isalpha()):
-            plt.plot(f['t']*1e3,f['Vm'],label=e[:-1], color=color)
+            if pkl_file2:
+                # print(f['t']*1e3)
+                # print(pkldict2[e]['t']*1e3)
+                # print(np.append(f['t'],pkldict2[e]['t']*1e3))
+                # quit()
+                if e == 'axon':
+                    e = 'axon initial segment'
+                plt.plot(np.append(f['t']*1e3,(pkldict2[e]['t']+np.array(f['t'])[-1])*1e3),np.append(f['Vm'],pkldict2[e]['Vm']),label=e[:-1], color=color)
+            else:
+                print(e)
+                if e[:-1] == 'axon':
+                    e = 'AIS0'
+                plt.plot(f['t']*1e3,f['Vm'],label=e[:-1], color=color)
         else:
-            plt.plot(f['t']*1e3,f['Vm'], color=color)
+            if pkl_file2:
+                plt.plot(np.append(f['t']*1e3,(pkldict2[e]['t']+np.array(f['t'])[-1])*1e3),np.append(f['Vm'],pkldict2[e]['Vm']), color=color)
+            else:
+                plt.plot(f['t']*1e3,f['Vm'], color=color)
+
+    sections_sorted = [section for _, section in sorted(zip(zero_crossings, sections))]
     # print(sections)
     # print(zero_crossings)
-    fs =36
-    plt.xlabel('t [ms]',fontsize=fs)
-    plt.ylabel('V [mV]',fontsize=fs)
+    fs =30
+    plt.xlabel('membrane charge density [$\mathrm{nC/{cm}^2}$]',fontsize=fs)
+    plt.ylabel(r'$\mathrm{\alpha_{h, Ca}}$* [$\mathrm{1/ms}$]',fontsize=fs)
     plt.xticks(fontsize = fs)
     plt.yticks(fontsize = fs)
     plt.legend(fontsize = fs)
@@ -2141,6 +2249,9 @@ def analyze_over_sections(pkl_file):
 
     print(f'(number of sections: {len(sections)})')
     print(f'activation section/site:{act_section} @ {mini_index*1e3} ms') #section where the first zero-crossing happens so first AP
+    for e,f in zip(sections_sorted[:10],sorted(zero_crossings)[:10]):
+        print(f'{e}: \t{f}')
+    print(f'V0: {V0[:5]}, V0_2: {V0_2[:5]}')
     print(f"number of APs: {nAPs}")
     print(f"ISI: {ISI}")
     firing_rate = 1/ISI*1e3

@@ -35,13 +35,13 @@ def main():
     args['section'] = ['soma0','unmyelin0','apical0','basal0', 'axon0', 'myelin0', 'node0'] #, 7 type of sections  #default: None
     args['plot'] = True                                                                                            #default: None
     args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None
-    args['amp'] = [600*1e3]#[100*1e3]                                                                                        #default: 100000. Pa
+    args['amp'] = [20*1e3]#[100*1e3]                                                                                        #default: 100000. Pa
     args['tstim'] = [0.1]                                                                                          #default: 0.0001 s
     args['toffset'] = [0.01]                                                                                       #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                      #but this is irrelevant as 
     #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                        #default: 1
-    args['DC'] = [0.5] #this argument needs to be changed for PW mode                                               #default: 1.
+    args['DC'] = [1.0] #this argument needs to be changed for PW mode                                               #default: 1.
     args['PRF'] = [100.]
 
     #print(f'cmd arguments: \n{args}');quit()
