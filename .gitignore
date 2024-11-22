@@ -148,4 +148,5 @@ ENV/
 #Added by Joa
 RealSONIC/figs/test
 RealSONIC/figs/delete
-RealSONIC/pickledump/
+RealSONIC/pickledump
+RealSONIC/pickledump_RealSIM/
