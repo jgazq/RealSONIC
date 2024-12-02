@@ -417,18 +417,19 @@ def add_dict_entry(dictio, value, keys):
 
 def txt_to_titration(txtfile,pklfile,save):
     """txt to a titration pkl file"""
-    read = 0
+    read = 1
     pkldict = read_pickle(pklfile)
     #pprint.pprint(pkldict)
     with open(txtfile) as tittxt:
         for i,line in enumerate(tittxt.readlines()):
-                if '---' in line:
-                    read = not read
-                    continue
+                # if '---' in line:
+                #     read = not read
+                #     continue
                 if read:
                     if len(line) < 2:
                         continue
-                    values, remainder = line.split(':')
+                    values, remainder, section, time = line.split(':')
+                    section, time = section.split(' ')[1], time.split(' ')[1]
                     if values[0] == '(' and values[-1] == ')':
                         values = values[1:-1]
                     else:
@@ -439,9 +440,11 @@ def txt_to_titration(txtfile,pklfile,save):
                     values = [int(values[-1]), *values[:-1]] #cell can only be integer
                     if 'unexcitable' in remainder:
                         amp = -10*1e3
+                        amp = (amp,section,time)
                         add_dict_entry(pkldict, amp, values)
                     else:
                         amp = float(remainder.split('kPa')[0])*1e3
+                        amp = (amp,section,time)
                         add_dict_entry(pkldict, amp, values)
 
     #pprint.pprint(pkldict)
@@ -1490,7 +1493,7 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     #plt.clf()
     no_reduc = ['tcomp','V']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude or other variable
-        mul = 1 if variable == 'V' else 1e5 if variable == 'C' else 1 if ('alpha' in variable or 'beta' in variable) else 1 #factor is 1 for alpha and beta if in 1/ms, 1e3 if 1/s 
+        mul = 1 if (variable == 'V' or variable == 'V2') else 1e5 if (variable == 'C' or variable == 'C2') else 1 if ('alpha' in variable or 'beta' in variable) else 1 #factor is 1 for alpha and beta if in 1/ms, 1e3 if 1/s 
         if num_shades > 1:
             plt.plot(Q_refs*1e5,e*mul,label=f"{var_refs[::step][i]*factor:.1e} {unit}".replace('e+00','').replace('e+0','e').replace('e-0','e-'),color = colors[::step][i]) #plot Q with the (almost) 1D array of V (fs is still an extra dimension but this is no problem as fs only takes 1 value)
             plt.legend()
@@ -1625,10 +1628,12 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
     #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
     table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
     table_C2 = Q_ext / table_V2
+    plt.clf()
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C.png')  
-    plt_LUTeff('C2',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
+    plt.clf()
+    plt_LUTeff('C2',table_C2,Q_ext,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
     plt.savefig(f'figs/{foldername}/C2.png') 
 
@@ -2063,8 +2068,8 @@ def plot_titration_curves(pklfile):
     pkldict = read_pickle(pklfile)
     PRF_var = 0
     freq_var = 0
-    rad_var = 1
-    fs = 36
+    rad_var = 0
+    fs = 20
 
     plt.rc('xtick',labelsize=fs)
     plt.rc('ytick',labelsize=fs)
@@ -2077,7 +2082,7 @@ def plot_titration_curves(pklfile):
     freq1 = 100000.0
     freq2 = 500000.0
     freq3 = 1000000.0
-    radius = 6.4e-08 #3.2e-08 #1.6e-08
+    radius = 3.2e-08 #3.2e-08 #1.6e-08
     radius1 = 1.6e-08
     radius2 = 3.2e-08
     radius3 = 6.4e-08
@@ -2126,6 +2131,24 @@ def plot_titration_curves(pklfile):
         plt.semilogy(DC1,TIT1*1e-3,label=str(radius1*1e9)+' nm',color='cyan')
         plt.semilogy(DC2,TIT2*1e-3,label=str(radius2*1e9)+' nm',color='deepskyblue')
         plt.semilogy(DC3,TIT3*1e-3,label=str(radius3*1e9)+' nm',color='royalblue')
+    else:
+        TIT_info = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF] for e in DC])
+        TIT = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF][0] for e in DC])
+        #filtering of unexcited values
+        DC = DC[TIT>0]
+        TIT = TIT[TIT>0]
+        labels = []
+        for i,e in enumerate(TIT_info):
+            print(e)
+            color = 'yellow' if 'soma' in e[1] else 'purple' if 'axon' in e[1] else '#FF0000' if 'node' in e[1] else '#FFA500' if 'unmyelin' in e[1] else '#000000' if 'myelin' in e[1] else '#0000FF' if 'apical' in e[1] else '#00FF00' if 'basal' in e[1] else None
+            label = 'soma' if 'soma' in e[1] else 'axon' if 'axon' in e[1] else 'node' if 'node' in e[1] else 'unmyelin' if 'unmyelin' in e[1] else 'myelin' if 'myelin' in e[1] else 'apical' if 'apical' in e[1] else 'basal' if 'basal' in e[1] else None
+            if label in labels:
+                label = None
+            else:
+                labels.append(label)
+            plt.scatter(DC[i],float(e[0]),color=color,label = label)
+        plt.yscale('log')
+        #plt.semilogy(DC,TIT*1e-3,label=str(radius1*1e9)+' nm',color='cyan')
     plt.xlabel('Duty cycle [%]',fontsize=fs)
     plt.ylabel('Amplitude [kPa]',fontsize=fs)
     plt.xticks(fontsize = fs)

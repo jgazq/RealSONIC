@@ -11,6 +11,39 @@ import tempFunctions as tf
 import tempConstants as tc
 
 
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
+# tf.save_gatingplots(pkldict,r'test',Cm0=None, reduced_yrange=False,A='all')
+
+# with open ("titrate_data.txt",'w') as tf:
+#     i = 0
+#     for a in [32]:
+#         for f in [500]:
+#             for PRF in [1000]:
+#                 for DC in range(15,101):
+#                     tf.write(f'7,{a},{f},{PRF},{DC}\n')
+#                     i+=1
+# print(i)
+
+# Q_range = np.arange(-107,50,1)
+# lookup = np.array([tf.lookup_LUT(r"C:\Users\jgazquez\RealSIM\PySONIC\lookups\downloaded\realneuron_lookups_32nm_500kHz_[0_321]_fs0.75_2024_03_14_17_20_14.pkl",'V',[32*1e-9, 500*1e3, 0*1e3, e*1e-5, 0.02]) for e in Q_range])
+# Q_range = Q_range[abs(lookup) > 1e-5]
+# lookup = lookup[abs(lookup) > 1e-5]
+# plt.plot(Q_range,Q_range/ lookup,label='first')
+# plt.xticks(fontsize=36)
+# plt.yticks(fontsize=36)
+# # plt.show()
+# #print(pkldict['refs']['Q'][0]*1e5,pkldict['tables']['V'][0][0][0][0][0][0],pkldict['refs']['Q'][0] / pkldict['tables']['V'][0][0][0][0][0][0]*1e5)
+
+# lookup = np.array([tf.lookup_LUT(r"C:\Users\jgazquez\RealSIM\PySONIC\lookups\downloaded\realneuron_lookups_32nm_20kHz_[0_-1]_fs0.75_2024_05_29_16_44_56.pkl",'V',[32*1e-9, 500*1e3, 0*1e3, e*1e-5, 0.01]) for e in Q_range])
+# Q_range = Q_range[abs(lookup) > 1e-5]
+# lookup = lookup[abs(lookup) > 1e-5]
+# plt.plot(Q_range,Q_range/ lookup,label='second')
+# plt.xticks(fontsize=36)
+# plt.yticks(fontsize=36)
+# plt.legend()
+# plt.show()
+
+
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 20\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_09_25_17_22_43_unmyelin0.csv") #
 # pkl = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_2024_09_25_17_48_48.pkl")
 # print(pkl['refs']['Q'])
@@ -32,11 +65,13 @@ import tempConstants as tc
 # print(i)
 
 
-#tf.load_pickle({},r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
+tf.load_pickle({},r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 
-#tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=1)
+tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate_act", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=1)
 
-#tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
+tit = tf.read_pickle(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
+pprint.pprint(tit)
+tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 
 #tf.plot_titration_curves_cells(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 
@@ -146,8 +181,6 @@ import tempConstants as tc
 
 #tf.LUT_to_LUT2(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_merged.pkl",1)
 
-pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
-tf.save_gatingplots(pkldict,r'test',Cm0=None, reduced_yrange=False,A='all')
 
 #tf.plot_astim2(r"C:\Users\jgazquez\OneDrive - UGent\PhD\Figures\self_made\run_realistic_astim output\try 10\csv\realistic_cort_realneuron_64nm_fs75%_f_100kHz_A_600.00kPa_CW_tstim_100ms_toffset_10ms_tstart_10ms\2024_08_12_09_56_01_soma0.csv",debug=1)#,variables = ['V','Q','i_net'])
 

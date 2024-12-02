@@ -244,7 +244,7 @@ def main():
     logger.setLevel(args['loglevel'])
     args['radius'] = np.array([3.2e-08])
     args['Cm0'] = np.array([0.01])
-    args['charge'] = np.array([0.])
+    #args['charge'] = np.array([-100*1e-5]) #np.array([-80.25503465013132*1e-5]) #np.array([0.])
     args['freq'] = np.array([500000.])
     args['amp'] = np.array([0.])
     print(args)

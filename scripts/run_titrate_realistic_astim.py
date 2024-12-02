@@ -76,44 +76,44 @@ def simulate_realnrn(args,amp,stimulation,x0,sigma, fiber, iter):
     args['ref_loc'] = (refsec.x_xtra, refsec.y_xtra, refsec.z_xtra)
 
     tosave = output[0][0].data
-    outdir = r"C:\Users\jgazquez\RealSONIC\pickledump" + f"\{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC\\"
-    outname = r"dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC_{args['amp'][0]*1e-3}kPa" + ".pkl"
+    #outdir = r"C:\Users\jgazquez\RealSONIC\pickledump" + f"\{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC\\"
+    #outname = r"dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC_{args['amp'][0]*1e-3}kPa" + ".pkl"
     #outfile = outdir + outname
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-        os.mkdir(outdir+'pkl\\')
-        os.mkdir(outdir+'csv\\')
+    # if not os.path.exists(outdir):
+    #     os.mkdir(outdir)
+    #     os.mkdir(outdir+'pkl\\')
+    #     os.mkdir(outdir+'csv\\')
 
-    with open(outdir+'pkl\\'+outname, 'wb') as fh:
-        pickle.dump(tosave, fh)
-    data = tosave['soma0']
-    data.to_csv((outdir+'csv\\'+outname).replace('pkl','csv'))
+    # with open(outdir+'pkl\\'+outname, 'wb') as fh:
+    #     pickle.dump(tosave, fh)
+    # data = tosave['soma0']
+    # data.to_csv((outdir+'csv\\'+outname).replace('pkl','csv'))
     return tosave
 
 def thresh_excited(pkldict):
     #use analyze code
     section = 'soma0'
-    V_section, t_section = np.array(pkldict[section]['Vm']), np.array(pkldict[section]['t'])
-    t_stim = t_section[np.array(pkldict[section]['stimstate']>0)]
-
-    #plt.plot(t_section*1e3,V_section)
-    #plt.show()
-
+    df = pkldict[section]
+    V_section, t_section = np.array(df['Vm']), np.array(df['t'])
     Vmax_index = argrelextrema(np.array(V_section), np.greater)[0]
     Vmax_t = t_section[Vmax_index]
     Vmax_V = V_section[Vmax_index]
     spiking_times = Vmax_t[Vmax_V>0]
-    spiking_and_bounds = np.append(np.append(t_stim[0],spiking_times),t_stim[-1])
-    ISI = np.diff(spiking_times)*1e3
-    ISI_with_bounds = np.diff(spiking_and_bounds)*1e3
     nAPs = len(spiking_times)
-    print('\n\nDEBUG:')
-    for e in dir():
-        print(e,sys.getsizeof(e))
-    if nAPs > 0:
-        return 1
-    else:
-        return 0
+    return nAPs > 0
+
+def activation_site(pkldict):
+    act_section = '' #activation section
+    mini = 1e10 #why index?
+    zero_crossings = [] #all zero-crossings for every section
+
+    for e,f in pkldict.items():
+        zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
+        zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
+        if zero_crossing < mini: #here we determine what the smallest first zero-crossing is
+            mini = zero_crossing
+            act_section = e
+    return act_section, mini
 
 def add_dict_entry(dictio, value, keys):
     """adds an nested entry in a dictionary"""
@@ -134,7 +134,6 @@ def add_dict_entry(dictio, value, keys):
 
 
 def main():
-    #TODO: add these variables to parser
     # Parse command line arguments
     parser = AStimRealisticNeuronParser()
     args = parser.parse()
@@ -169,11 +168,11 @@ def main():
 
     #with open('titrate','w') as ftit:
     #    ftit.write(f'Titration proces: \n\n\n')
-    try:
-        with open('titrate.pkl', 'rb') as fh:
-            result_dict = pickle.load(fh)
-    except:
-        result_dict = {}
+    # try:
+    #     with open('titrate.pkl', 'rb') as fh:
+    #         result_dict = pickle.load(fh)
+    # except:
+    #     result_dict = {}
     #result_matr = np.zeros((len(fs_array), len(radius_array), len(freq_array), len(DC_array), len(PRF_array)))
     #result_dict = {'refs': {'fs': fs_array, 'radius': radius_array, 'freq': freq_array, 'DC': DC_array, 'PRF': PRF_array}, 'table': result_matr}
 
@@ -211,7 +210,7 @@ def main():
                                     if not thresh_excited(output_dict):
                                         with open('titrate','a') as ftit:
                                             ftit.write(f'({freq}, {a}, {fs}, {DC}, {PRF}, {cell_nr}): unexcitable after {iter} iterations.\n\n')
-                                        result_dict = add_dict_entry(result_dict, -10, [cell_nr, freq, a, fs, DC, PRF])
+                                        # result_dict = add_dict_entry(result_dict, -10, [cell_nr, freq, a, fs, DC, PRF])
                                         continue
                                     while (low_amp == 0 or high_amp == 600*1e3):
                                         output_dict = simulate_realnrn(args,amp,stimulation,x0,sigma, fiber,iter)
@@ -255,13 +254,14 @@ def main():
                                         #with open('titrate','a') as ftit:
                                         #    ftit.write(f'Excited: {"True" if excited == 1 else "False"}. \nLower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa\n\n')
                                         #print(f'Lower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa')
+                                    activ_site, act_time = activation_site(output_dict)
                                     with open('titrate','a') as ftit:
-                                        ftit.write(f'({freq}, {a}, {fs}, {DC}, {PRF}, {cell_nr}): {amp*1e-3}kPa after {iter} iterations.\n\n')
-                                    result_dict = add_dict_entry(result_dict, amp, [cell_nr, freq, a, fs, DC, PRF])
+                                        ftit.write(f'({freq}, {a}, {fs}, {DC}, {PRF}, {cell_nr}): {amp*1e-3}kPa after {iter} iterations at section: {activ_site} after: {act_time} s.\n\n')
+                                    #result_dict = add_dict_entry(result_dict, amp, [cell_nr, freq, a, fs, DC, PRF])
                                     #result_dict['table'][itfs, ita, itfreq, itDC, itPRF] = amp
                                     #print(f'The calculated threshold amplitude after the binary search is: {amp*1e-3}kPa after {iter} iterations.\n\n')
-    with open(r"C:\Users\jgazquez\RealSONIC\titrate.pkl", 'wb') as fh:
-        pickle.dump(result_dict, fh)
+    # with open(r"C:\Users\jgazquez\RealSONIC\titrate.pkl", 'wb') as fh:
+    #     pickle.dump(result_dict, fh)
 
 if __name__ == '__main__': 
     main()
