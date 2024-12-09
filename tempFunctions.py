@@ -428,8 +428,16 @@ def txt_to_titration(txtfile,pklfile,save):
                 if read:
                     if len(line) < 2:
                         continue
-                    values, remainder, section, time = line.split(':')
-                    section, time = section.split(' ')[1], time.split(' ')[1]
+                    line_splitted = line.split(':')
+                    act = 1 if len(line_splitted) == 4 else 0 if len(line_splitted) == 2 else -1 #checks if the activation site is given
+                    if act < 0:
+                        print(f'wrong line: {line_splitted}')
+                    if act:
+                        values, remainder, section, time = line.split(':')
+                        section, time = section.split(' ')[1], time.split(' ')[1]
+                    else:
+                        values, remainder = line.split(':')
+
                     if values[0] == '(' and values[-1] == ')':
                         values = values[1:-1]
                     else:
@@ -440,11 +448,13 @@ def txt_to_titration(txtfile,pklfile,save):
                     values = [int(values[-1]), *values[:-1]] #cell can only be integer
                     if 'unexcitable' in remainder:
                         amp = -10*1e3
-                        amp = (amp,section,time)
+                        if act:
+                            amp = (amp,section,float(time))
                         add_dict_entry(pkldict, amp, values)
                     else:
                         amp = float(remainder.split('kPa')[0])*1e3
-                        amp = (amp,section,time)
+                        if act:
+                            amp = (amp,section,float(time))
                         add_dict_entry(pkldict, amp, values)
 
     #pprint.pprint(pkldict)
@@ -1491,7 +1501,7 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
     colors = [cmap(i / num_shades) for i in range(num_shades)]#.reverse()
     #colors.reverse()
     #plt.clf()
-    no_reduc = ['tcomp','V']
+    no_reduc = ['tcomp','V','V2']
     for i,e in enumerate(table[::step]): #take only every fifth amplitude or other variable
         mul = 1 if (variable == 'V' or variable == 'V2') else 1e5 if (variable == 'C' or variable == 'C2') else 1 if ('alpha' in variable or 'beta' in variable) else 1 #factor is 1 for alpha and beta if in 1/ms, 1e3 if 1/s 
         if num_shades > 1:
@@ -1519,10 +1529,11 @@ def plt_LUTeff(variable,table,Q_refs,factor,unit,var_refs=None,plot=False,reduce
         ylab = '${V_m}^*$ [mV]' if variable == 'V' else '${C_m}^*$ $\mathrm{[\dfrac{uF}{cm^2}]}$' if variable == 'C' else f'${{{var}}}_{{{suf}}}^{{*}}$' + ' $\mathrm{[\dfrac{1}{ms}]}$' if ('alpha' in variable or 'beta' in variable) else variable
         plt.ylabel(f'{ylab}') #ylabel can be V, C or a gating parameter
         if reduced_yrange and (variable not in no_reduc): #only reduce the range for all gating variables and not for V or tcomp
-            change_lower = plt.ylim()[0] < -10 #only change lower limit if values go below -10
-            change_upper = plt.ylim()[1] > 10 #only change upper limit if values go above 10
+            lower_lim, upper_lim = -20, 20
+            change_lower = plt.ylim()[0] < lower_lim #only change lower limit if values go below -10
+            change_upper = plt.ylim()[1] > upper_lim #only change upper limit if values go above 10
             e_sorted = np.sort(e.reshape(-1)) #reshape(-1) just reshapes a multi-dimensional array to 1D
-            e_limited = [e for e in e_sorted if e < 10 and e > -10] #filter values that go out of bounds
+            e_limited = [e for e in e_sorted if e < upper_lim and e > lower_lim] #filter values that go out of bounds
             if not e_limited: #if no value falls under the limited range, use the original array instead of no values
                 e_limited = e
             # print(variable); print('before'); print(plt.ylim())
@@ -1620,22 +1631,28 @@ def save_gatingplots(pkldict,foldername,reduced_yrange=True,reduced_xrange=False
 
     #plot the effective capacity
     table_V = eval(f"pkldict['tables']['V'][{(',').join(ind_list)}]") #index the table according to the calculated indexing list
-    table_V2 = eval(f"pkldict['tables']['V2'][{(',').join(ind_list)}]")
+    #print(pkldict['tables'].keys())
+    t_V2 = 0
+    if t_V2:
+        table_V2 = eval(f"pkldict['tables']['V2'][{(',').join(ind_list)}]")
     if all_list:
         if ind > 3: #if the variable is further in the array than Q:
             table_V = np.swapaxes(table_V,0,1) #switch the variable with the Q-axis so Q is plotted on the x-axis and the other one on the y-axis as desired
         table_V = np.reshape(table_V,(-1,len(Qrange))) #reshape the table to dim(variable) x dim(Q)
     #Q_table = np.tile(Qrange,np.prod(table_V.shape)//len(Qrange)).reshape(table_V.shape) #copy the Q array to a matrix with the same dimensions as V -> not needed, use broadcasting
-    table_C = Qrange / table_V #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
-    table_C2 = Q_ext / table_V2
+    table_C = Qrange / table_V#[:,0] #Q = C x V <=> C = Q / V: C/ m2 / mV = 1 / 1e-3 * C/m2/V = 1e3 F/m2 = 1e5 uF/m2
+    if t_V2:
+        table_C2 = Q_ext / table_V2
     plt.clf()
     plt_LUTeff('C',table_C,Qrange,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
     plt.title(title)
+    #plt.show()
     plt.savefig(f'figs/{foldername}/C.png')  
     plt.clf()
-    plt_LUTeff('C2',table_C2,Q_ext,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
-    plt.title(title)
-    plt.savefig(f'figs/{foldername}/C2.png') 
+    if t_V2:
+        plt_LUTeff('C2',table_C2,Q_ext,factor,unit,var_refs=var_refs,reduced_yrange=reduced_yrange,reduced_xrange=reduced_xrange) #plotting
+        plt.title(title)
+        plt.savefig(f'figs/{foldername}/C2.png') 
 
 
 def save_gatingplots_group(pkldict,foldername,reduced_yrange=True,reduced_xrange=False, a=32*1e-9, f=500*1e3, A=50*1e3, Cm0=0.01):
@@ -2133,20 +2150,21 @@ def plot_titration_curves(pklfile):
         plt.semilogy(DC3,TIT3*1e-3,label=str(radius3*1e9)+' nm',color='royalblue')
     else:
         TIT_info = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF] for e in DC])
-        TIT = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF][0] for e in DC])
+        TIT = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF][0]*1e-3 for e in DC])
         #filtering of unexcited values
         DC = DC[TIT>0]
         TIT = TIT[TIT>0]
         labels = []
         for i,e in enumerate(TIT_info):
-            print(e)
+            #print(e)
             color = 'yellow' if 'soma' in e[1] else 'purple' if 'axon' in e[1] else '#FF0000' if 'node' in e[1] else '#FFA500' if 'unmyelin' in e[1] else '#000000' if 'myelin' in e[1] else '#0000FF' if 'apical' in e[1] else '#00FF00' if 'basal' in e[1] else None
             label = 'soma' if 'soma' in e[1] else 'axon' if 'axon' in e[1] else 'node' if 'node' in e[1] else 'unmyelin' if 'unmyelin' in e[1] else 'myelin' if 'myelin' in e[1] else 'apical' if 'apical' in e[1] else 'basal' if 'basal' in e[1] else None
             if label in labels:
                 label = None
             else:
                 labels.append(label)
-            plt.scatter(DC[i],float(e[0]),color=color,label = label)
+            print(f'{cell_nr},{int(radius*1e9)},{int(freq*1e-3)},{int(PRF)},{int(DC[i]*1e2)},{TIT[i]+0.0390625}')
+            plt.scatter(DC[i],TIT[i],color=color,label = label)
         plt.yscale('log')
         #plt.semilogy(DC,TIT*1e-3,label=str(radius1*1e9)+' nm',color='cyan')
     plt.xlabel('Duty cycle [%]',fontsize=fs)
@@ -2171,26 +2189,30 @@ def plot_titration_curves_cells(pklfile):
     PRF1 = 100.0
     PRF2 = 10.0 #10.0 #50.0
     PRF3 = 1000.0
+    labels = ["L1 NGC-DA", "L2/3 PC", "L4 LBC", "L5 TTPC", "L6 TPC"]
     
     for freq in [500000.0, 1000000.0]:
-        for radius in [3.2e-8, 6.4e-8]:
+        for radius in [3.2e-8]:#, 6.4e-8]:
             for PRF in [10.0, 100.0, 1000.0]:
                 for cell_group in range(5):
-                    bp = np.empty((5,2))
-                    for i,cell_nr in enumerate(np.array([e for e in range(5)]) + cell_group*5 + 1):
+                    bp = np.empty((5,2)) #we create a 5x2 matrix which will plot for the 5 cell groups the value of 0.5 and 1.0 for DC
+                    for i,cell_nr in enumerate(np.array([e for e in range(5)]) + cell_group*5 + 1): #iterate over the 5 cells in each group
                         DC = [0.5, 1.0]
-                        TIT = np.array([pkldict[cell_nr][freq][radius][coverage][e][PRF] for e in DC])
+                        TIT = [pkldict[cell_nr][freq][radius][coverage][e][PRF] for e in DC]
+                        TIT = [e if type(e) == float else e[0] for e in TIT]
+                        TIT = np.array(TIT)
                         bp[i] = TIT*1e-3
                         #plt.plot(DC,TIT*1e-3,label=cell_nr)
-                    plt.plot(DC,np.median(bp,axis=0),label=i)
-                    plt.fill_between(DC,np.quantile(bp,0.25,axis=0),np.quantile(bp,0.75,axis=0),alpha=0.3)
+                    plt.plot(DC,np.median(bp,axis=0),label=labels[cell_group])
+                    #plt.fill_between(DC,np.quantile(bp,0.25,axis=0),np.quantile(bp,0.75,axis=0),alpha=0.3)
                     #plt.boxplot(bp,positions=range(2),labels=DC)
-                fs = 36
+                fs = 18
                 plt.xlabel('Duty cycle [%]',fontsize=fs)
                 plt.ylabel('Amplitude [kPa]',fontsize=fs)
                 plt.xticks(fontsize = fs)
                 plt.yticks(fontsize = fs)
                 plt.legend(fontsize = fs)
+                plt.title(f'freq = {freq}, radius = {radius}, PRF = {PRF}')
                 plt.show()
 
 
@@ -2201,26 +2223,32 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
     pkldict = read_pickle(pkl_file)
     if pkl_file2:
         pkldict2 = read_pickle(pkl_file2)
-    section = 'myelin12' #considered section that will be plotted
+    section = 'soma0' #considered section that will be plotted
     mini_index = 1e10
     act_section = ''
     sections = [] #all sections
     zero_crossings = [] #all zero-crossings for every section
+    zero_crossing_vals = [] #value before the zero-crossing (can also be the one after because two sections aren't going to croos each other during the AP, right?)
     V0, V0_2 = [],[]
 
     for e,f in pkldict.items():
-        zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
+        #zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
+        crossings = ((np.array(f['Vm'])[:-1] * np.array(f['Vm'])[1:]) <= 0)*1
+        first_crossing = np.argmax(crossings)+1 if np.argmax(crossings) != 0 else len(crossings)
+        zero_crossing = f['t'][first_crossing] #timestamp where first zero-crossing happens
+        zero_crossing_val = f['Vm'][first_crossing-1] #value before the zero-crossing
+        #print(e,np.min(abs(f['Vm'])))
         sections.append(e) #append every section to the sections list
         if section in e: #if we are at the specified section: 
             V_section, t_section = np.array(f['Vm']), np.array(f['t']) #store the t and V array of this section
             t_stim = t_section[np.array(f['stimstate']>0)] #store the stimulation time (this is the time array when the stimulation is on)
         zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
+        zero_crossing_vals.append(zero_crossing_val) #all the zero-crossings for every section are stored
         V0.append(f['Vm'][0])
         if pkl_file2:
             V0_2.append(pkldict2[e]['Vm'][0])
         if zero_crossing < mini_index: #here we determine what the smallest first zero-crossing is
             mini_index = zero_crossing
-            act_section = e
         #color scheme of aberra cells
         color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#FF0000' if 'node' in e else '#FFA500' if 'unmyelin' in e else '#000000' if 'myelin' in e else '#0000FF' if 'apical' in e else '#00FF00' if 'basal' in e else None
         #label every type of section by using the label for the section0
@@ -2234,7 +2262,7 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
                     e = 'axon initial segment'
                 plt.plot(np.append(f['t']*1e3,(pkldict2[e]['t']+np.array(f['t'])[-1])*1e3),np.append(f['Vm'],pkldict2[e]['Vm']),label=e[:-1], color=color)
             else:
-                print(e)
+                #print(e)
                 if e[:-1] == 'axon':
                     e = 'AIS0'
                 plt.plot(f['t']*1e3,f['Vm'],label=e[:-1], color=color)
@@ -2244,17 +2272,19 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
             else:
                 plt.plot(f['t']*1e3,f['Vm'], color=color)
 
-    sections_sorted = [section for _, section in sorted(zip(zero_crossings, sections))]
+    sections_sorted = [section for _, _, section in sorted(zip(zero_crossings, abs(np.array(zero_crossing_vals)) ,sections))] #first we look at the time that took until the first zero-crossing happened
+    zero_crossing_vals_sorted = [val for _, _, val in sorted(zip(zero_crossings, abs(np.array(zero_crossing_vals)), zero_crossing_vals))] #then we look at the section that is closest to zero before crossing it
+    act_section = sections_sorted[0]
     # print(sections)
     # print(zero_crossings)
     fs =30
-    plt.xlabel('membrane charge density [$\mathrm{nC/{cm}^2}$]',fontsize=fs)
-    plt.ylabel(r'$\mathrm{\alpha_{h, Ca}}$* [$\mathrm{1/ms}$]',fontsize=fs)
+    plt.xlabel('time [ms]',fontsize=fs)
+    plt.ylabel('membrane voltage [mV]',fontsize=fs)
     plt.xticks(fontsize = fs)
     plt.yticks(fontsize = fs)
     plt.legend(fontsize = fs)
     plt.show()
-    plt.plot(t_section*1e3,V_section)
+    #plt.plot(t_section*1e3,V_section)
 
     #metrics
     #nAPs = len(np.where(np.diff(np.sign(V_soma)))[0])/2 #number of action potentials by looking at the number of zero-crossings/2
@@ -2272,9 +2302,9 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
 
     print(f'(number of sections: {len(sections)})')
     print(f'activation section/site:{act_section} @ {mini_index*1e3} ms') #section where the first zero-crossing happens so first AP
-    for e,f in zip(sections_sorted[:10],sorted(zero_crossings)[:10]):
-        print(f'{e}: \t{f}')
-    print(f'V0: {V0[:5]}, V0_2: {V0_2[:5]}')
+    for e,f,g in zip(sections_sorted[:10],sorted(zero_crossings)[:10],zero_crossing_vals_sorted[:10]):
+        print(f'{e}: \t{f},\t{g}')
+    #print(f'V0: {V0[:5]}, V0_2: {V0_2[:5]}')
     print(f"number of APs: {nAPs}")
     print(f"ISI: {ISI}")
     firing_rate = 1/ISI*1e3

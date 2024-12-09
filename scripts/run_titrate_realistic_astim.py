@@ -105,14 +105,24 @@ def thresh_excited(pkldict):
 def activation_site(pkldict):
     act_section = '' #activation section
     mini = 1e10 #why index?
+    sections = [] #all sections
     zero_crossings = [] #all zero-crossings for every section
+    zero_crossing_vals = [] #value before the zero-crossing (can also be the one after because two sections aren't going to croos each other during the AP, right?)
 
     for e,f in pkldict.items():
-        zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
+        crossings = ((np.array(f['Vm'])[:-1] * np.array(f['Vm'])[1:]) <= 0)*1
+        first_crossing = np.argmax(crossings)+1 if np.argmax(crossings) != 0 else len(crossings)
+        zero_crossing = f['t'][first_crossing] #timestamp where first zero-crossing happens
+        zero_crossing_val = f['Vm'][first_crossing-1] #value before the zero-crossing
+
+        sections.append(e) #append every section to the sections list
         zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
+        zero_crossing_vals.append(zero_crossing_val) #all the zero-crossings for every section are stored
+
         if zero_crossing < mini: #here we determine what the smallest first zero-crossing is
             mini = zero_crossing
-            act_section = e
+    sections_sorted = [section for _, _, section in sorted(zip(zero_crossings, abs(np.array(zero_crossing_vals)) ,sections))] #first we look at the time that took until the first zero-crossing happened
+    act_section = sections_sorted[0]
     return act_section, mini
 
 def add_dict_entry(dictio, value, keys):
@@ -159,12 +169,11 @@ def main():
     #print(f'cmd arguments: \n{args}');quit()
     #END DEBUGGING VALUES
 
-
-    # Run batch
-
     cell_nr = args['cell'][0]
     se = args['se'][0]
     stimulation = args['stimulation'][0] #"uniform" #"gaussian" #"gaussian3D"
+
+    # Run batch
 
     #with open('titrate','w') as ftit:
     #    ftit.write(f'Titration proces: \n\n\n')
@@ -238,23 +247,24 @@ def main():
                                     #print(f'The calculated threshold amplitude after the binary search is: {amp*1e-3}kPa after {iter} iterations.\n\n\n')
 
                                     epsilon = 100
-                                    amp = (high_amp+low_amp)/2
                                     while (high_amp-low_amp) > epsilon:
+                                        amp = (high_amp+low_amp)/2
                                         output_dict = simulate_realnrn(args,amp,stimulation,x0,sigma, fiber,iter)
                                         #with open('titrate','a') as ftit:
                                         #    ftit.write(f'Lower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amplitude during the simulation was: {amp*1e-3}kPa\n')
                                         iter +=1
                                         if thresh_excited(output_dict):
                                             high_amp = amp
+                                            excited_output = output_dict
                                             excited = 1
                                         else:
                                             low_amp = amp
                                             excited = 0
-                                        amp = (high_amp+low_amp)/2
+                                        amp = high_amp #(high_amp+low_amp)/2
                                         #with open('titrate','a') as ftit:
                                         #    ftit.write(f'Excited: {"True" if excited == 1 else "False"}. \nLower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa\n\n')
                                         #print(f'Lower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa')
-                                    activ_site, act_time = activation_site(output_dict)
+                                    activ_site, act_time = activation_site(excited_output)
                                     with open('titrate','a') as ftit:
                                         ftit.write(f'({freq}, {a}, {fs}, {DC}, {PRF}, {cell_nr}): {amp*1e-3}kPa after {iter} iterations at section: {activ_site} after: {act_time} s.\n\n')
                                     #result_dict = add_dict_entry(result_dict, amp, [cell_nr, freq, a, fs, DC, PRF])

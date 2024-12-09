@@ -242,17 +242,12 @@ def main():
     parser.add_argument('--novertones', type=int, default=0, help='Number of Fourier overtones') # numer of Qm overtones
     args = parser.parse()
     logger.setLevel(args['loglevel'])
-    args['radius'] = np.array([3.2e-08])
-    args['Cm0'] = np.array([0.01])
-    #args['charge'] = np.array([-100*1e-5]) #np.array([-80.25503465013132*1e-5]) #np.array([0.])
-    args['freq'] = np.array([500000.])
-    args['amp'] = np.array([0.])
-    print(args)
+    #print(args)
 
     for pneuron in args['neuron']: 
 
-        #Give pneuron worst case Cm0
-        pneuron.Cm0 = max(args['Cm0'])
+        #Give pneuron worst case Cm0 -> not anymore cuz calculations go wrong otherwise
+        pneuron.Cm0 = max(args['Cm0']) #max(args['Cm0']) #this will give an error if 2 Cm0-values are given as input, only 1 can be given
 
         # Determine charge vector
         charges = args['charge']
@@ -304,6 +299,8 @@ def main():
 
         # Save lookup in PKL file
         logger.info('Saving %s neuron lookup in file: "%s"', pneuron.name, lookup_fpath)
+        # print(f"V = {lkp.tables['V']}")
+        # print(f"C = {lkp.refs['Q'] / lkp.tables['V']*1e5}")
         lkp.toPickle(lookup_fpath)
 
 

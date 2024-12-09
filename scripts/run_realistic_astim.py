@@ -17,10 +17,6 @@ import pickle
 
 
 def main():
-    #TODO: add these variables to parser
-    cell_nr = 7
-    se = 0
-    stimulation = "uniform" #"gaussian" #"gaussian3D"
     # Parse command line arguments
     parser = AStimRealisticNeuronParser()
     args = parser.parse()
@@ -30,22 +26,26 @@ def main():
         logger.warning('NEURON multiprocessing disabled')
     #START DEBUGGING VALUES (normally this should be given in the command line)
     args['fs'] = [0.75] #75%                                                                                       #default: 1 (100%)
-    args['radius'] = [32*1e-9] #[64*1e-9] #16nm                                                                    #default: 3.2e-08 nm
-    args['freq'] = [500*1e3] #100kHz                                                                               #default: 500000. Hz
+    #args['radius'] = [32*1e-9] #[64*1e-9] #16nm                                                                    #default: 3.2e-08 nm
+    #args['freq'] = [500*1e3] #100kHz                                                                               #default: 500000. Hz
     args['section'] = ['soma0','unmyelin0','apical0','basal0', 'axon0', 'myelin0', 'node0'] #, 7 type of sections  #default: None
-    args['plot'] = True                                                                                            #default: None
-    args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None
-    args['amp'] = [36.7*1e3]#[100*1e3]                                                                               #default: 100000. Pa
+    #args['plot'] = True                                                                                            #default: None
+    #args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None
+    #args['amp'] = [36.7*1e3]#[100*1e3]                                                                               #default: 100000. Pa
     args['tstim'] = [0.1]                                                                                          #default: 0.0001 s
     args['toffset'] = [0.01]                                                                                       #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                      #but this is irrelevant as 
     #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                        #default: 1
-    args['DC'] = [0.5] #this argument needs to be changed for PW mode                                               #default: 1.
-    args['PRF'] = [100.]
+    #args['DC'] = [0.5] #this argument needs to be changed for PW mode                                               #default: 1.
+    #args['PRF'] = [100.]
 
     #print(f'cmd arguments: \n{args}');quit()
     #END DEBUGGING VALUES
+
+    cell_nr = args['cell'][0]
+    se = args['se'][0]
+    stimulation = args['stimulation'][0] #"uniform" #"gaussian" #"gaussian3D"
 
     # Run batch
     logger.info('Starting fiber A-STIM simulation batch')
