@@ -299,9 +299,9 @@ def main():
 
         # Save lookup in PKL file
         logger.info('Saving %s neuron lookup in file: "%s"', pneuron.name, lookup_fpath)
-        # print(f"V = {lkp.tables['V']}")
-        # print(f"C = {lkp.refs['Q'] / lkp.tables['V']*1e5}")
-        lkp.toPickle(lookup_fpath)
+        print(f"V = {lkp.tables['V']}")
+        print(f"C = {lkp.refs['Q'] / lkp.tables['V']*1e5}")
+        #lkp.toPickle(lookup_fpath)
 
 
 if __name__ == '__main__':

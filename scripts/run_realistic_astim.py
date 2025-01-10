@@ -15,6 +15,10 @@ from MorphoSONIC.core import GaussianAcousticSource, UniformAcousticSource, Gaus
 from MorphoSONIC.parsers import AStimRealisticNeuronParser
 import pickle
 
+from scipy.signal import argrelextrema
+import numpy as np
+
+save_dumps = 1
 
 def main():
     # Parse command line arguments
@@ -40,7 +44,7 @@ def main():
     #args['DC'] = [0.5] #this argument needs to be changed for PW mode                                               #default: 1.
     #args['PRF'] = [100.]
 
-    #print(f'cmd arguments: \n{args}');quit()
+    #print(f'cmd arguments: \n{sorted(args.keys())}\n\n{args}');quit()
     #END DEBUGGING VALUES
 
     cell_nr = args['cell'][0]
@@ -109,8 +113,20 @@ def main():
     tosave = output[0][0].data
     outdir = r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz" + \
         f"_{args['amp'][0]*1e-3}kPa_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC" + ".pkl"
-    with open(outdir, 'wb') as fh:
-        pickle.dump(tosave, fh)
+    if save_dumps:
+        with open(outdir, 'wb') as fh:
+            pickle.dump(tosave, fh)
+
+    #analyze result
+    section = 'soma0'
+    df = tosave[section]
+    V_section, t_section = np.array(df['Vm']), np.array(df['t'])
+    pos_crossings = (np.array(V_section)[:-1] <= 0)*(np.array(V_section)[1:] > 0) #crossing where the value goes from a negative to a positive one
+    pos_crossings = np.append([0],pos_crossings) #add 0 to comply with the time array length
+    spiking_times = t_section*pos_crossings
+    spiking_times = spiking_times[spiking_times!=0] #times where the V value is positive after going through a zero-crossing
+    nAPs = len(spiking_times)
+    print(f"number of spikes: {nAPs}")
 
     # Plot resulting profiles
     if args['plot'] is not None:

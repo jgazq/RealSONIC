@@ -7,7 +7,6 @@ NEURON	{
 	RANGE gCa_HVAbar, gCa_HVA, ica 
 	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1 : section specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
-	GLOBAL fUS
 }
 
 UNITS	{
@@ -22,8 +21,7 @@ PARAMETER	{
 	Fdrive (kHz) : Stimulation frequency
 	Adrive (kPa) : Stimulation amplitude
 	detailed     : Simulation type
-	gCa_HVAbar = 0.00001 (S/cm2) 
-	fUS = 500000 (Hz)
+	gCa_HVAbar = 0.00001 (S/cm2)
 }
 
 ASSIGNED	{

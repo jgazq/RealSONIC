@@ -39,7 +39,7 @@ def read_pickle(path, filename=None, prints=False):
         return pkl
     print('shape of V in tables',pkl['tables']['V'].shape) #dimensions of refs
     print('refs(inputs): ',pkl['refs'].keys()) #which variables are sweeped over
-    #print('refs values (inputs): ',pkl['refs'].values())
+    print('refs values (inputs): ',pkl['refs'].values())
     #print('refs: ',pkl['refs'].values()) #the arrays of each variable(length of each variable is given in the dimensions above)
     print('tables(outputs): ',pkl['tables'].keys()) #which gating state parameters are stored in the LUT
     if 'tcomp' in pkl['tables'].keys(): #test files don't have a computation time value -> NOT TRUE!!! I ?accidentaly? removed the tcomp line in run_lookups_MC.py
@@ -997,16 +997,55 @@ def replace_str(flist,to_repl,repl_with):
         :flist: list (possibly) containing the string to replace
         :to_repl: string that needs to be replaced with repl_with, this can also be a list
         :repl_with: string that needs to go in the place of to_repl"""
-    if type(to_repl) == list:
-        for i,e in enumerate(flist):
-            for to,withh in zip(to_repl,repl_with):
-                if to in e:
-                    flist[i] = e.replace(to,withh)
+    if type(to_repl) == list: #to_repl and repl_with are both arrays containing a mapping
+        for i,e in enumerate(flist): #iterate over the lines in the file
+            for to,withh in zip(to_repl,repl_with): #iterate over the possible changes (mapping lists)
+                if to in e: #if the line contains a 'to_change' string
+                    e = e.replace(to,withh) #replace the string with the replacement
+                    flist[i] = e.replace('g'+withh,'g'+to) #undo the ones that contain a conductance (conductance is the same for both mechanisms)
                     break #if a replacement is done, the other strings in the list are ignored, only replace at most for 1 string in the list
         return flist
+    for i,e in enumerate(flist): #iterate over the lines in the file
+        if to_repl in e: #if the string is in the line
+            e = e.replace(to_repl,repl_with) #replace this line
+            flist[i] = e.replace('g'+repl_with,'g'+to_repl) #undo conductances
+    return flist
+
+
+def FT_ov(flist,overtones):
+    """ adds the extra arguments to the FUNCTION_TABLES
+        :flist: list containing the lines of the file that needs to be adapted
+        :overtones: the number of overtones"""
+    extra_args = ''
+    FUNCTION_TABLES = ''
+    for ov in range(overtones):
+        extra_args += f', Q{ov+1}(nC/cm2), phi{ov+1}(rad)'
+        FUNCTION_TABLES += f'FUNCTION_TABLE A_V{ov+1}(A(kPa), Q(nC/cm2)) (mV)\nFUNCTION_TABLE phi_V{ov+1}(A(kPa), Q(nC/cm2)) (rad)\n'
     for i,e in enumerate(flist):
-        if to_repl in e:
-            flist[i] = e.replace(to_repl,repl_with)
+        if 'FUNCTION_TABLE' in e:
+            flist[i] = e.replace('))',f'){extra_args})') 
+            if flist[i+1].strip() == '':
+                flist[i] += FUNCTION_TABLES.replace('))',f'){extra_args})') 
+    return flist
+
+
+def add_custom_pas(flist,overtones):
+    """copied from write_modl_overtones.py because different for passive mechanism (custom_pas)"""
+    overtone_ASSIGNED = ''
+    overtone_NEURON = '    RANGE '
+    for overtone in range(overtones):
+        overtone_ASSIGNED += f'    q{overtone+1}  (nC/cm2)\n'
+        overtone_ASSIGNED += f'    f{overtone+1}  (rad)\n'
+        overtone_NEURON += f'q{overtone+1}, f{overtone+1}'
+
+    block = None
+    for i,e in enumerate(flist):
+        if re.search(tc.block_init_pattern,e): #do determine if we are in a specific block or not
+            block = re.search(tc.block_pattern,(re.search(tc.block_init_pattern,e).group(0))).group(0) #first look if we are in a BLOCK initiation line and then extract the actual block
+        if block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
+            flist[i] = e + f'{overtone_ASSIGNED}'
+        if block == "NEURON" and flist[i+1].startswith('}'): #add extra lines at the end of the NEURON block
+            flist[i] = e + f'{overtone_NEURON}\n'
     return flist
 
 
@@ -1298,22 +1337,40 @@ def random_LUT(filename):
     load_pickle(pkldict,filename.replace('.pkl','_random.pkl'))
 
 
-def lookup_LUT(filename, para = 'V', lookups = [32*1e-9, 500*1e3, 100*1e3, 50*1e-5, 0.01]):
+def lookup_LUT(filename, para = 'V', lookups = [32*1e-9, 500*1e3, 100*1e3, 40*1e-5, 0.75],Lemaire=False):
     """ looks up the value in table given the reference values in each dimension
         :filename: location where the LUT is stored
         :para: lookup for this certain parameter table
-        :lookups: the reference values for the LUT"""
+        :lookups: the reference values for the LUT
+        :Lemaire: if a Lemaire-LUT is used"""
 
     pkldict = read_pickle(filename)
-    if len(lookups) != 5:
-        raise LookupError("Wrong number of LUT values given")
-    var_dict = {'a': lookups[0], 'f': lookups[1], 'A': lookups[2], 'Q': lookups[3], 'Cm0': lookups[4]}
-    ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) for (k,v) in var_dict.items()]
-    vars = pkldict['refs']
-    ref_list = [vars[e][f] for e,f in zip(['a','f','A','Q', 'Cm0'], ind_list)]
-    print(f'lookup value for: {ref_list}')
-    ind_list = f'[{ind_list[0]}, {ind_list[1]}, {ind_list[2]}, {ind_list[3]}, {ind_list[4]}, {0}]'
-    value = eval(f"pkldict['tables']['{para}']{ind_list}")
+    #print(pkldict['refs'].keys())
+    #print(pkldict['refs'].values())
+    if len(lookups) != len(pkldict['refs'].keys()): #lookups bevat de waarde voor elke invoer parameter van de lookup
+        raise LookupError(f"Wrong number of LUT values given: {len(lookups)} instead of {len(pkldict['refs'].keys())}")
+    
+    points = tuple(pkldict['refs'].values())
+    interpolator = interp.RegularGridInterpolator(points,pkldict['tables'][para],method='nearest')
+    value = interpolator(lookups)
+
+    #nearest neighbor own implementation
+    # if Lemaire: 
+    #     var_dict = {'a': lookups[0], 'f': lookups[1], 'A': lookups[2], 'Q': lookups[3], 'fs': lookups[4]}
+    # else:
+    #     var_dict = {'a': lookups[0], 'f': lookups[1], 'A': lookups[2], 'Q': lookups[3], 'Cm0': lookups[4]}
+    # ind_list = [np.argmin(abs(pkldict['refs'][k]-v)) for (k,v) in var_dict.items()]
+    # vars = pkldict['refs']
+    # if Lemaire:
+    #     ref_list = [vars[e][f] for e,f in zip(['a','f','A','Q', 'fs'], ind_list)]
+    # else:
+    #     ref_list = [vars[e][f] for e,f in zip(['a','f','A','Q', 'Cm0'], ind_list)]
+    # print(f'lookup value for: {ref_list}')
+    # if Lemaire:
+    #     ind_list = f'[{ind_list[0]}, {ind_list[1]}, {ind_list[2]}, {ind_list[3]}, {ind_list[4]}]'
+    # else:
+    #     ind_list = f'[{ind_list[0]}, {ind_list[1]}, {ind_list[2]}, {ind_list[3]}, {ind_list[4]}, {0}]'
+    # value = eval(f"pkldict['tables']['{para}']{ind_list}")
     return value
 
 
@@ -1443,8 +1500,12 @@ def LUT_to_LUT2_1overtone(filename, remove_zeros=False):
         :filename: location of the original LUT
         :remove_zeros: remove the uncalculated 0-values in the 0.01-variant"""
     
+    i_vars = [0, 0, 11, 0, 0, 0] #use amplitude different than zero, otherwise zero values can be present in the LUT that are not dummy 0's
+    a, f, A, A1, phi1, fs = i_vars
     pkldict = read_pickle(filename)
     tables = list(pkldict['tables'].keys())
+    # for e,f in zip(pkldict['refs'],i_vars):
+    #     print(e, pkldict['refs'][e][f])
     for table in tables:
         pkldict['tables'][table+'2'] = pkldict['tables'][table][:,:,:,:,:,:,1,:]
         pkldict['tables'][table] = pkldict['tables'][table][:,:,:,:,:,:,0,:]
@@ -1453,11 +1514,12 @@ def LUT_to_LUT2_1overtone(filename, remove_zeros=False):
             if table == 'tcomp': #this table doesn't contain zeros but needs to be reduced to comply with the shape
                 pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros,:,:]
                 continue
-            nonzeros = np.nonzero(pkldict['tables'][table][0,0,0,:,0,0,0])[0] 
+            nonzeros = np.nonzero(pkldict['tables'][table][a,f,A,:,A1,phi1,fs])[0] 
+            #print(nonzeros)
             pkldict['tables'][table] = pkldict['tables'][table][:,:,:,nonzeros,:,:,:] #remove zeros in the Q-axis
-            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][0,0,0,:,0,0,0])[0]
+            nonzeros2 = np.nonzero(pkldict['tables'][table+'2'][a,f,A,:,A1,phi1,fs])[0]
             pkldict['tables'][table+'2'] = pkldict['tables'][table+'2'][:,:,:,nonzeros2,:,:,:] #remove zeros in the Q-axis
-            #print(pkldict['tables'][table].shape)
+            #print(pkldict['tables'][table+'2'].shape)
     del pkldict['refs']['Cm0'] #delete reference key as this is not a dimension anymore
     if remove_zeros:
         pkldict['tables']['Q_ext'] = pkldict['refs']['Q'][nonzeros2]
@@ -2204,7 +2266,7 @@ def plot_titration_curves_cells(pklfile):
                         bp[i] = TIT*1e-3
                         #plt.plot(DC,TIT*1e-3,label=cell_nr)
                     plt.plot(DC,np.median(bp,axis=0),label=labels[cell_group])
-                    #plt.fill_between(DC,np.quantile(bp,0.25,axis=0),np.quantile(bp,0.75,axis=0),alpha=0.3)
+                    plt.fill_between(DC,np.quantile(bp,0.45,axis=0),np.quantile(bp,0.55,axis=0),alpha=0.3)
                     #plt.boxplot(bp,positions=range(2),labels=DC)
                 fs = 18
                 plt.xlabel('Duty cycle [%]',fontsize=fs)
@@ -2224,34 +2286,34 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
     if pkl_file2:
         pkldict2 = read_pickle(pkl_file2)
     section = 'soma0' #considered section that will be plotted
-    mini_index = 1e10
-    act_section = ''
+    t_mini = 1e10
     sections = [] #all sections
-    zero_crossings = [] #all zero-crossings for every section
-    zero_crossing_vals = [] #value before the zero-crossing (can also be the one after because two sections aren't going to croos each other during the AP, right?)
+    t_first_zero_crossings = [] #all time points where first zero-crossing happens for every section
+    V_first_zero_crossings = [] #voltage value before the first zero-crossing (can also be the one after because two sections aren't going to cross each other during the AP, right? -> THEY CAN)
     V0, V0_2 = [],[]
 
-    for e,f in pkldict.items():
-        #zero_crossing = f['t'][np.argmin(abs(f['Vm']))] #timestamp where first zero-crossing happens
-        crossings = ((np.array(f['Vm'])[:-1] * np.array(f['Vm'])[1:]) <= 0)*1
-        first_crossing = np.argmax(crossings)+1 if np.argmax(crossings) != 0 else len(crossings)
-        zero_crossing = f['t'][first_crossing] #timestamp where first zero-crossing happens
-        zero_crossing_val = f['Vm'][first_crossing-1] #value before the zero-crossing
+    for e,f in pkldict.items(): #we iterate over all sections and their dictionary
+        crossings = ((np.array(f['Vm'])[:-1] * np.array(f['Vm'])[1:]) <= 0)*1 #V/voltage zero-crossings of section e (0 if no crossing, 1 if crossing)
+        first_crossing = np.argmax(crossings)+1 if np.argmax(crossings) != 0 else len(crossings) #index value of first zero-crossing
+        t_zero_crossing = f['t'][first_crossing] #timestamp where first zero-crossing happens
+        V_zero_crossing = f['Vm'][first_crossing-1] #voltage value before the zero-crossing
         #print(e,np.min(abs(f['Vm'])))
         sections.append(e) #append every section to the sections list
         if section in e: #if we are at the specified section: 
             V_section, t_section = np.array(f['Vm']), np.array(f['t']) #store the t and V array of this section
             t_stim = t_section[np.array(f['stimstate']>0)] #store the stimulation time (this is the time array when the stimulation is on)
-        zero_crossings.append(zero_crossing) #all the zero-crossings for every section are stored
-        zero_crossing_vals.append(zero_crossing_val) #all the zero-crossings for every section are stored
-        V0.append(f['Vm'][0])
+        t_first_zero_crossings.append(t_zero_crossing) #all the zero-crossings timestamps for every section are stored
+        V_first_zero_crossings.append(V_zero_crossing) #all the zero-crossings voltages for every section are stored
+        #V0.append(f['Vm'][0]) #append Vm0 for every section (too analyze what the init value is)
         if pkl_file2:
-            V0_2.append(pkldict2[e]['Vm'][0])
-        if zero_crossing < mini_index: #here we determine what the smallest first zero-crossing is
-            mini_index = zero_crossing
+            pass
+            #V0_2.append(pkldict2[e]['Vm'][0])
+        if t_zero_crossing < t_mini: #here we determine what the smallest first zero-crossing is
+            t_mini = t_zero_crossing
         #color scheme of aberra cells
         color = 'yellow' if 'soma' in e else 'purple' if 'axon' in e else '#FF0000' if 'node' in e else '#FFA500' if 'unmyelin' in e else '#000000' if 'myelin' in e else '#0000FF' if 'apical' in e else '#00FF00' if 'basal' in e else None
         #label every type of section by using the label for the section0
+        #continue
         if (e[-1] == '0' and e[-2].isalpha()):
             if pkl_file2:
                 # print(f['t']*1e3)
@@ -2272,12 +2334,12 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
             else:
                 plt.plot(f['t']*1e3,f['Vm'], color=color)
 
-    sections_sorted = [section for _, _, section in sorted(zip(zero_crossings, abs(np.array(zero_crossing_vals)) ,sections))] #first we look at the time that took until the first zero-crossing happened
-    zero_crossing_vals_sorted = [val for _, _, val in sorted(zip(zero_crossings, abs(np.array(zero_crossing_vals)), zero_crossing_vals))] #then we look at the section that is closest to zero before crossing it
+    sections_sorted = [section for _, _, section in sorted(zip(t_first_zero_crossings, abs(np.array(V_first_zero_crossings)) ,sections))] #first we look at the time that took until the first zero-crossing happened
+    zero_crossing_vals_sorted = [val for _, _, val in sorted(zip(t_first_zero_crossings, abs(np.array(V_first_zero_crossings)), V_first_zero_crossings))] #then we look at the section that is closest to zero before crossing it
     act_section = sections_sorted[0]
     # print(sections)
     # print(zero_crossings)
-    fs =30
+    fs = 30
     plt.xlabel('time [ms]',fontsize=fs)
     plt.ylabel('membrane voltage [mV]',fontsize=fs)
     plt.xticks(fontsize = fs)
@@ -2285,13 +2347,20 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
     plt.legend(fontsize = fs)
     plt.show()
     #plt.plot(t_section*1e3,V_section)
+    # plt.show()
 
     #metrics
     #nAPs = len(np.where(np.diff(np.sign(V_soma)))[0])/2 #number of action potentials by looking at the number of zero-crossings/2
-    Vmax_index = argrelextrema(np.array(V_section), np.greater)[0]
-    Vmax_t = t_section[Vmax_index]
-    Vmax_V = V_section[Vmax_index]
-    spiking_times = Vmax_t[Vmax_V>0]
+    pos_crossings = (np.array(V_section)[:-1] <= 0)*(np.array(V_section)[1:] > 0) #crossing where the value goes from a negative to a positive one
+    pos_crossings = np.append([0],pos_crossings) #add 0 to comply with the time array length
+
+    spiking_times = t_section*pos_crossings
+    spiking_times = spiking_times[spiking_times!=0] #times where the V value is positive after going through a zero-crossing
+
+    #Vmax_index = argrelextrema(np.array(V_section), np.greater)[0] #looks at relative maxima
+    #Vmax_t = t_section[Vmax_index] #time at relative maxima
+    #Vmax_V = V_section[Vmax_index] #voltage at relative maxima
+    #spiking_times = Vmax_t[Vmax_V>0] #we assume that there is a spike if V is at a local maxima above zero -> very wrong assumption
     spiking_and_bounds = np.append(np.append(t_stim[0],spiking_times),t_stim[-1])
     ISI = np.diff(spiking_times)*1e3
     ISI_with_bounds = np.diff(spiking_and_bounds)*1e3
@@ -2301,14 +2370,14 @@ def analyze_over_sections(pkl_file,pkl_file2=None):
     nAPs = len(spiking_times)
 
     print(f'(number of sections: {len(sections)})')
-    print(f'activation section/site:{act_section} @ {mini_index*1e3} ms') #section where the first zero-crossing happens so first AP
-    for e,f,g in zip(sections_sorted[:10],sorted(zero_crossings)[:10],zero_crossing_vals_sorted[:10]):
+    print(f'activation section/site:{act_section} @ {t_mini*1e3} ms') #section where the first zero-crossing happens so first AP
+    for e,f,g in zip(sections_sorted[:10],sorted(t_first_zero_crossings)[:10],zero_crossing_vals_sorted[:10]):
         print(f'{e}: \t{f},\t{g}')
     #print(f'V0: {V0[:5]}, V0_2: {V0_2[:5]}')
     print(f"number of APs: {nAPs}")
     print(f"ISI: {ISI}")
     firing_rate = 1/ISI*1e3
-    plt.plot(np.cumsum(ISI),firing_rate)
+    #plt.plot(np.cumsum(ISI),firing_rate)
     print(f"ISI with bounds: {ISI_with_bounds}")
     #print(f"spiking times: {spiking_times}")
     #print([x for _, x in sorted(zip(zero_crossings, sections))]) #sections ordered by first stimulation moment

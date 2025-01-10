@@ -17,7 +17,7 @@ h.load_file("init.hoc")
 cell_nr = 7
 sec_type = 'somatic'
 pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/"#"c:\\users\\jgazquez\\PySONIC\\PySONIC\\lookups\\"
-pickle_file = "realneuron_lookups_fs1.00.pkl"
+pickle_file = "realneuron_lookups_1.pkl"#"realneuron_lookups_fs1.00.pkl"
 DEBUG = 0
 Cm0_var = 1
 

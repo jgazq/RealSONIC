@@ -21,8 +21,12 @@ h.cell_chooser(cell_nr)
 #time.sleep(200); quit() #sleep so  the NEURON interface can be used
 
 for sec in h.allsec():
+    print(sec,sec.nseg)
     # print(sec,sec.cm)
-    print(sec.psection()['species'])
+    #print(sec.psection()['species'])
+    for seg in sec.allseg():
+        print(seg)
+    quit()
 
 a = h.finitialize(-75)
 print(a)

@@ -256,6 +256,7 @@ ENDVERBATIM
 		         Rstate = 1     : recover      
 
                          if( verboseLevel > 0 ) {
+                             printf( "Recovered! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
                          }
 
 		  }
@@ -263,6 +264,7 @@ ENDVERBATIM
 		         : survival must now be from this interval
 		         tsyn = t
                          if( verboseLevel > 0 ) {
+                             printf( "Failed to recover! %f at time %g: Psurv = %g, urand=%g\n", synapseID, t, Psurv, result )
                          }
 		  }
            }	   
@@ -280,11 +282,13 @@ ENDVERBATIM
                          B_GABAB = B_GABAB + weight_GABAB*factor_GABAB
                          
                          if( verboseLevel > 0 ) {
+                             printf( "Release! %f at time %g: vals %g %g %g \n", synapseID, t, A_GABAA, weight_GABAA, factor_GABAA )
                          }
 		  		  
 		  }
 		  else {
 		         if( verboseLevel > 0 ) {
+			     printf("Failure! %f at time %g: urand = %g\n", synapseID, t, result )
 		         }
 
 		  }
@@ -323,6 +327,7 @@ VERBATIM
                 : distribution MUST be set to Random.uniform(1)
                 */
                 value = nrn_random_pick(RANDCAST _p_rng);
+                //printf("random stream for this simulation = %lf\n",value);
                 return value;
         }else{
 ENDVERBATIM

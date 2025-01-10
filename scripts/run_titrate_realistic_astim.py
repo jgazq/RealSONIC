@@ -22,6 +22,7 @@ import os
 from neuron import h
 import sys
 
+save_dumps = 0
 
 def simulate_realnrn(args,amp,stimulation,x0,sigma, fiber, iter):
 
@@ -76,18 +77,19 @@ def simulate_realnrn(args,amp,stimulation,x0,sigma, fiber, iter):
     args['ref_loc'] = (refsec.x_xtra, refsec.y_xtra, refsec.z_xtra)
 
     tosave = output[0][0].data
-    #outdir = r"C:\Users\jgazquez\RealSONIC\pickledump" + f"\{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC\\"
-    #outname = r"dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC_{args['amp'][0]*1e-3}kPa" + ".pkl"
-    #outfile = outdir + outname
-    # if not os.path.exists(outdir):
-    #     os.mkdir(outdir)
-    #     os.mkdir(outdir+'pkl\\')
-    #     os.mkdir(outdir+'csv\\')
+    outdir = r"C:\Users\jgazquez\RealSONIC\pickledump" + f"\{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC\\"
+    outname = r"dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz"  + f"_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC_{args['amp'][0]*1e-3}kPa" + ".pkl"
+    outfile = outdir + outname
 
-    # with open(outdir+'pkl\\'+outname, 'wb') as fh:
-    #     pickle.dump(tosave, fh)
-    # data = tosave['soma0']
-    # data.to_csv((outdir+'csv\\'+outname).replace('pkl','csv'))
+    if save_dumps:
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+            os.mkdir(outdir+'pkl\\')
+            os.mkdir(outdir+'csv\\')
+        with open(outdir+'pkl\\'+outname, 'wb') as fh:
+            pickle.dump(tosave, fh)
+        data = tosave['soma0']
+        data.to_csv((outdir+'csv\\'+outname).replace('pkl','csv'))
     return tosave
 
 def thresh_excited(pkldict):
@@ -95,11 +97,14 @@ def thresh_excited(pkldict):
     section = 'soma0'
     df = pkldict[section]
     V_section, t_section = np.array(df['Vm']), np.array(df['t'])
-    Vmax_index = argrelextrema(np.array(V_section), np.greater)[0]
-    Vmax_t = t_section[Vmax_index]
-    Vmax_V = V_section[Vmax_index]
-    spiking_times = Vmax_t[Vmax_V>0]
+
+    pos_crossings = (np.array(V_section)[:-1] <= 0)*(np.array(V_section)[1:] > 0) #crossing where the value goes from a negative to a positive one
+    pos_crossings = np.append([0],pos_crossings) #add 0 to comply with the time array length
+    spiking_times = t_section*pos_crossings
+    spiking_times = spiking_times[spiking_times!=0] #times where the V value is positive after going through a zero-crossing
+
     nAPs = len(spiking_times)
+    print(f"number of spikes: {nAPs}")
     return nAPs > 0
 
 def activation_site(pkldict):
@@ -260,7 +265,7 @@ def main():
                                         else:
                                             low_amp = amp
                                             excited = 0
-                                        amp = high_amp #(high_amp+low_amp)/2
+                                        amp = (high_amp+low_amp)/2 #high_amp
                                         #with open('titrate','a') as ftit:
                                         #    ftit.write(f'Excited: {"True" if excited == 1 else "False"}. \nLower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa\n\n')
                                         #print(f'Lower bound = {low_amp*1e-3}kPa, higher bound: {high_amp*1e-3}kPa, with a difference of: {(high_amp-low_amp)*1e-3}kPa, amp is now set to: {amp*1e-3}kPa')

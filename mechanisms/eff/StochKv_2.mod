@@ -1,19 +1,19 @@
-TITLE skm952.mod  
+TITLE skm95.mod  
  
 COMMENT
 ----------------------------------------------------------------
-Stochastic version of the K channel mechanism kd3h52.mod by
+Stochastic version of the K channel mechanism kd3h5.mod by
 Z. Mainen in Mainen & Sejnowski 95.
 
 This represents a potassium channel, with Hodgkin-Huxley like kinetics,
 based on the gates model, assuming stochastic opening and closing.
 
 Kinetic rates based roughly on Sah et al. and Hamill et al. (1991)
-The main kinetic difference from the standard H-H model (shh2.mod) is 
+The main kinetic difference from the standard H-H model (shh.mod) is 
 that the K+ kinetic is different, not n^4, but just n, 
 and the activation curves are different.
 
-The rate functions are adapted directly from the Kd3h52.mod file
+The rate functions are adapted directly from the Kd3h5.mod file
 by Zach Mainen.
 
 The stochastic model is as following:
@@ -223,6 +223,7 @@ FUNCTION strap(x) {
     if (x < 0) {
         strap = 0
 VERBATIM
+        fprintf (stderr,"skv.mod:strap: negative state");
 ENDVERBATIM
     } else {
         strap = x
@@ -236,6 +237,7 @@ PROCEDURE ChkProb(p) {
   if (p < 0.0 || p > 1.0) {
     VERBATIM
 // ToDo: should be disabled during ForwardSkip and enabled right after
+//    fprintf(stderr, "StochKv2.mod:ChkProb: argument not a probability.\n");
     ENDVERBATIM
   }
 
@@ -247,7 +249,7 @@ VERBATIM
     {
         /**
          * This function takes a NEURON Random object declared in hoc and makes it usable by this mod file.
-         * Note that this method is taken from Brett paper as used by netstim.hoc and netstim2.mod
+         * Note that this method is taken from Brett paper as used by netstim.hoc and netstim.mod
          * which points out that the Random must be in negexp(1) mode
          */
         void** pv = (void**)(&_p_rng);

@@ -5,13 +5,38 @@ import matplotlib.pyplot as plt
 import os
 import csv
 import pprint
+from scipy.optimize import brentq, least_squares, fmin, minimize
 
-from neuron import h
+from neuron import h, numpy_element_ref
 import tempFunctions as tf
 import tempConstants as tc
 
 
-tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickledump\high_amp\dump_75.0__32.0nm_500.0kHz_188.984375kPa_100.0ms_10.0ms_1000.0Hz_0.28DC.pkl")
+
+# def lookup(inp_vars):
+#     q1,f1 = inp_vars[0], inp_vars[1]
+#     val = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
+#     val2 = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",lookups=[32*1e-9, 500*1e3, 100*1e3, 40*1e-5, q1, f1, 0.75])
+#     values =  (val-val2)[0]
+#     return values
+# sol = minimize(lookup, [0, 0],bounds=([0,0],[0.001,5.26]))
+# print(sol.x)
+# val = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
+# val2 = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",lookups=[32*1e-9, 500*1e3, 100*1e3, 40*1e-5, 0,1e-3, 0.75])
+# print(val,val2)
+
+# lkp = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged_LUT2.pkl")
+# for e in lkp['tables']:
+#     print(e)
+#     print(lkp['tables'][e].shape)
+
+# tf.LUT_to_LUT2_1overtone(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged.pkl",1)
+
+#tf.save_gatingplots_overtones(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged_ext.pkl",r'test')
+
+"""activation zones: thresholds"""
+# tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickledump\stimulation_zones_anlysis\dump_75.0__32.0nm_500.0kHz_112.99551984243782kPa_100.0ms_10.0ms_1000.0Hz_0.53DC.pkl")
+# tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickledump\stimulation_zones_anlysis\dump_75.0__32.0nm_500.0kHz_119.55039638327578kPa_100.0ms_10.0ms_1000.0Hz_0.53DC.pkl")
 
 """to combine two seperated calculated LUT"""
 # pkl_Cm01 = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\0overtones\Cm0_separate\realneuron_lookups_32nm_500kHz_[0_-1]_fs0.75_0.01_2024_12_03_09_55_02.pkl")
@@ -51,16 +76,17 @@ tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickle
 # tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=1)
 
 # tit = tf.read_pickle(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
-# #pprint.pprint(tit)
+#pprint.pprint(tit)
 # tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 """"""
 
-""""save gating plots"""
-# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\0overtones\Cm0_together\realneuron_lookups_2024_12_05_03_57_14_LUT2.pkl")
-# tf.save_gatingplots(pkldict,r"\test",Cm0=None,A='all')
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\RS_lookups.pkl",prints=True)
+# LUV = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\RS_lookups_fs1.00.pkl",lookups=[32*1e-9, 500*1e3, 600*1e3, 50*1e-5,1.],Lemaire=1)
+# print(LUV)
 # pkldict = tf.read_pickle(r"C:\Users\jgazquez\Downloads\realneuron_lookups_2024_12_03_17_44_00.pkl")
 # pprint.pprint(pkldict)
-""""""
+
+
 # tf.LUT_extend(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\0overtones\Cm0 separate\realneuron_lookups_32nm_500kHz_[0_-1]_fs0.75_0.01_2024_12_03_09_55_02.pkl")
 # tf.merge_LUT(r'C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\0overtones\Cm0 separate',
 #              r"\realneuron_lookups_32nm_500kHz_[0_-1]_fs0.75_0.01_2024_12_03_09_55_02_ext.pkl",
@@ -116,7 +142,7 @@ tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickle
 #                          r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC\pkl\dump_75.0%_64.0nm_100.0kHz_20.0ms_20.0ms_100.0Hz_1.0DC_10.0kPa.pkl")
 #tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_100.0kHz_20.0kPa_20.0ms_10.0ms_200.0Hz_1.0DC.pkl")
 #tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_75.0%_64.0nm_2000.0kHz_20.0kPa_100.0ms_10.0ms_100.0Hz_1.0DC.pkl")
-# tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump_RealSIM\pickledump\high_amp\dump_75.0__32.0nm_500.0kHz_134.296875kPa_100.0ms_10.0ms_1000.0Hz_0.48DC.pkl")
+#tf.analyze_over_sections(r"C:\Users\jgazquez\RealSONIC\pickledump\analysis\analysis1\dump_75.0%_32.0nm_500.0kHz_103.984375kPa_100.0ms_10.0ms_1000.0Hz_0.53DC.pkl")
 
 """plots the different probes parameters for various titration/amplitude values"""
 # directory = r"C:\Users\jgazquez\RealSONIC\pickledump\75.0%_16.0nm_100.0kHz_20.0ms_100.0ms_100.0Hz_0.5DC\csv"
