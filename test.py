@@ -12,23 +12,8 @@ import tempFunctions as tf
 import tempConstants as tc
 
 
+#tf.minimize_ov(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl", r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl")
 
-# def lookup(inp_vars):
-#     q1,f1 = inp_vars[0], inp_vars[1]
-#     val = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
-#     val2 = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",lookups=[32*1e-9, 500*1e3, 100*1e3, 40*1e-5, q1, f1, 0.75])
-#     values =  (val-val2)[0]
-#     return values
-# sol = minimize(lookup, [0, 0],bounds=([0,0],[0.001,5.26]))
-# print(sol.x)
-# val = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl")
-# val2 = tf.lookup_LUT(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",lookups=[32*1e-9, 500*1e3, 100*1e3, 40*1e-5, 0,1e-3, 0.75])
-# print(val,val2)
-
-# lkp = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged_LUT2.pkl")
-# for e in lkp['tables']:
-#     print(e)
-#     print(lkp['tables'][e].shape)
 
 # tf.LUT_to_LUT2_1overtone(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\1overtone\realneuron_lookups_32nm_500kHz_fs0.75_1overtones_2024_04_24_11_09_41_merged.pkl",1)
 

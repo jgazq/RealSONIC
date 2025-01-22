@@ -12,7 +12,7 @@ def search_folder(string, non_string ,folder,case_sens=1):
     if type(string) != list:
         string = [string] 
     encounters = 0
-    encounter_files = []
+    encounter_files = {}
     for root, dirs, files in os.walk(folder): #go through all files in the mechanics folders (all depths)
         for file in files:
             file = os.path.join(root,file)
@@ -28,21 +28,28 @@ def search_folder(string, non_string ,folder,case_sens=1):
                                 #if string in line:
                                     encounters += 1
                                     if file not in encounter_files:
-                                        encounter_files.append(file)
+                                        encounter_files[file] = 1
+                                    else:
+                                        encounter_files[file] += 1
                                     print(f'\nencounter {encounters}:\t\" {string} \" found in \'{line}\' on line: {i+1}  -> in file: {file}')
                             else: #case insensitive
                                 if all(word.lower() in line.lower() for word in string):
                                 #if string in line:
                                     encounters += 1
                                     if file not in encounter_files:
-                                        encounter_files.append(file)
+                                        encounter_files[file] = 1
+                                    else:
+                                        encounter_files[file] += 1
                                     print(f'\nencounter {encounters}:\t\" {string} \" found in \'{line}\' on line: {i+1}  -> in file: {file}')     
-    print("encountered files:"); print(*encounter_files,sep='\n')                          
+
+    print("encountered files:")
+    for e,f in encounter_files.items():
+        print(f'{e}  :  {f} hits')                         
     print('')
 
 string_examples = ['toPickle', 'fromPickle', 'insertVext', 'getcwd()', 'criterion not met', '#to debug P_A = 0', 'MethodType', '#for RealDynNeuron', 'setMechValue', ['gating_from_PROCEDURES'], 'ABERRA', 'insert']
 folder_examples = [os.getcwd(), r'C:\Users\jgazquez\PySONIC', r'C:\Users\jgazquez\MorphoSONIC',r'C:\Users\jgazquez\RealSONIC',r'/Users/joaquin/Documents/python-virtual-environments/MorphoSONIC']
-#search_folder(['random_mechname'],[],r'C:\Users\jgazquez\MorphoSONIC')
+search_folder(['OVERTONES'],[],r'C:\Users\jgazquez\MorphoSONIC')
 
 
 def search_file(string, folder,filename_only=False):
@@ -84,7 +91,7 @@ def remove_dll(folder):
             if file.endswith(".o") or file.endswith(".c") or file.endswith(".tmp") or file.endswith(".dll"):
                 os.remove(file)
                 
-remove_dll(os.path.join(os.getcwd(),'mechanisms\eff_1ov'))
+#remove_dll(os.path.join(os.getcwd(),'mechanisms\eff_1ov'))
 #remove_dll(r'C:\Users\jgazquez\MorphoSONIC\MorphoSONIC\nmodl')           
                 
 

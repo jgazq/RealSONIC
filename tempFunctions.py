@@ -19,6 +19,7 @@ import scipy.interpolate as interp
 import csv
 from scipy.signal import argrelextrema
 import pprint
+from scipy.optimize import minimize
 
 import tempConstants as tc
 import prev.Interp3Dfield as tt
@@ -1351,7 +1352,7 @@ def lookup_LUT(filename, para = 'V', lookups = [32*1e-9, 500*1e3, 100*1e3, 40*1e
         raise LookupError(f"Wrong number of LUT values given: {len(lookups)} instead of {len(pkldict['refs'].keys())}")
     
     points = tuple(pkldict['refs'].values())
-    interpolator = interp.RegularGridInterpolator(points,pkldict['tables'][para],method='nearest')
+    interpolator = interp.RegularGridInterpolator(points,pkldict['tables'][para],method='linear')
     value = interpolator(lookups)
 
     #nearest neighbor own implementation
@@ -1527,6 +1528,46 @@ def LUT_to_LUT2_1overtone(filename, remove_zeros=False):
     #print(tables)
     load_pickle(pkldict,filename.replace('.pkl','_LUT2.pkl'))
 
+
+def LUTov_to_LUT(filename):
+    """ remove the overtone variables of a LUT to compare with the original LUT with no overtones
+        :filename: location of the original LUT"""
+    
+    pkldict = read_pickle(filename)
+    refs = pkldict['refs']
+    tables = pkldict['tables']
+    ov = 1
+    while len(refs) != 5:
+        del refs['AQ'+str(ov)]
+        del refs['phiQ'+str(ov)]
+        for table in tables:
+            if len(tables[table].shape) > 5:
+                tables[table] = tables[table][:,:,:,:,0,0]
+        ov += 1
+    load_pickle(pkldict,filename.replace('.pkl','_0ov.pkl'))
+
+
+def minimize_ov(filename_0ov,filename_1ov):
+    """looks up for which overtone values the lookup value is the closest to the non-overtone lookup table: this should be for the null vector
+        :filename_0ov: the non-overtone lookup
+        :filename_1ov: the lookup table with overtones"""
+    
+    # lkp0 = read_pickle(filename_0ov)
+    # lkp1 = read_pickle(filename_1ov)
+    # for e,f in zip(lkp0['refs'].values(),lkp1['refs'].values()):
+    #     print(e,f)
+    def lookup(inp_vars):
+        q1,f1 = inp_vars[0], inp_vars[1]
+        val0 = lookup_LUT(filename_0ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, 0.75])
+        val1 = lookup_LUT(filename_1ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, q1, f1, 0.75])
+        #print(val,val2)
+        values =  abs((val1-val0)[0])
+        return values
+    sol = minimize(lookup, [0, 0],bounds=([0,0.001],[0,5.026]))
+    print(sol.x)
+    val0 = lookup_LUT(filename_0ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, 0.75])
+    val1 = lookup_LUT(filename_1ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, 0,0, 0.75])
+    print(val0,val1)
 
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
 def plt_transdistr(psource,grid_type):
