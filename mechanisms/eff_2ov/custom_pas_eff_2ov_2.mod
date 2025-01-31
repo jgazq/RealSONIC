@@ -9,7 +9,8 @@ NEURON {
     RANGE g, e
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific
     RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
-    RANGE q1, f1q2, f2
+    RANGE q1, f1
+    RANGE q2, f2
 }
 
 PARAMETER {

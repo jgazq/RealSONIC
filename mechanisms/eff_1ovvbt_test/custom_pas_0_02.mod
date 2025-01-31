@@ -4,13 +4,14 @@ INDEPENDENT {
 	t FROM 0 TO 1 WITH 1 (ms)
 }
 NEURON {
-    SUFFIX pas_eff
+    SUFFIX pas_eff0_02
     NONSPECIFIC_CURRENT i : passive leakage current
     RANGE g, e
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific
     RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
     RANGE q1, f1
-    RANGE q2, f2
+    POINTER V 
+    RANGE V_val : contains the specific value of LUT V for a specific segment 
 }
 
 PARAMETER {
@@ -30,19 +31,13 @@ ASSIGNED {
     y
     q1  (nC/cm2)
     f1  (rad)
-    q2  (nC/cm2)
-    f2  (rad)
+    V_val (mV) 
 }
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
-FUNCTION_TABLE A_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
 
-INCLUDE "update.inc"
 
 BREAKPOINT {
-    update()
+Vm = v/0.02 :Cm0 = 0.02 uF/cm2
+y = v
     i = g * (Vm - e)
 }

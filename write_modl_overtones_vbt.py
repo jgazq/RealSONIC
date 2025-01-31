@@ -20,7 +20,8 @@ pickle_folder = "/Users/jgazquez/PySONIC/PySONIC/lookups/test_joa/1overtone/"#"c
 pickle_file = "realneuron_lookups_1overtone.pkl" #overtones = 2 will only work if this is also lookups_2overtone.pkl
 DEBUG = 0
 Cm0_var = 1
-overtones = 2
+overtones = 1
+VERBATIM = 1
 
 """"--------------------------------------"""
 
@@ -36,6 +37,7 @@ pkl_txt = pd.read_pickle(pickle_folder+pickle_file) #read pickle file
 func_tables = pkl_txt['tables'].keys() #this returns all the gating state kinetics, as can be seen in PySONIC\neurons\real_neuron.py
 # print(func_tables)
 # [print(e) for e in func_tables]
+v_str = 'vbt' if VERBATIM else ''
 
 # tf.mod_duplicate(mech_folder,[e.split("_")[-1] for e in func_tables]);quit() # _eff.mod are copies from the original ones -> this is only used to see git changes
 
@@ -60,10 +62,10 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 overtone_NEURON += f', q{overtone+1}, f{overtone+1}' #add 'qi, fi' for every overtone
                 overtone_ASSIGNED += f'\tq{overtone+1}  (nC/cm2)\n'
                 overtone_ASSIGNED += f'\tf{overtone+1}  (rad)\n'
-                overtone_FUNCTION_TABLE += f', Q{overtone+1}(nC/cm2), phi{overtone+1}(rad)'
-                voltage_LUT += [f'A_V{overtone+1}']
-                phase_LUT += [f'phi_V{overtone+1}']
-                overtone_ARGUMENTS += f', q{overtone+1}, f{overtone+1}'
+                #overtone_FUNCTION_TABLE += f', Q{overtone+1}(nC/cm2), phi{overtone+1}(rad)'
+                #voltage_LUT += [f'A_V{overtone+1}']
+                #phase_LUT += [f'phi_V{overtone+1}']
+                #overtone_ARGUMENTS += f', q{overtone+1}, f{overtone+1}'
 
             # first we copy everything from .mod to _eff.mod without the PROCEDURE rates() block
             block = None #block keeps track in which BLOCK the writer is at the moment
@@ -76,29 +78,29 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             """"the mechanisms, where there are no computed effective variables and function tables, also need some modifications for the recasting"""
             """except xtra.mod?"""
             if 'xtra' in file_repl or 'CaDynamics' in file_repl:
-                shutil.copy(root+file,root+f"eff_{overtones}ov\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #DONT DO THIS IN MAC
+                shutil.copy(root+file,root+f"eff_{overtones}ov{v_str}\\"+file) #remove the _eff when no effective variables are pretabulated to indicate that it is a pure duplicate without adaptations #DONT DO THIS IN MAC
                 continue    
             if Cm0_var:
                 if 'pas' in file_repl:
                     #here we don't iterate over the Cm0_map as it doesn't include the value for 0.02 (which is not in LUT)
                     "Cm0 = 1"
                     #shutil.copy(root+file,root+f"eff_{overtones}ov\\"+file.replace(".mod",f"_eff_{overtones}ov.mod")) #DONT DO THIS IN MAC
-                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov",file.replace(".mod",f"_eff_{overtones}ov.mod")),'w') as dupl: 
+                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace(".mod",f"_eff_{overtones}ov.mod")),'w') as dupl: 
                         flist = list(f)
-                        flist_ov = tf.add_custom_pas(tf.FT_ov(flist,overtones),overtones)
+                        flist_ov = tf.add_custom_pas(flist,overtones,1,vbt=VERBATIM)
                         dupl.writelines(flist_ov)
                     "Cm0 = 2"
-                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov",file.replace(".mod",f"_eff_{overtones}ov.mod").replace('.mod','_2.mod')),'w') as dupl: 
+                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace(".mod",f"_eff_{overtones}ov.mod").replace('.mod','_2.mod')),'w') as dupl: 
                         flist = list(f)
                         flist2 = tf.SUFFIX_Cm0(flist,"2")
-                        flist2_ov = tf.add_custom_pas(tf.FT_ov(flist2,overtones),overtones)
+                        flist2_ov = tf.add_custom_pas(flist2,overtones,2,vbt=VERBATIM)
                         dupl.writelines(flist2_ov)
                     "Cm0 = 0.02"
-                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov",file.replace('.mod','_0_02.mod')),'w') as dupl: 
+                    with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace('.mod','_0_02.mod')),'w') as dupl: 
                         flist = list(f)
                         flist = tf.eff_to_noteff(flist,0.02)
                         flist02 = tf.SUFFIX_Cm0(flist,"0_02")
-                        flist02_ov = tf.add_custom_pas(flist02,overtones)
+                        flist02_ov = tf.add_custom_pas(flist02,overtones,0.02,vbt=VERBATIM)
                         dupl.writelines(flist02)
                     continue   
 
@@ -108,7 +110,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             #     continue      
   
             """start writing to the new file"""
-            with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov",file_dupl),'w') as dupl: #now the effective (still empty) duplicate will copy everything except the PROCEDURE block
+            with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file_dupl),'w') as dupl: #now the effective (still empty) duplicate will copy everything except the PROCEDURE block
                 flist = list(f)
                 voltage_gated = False #we wait for proof to assume the mechanism is voltage gated
                 no_indep = True #until we encounter an INDEPENDENT block, there is none
@@ -208,12 +210,12 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 if no_indep:
                     dupl.write('INDEPENDENT {\n\tt FROM 0 TO 1 WITH 1 (ms)\n}')
             """some lines need to be interchanged in the effective duplicate"""        
-            with open(os.path.join(root,f"eff_{overtones}ov",file_dupl),'r') as dupl:
+            with open(os.path.join(root,f"eff_{overtones}ov{v_str}",file_dupl),'r') as dupl:
                 flist = list(dupl)
                 new_list,worked = tf.str1_before_str2("LOCAL","update()",flist) #update() may not appear before LOCAL
                 if worked:
                     flist = new_list
-            with open(os.path.join(root,f"eff_{overtones}ov",file_dupl),'w') as dupl:
+            with open(os.path.join(root,f"eff_{overtones}ov{v_str}",file_dupl),'w') as dupl:
                 dupl.writelines(flist)
                     
                 #print(any(['LOCAL' in e for e in flist]),file)
@@ -223,7 +225,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 for Cm0fl, Cm0str in tc.Cm0_map.items():
                     if Cm0fl == 1: #do not touch file if Cm0 = 1
                         continue
-                    with open(os.path.join(root,f"eff_{overtones}ov",file_dupl),'r') as dupl:
+                    with open(os.path.join(root,f"eff_{overtones}ov{v_str}",file_dupl),'r') as dupl:
                         flist = list(dupl)
                         "following lines: only to add a Cm0-suffix to the SUFFIX and the .mod debug prints"
                         #flistCm = tf.SUFFIX_Cm0(flist,Cm0str)
@@ -233,7 +235,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                         replwith1 = torepl1+Cm0str
                         torepl2, replwith2 = torepl1.replace('_',''), replwith1.replace('_','')
                         flistCm = tf.replace_str(flist,[torepl1, torepl2],[replwith1, replwith2]) 
-                    with open(os.path.join(root,f"eff_{overtones}ov",file_dupl.replace('.mod','_'+Cm0str+'.mod')),'w') as dupl_Cm0:
+                    with open(os.path.join(root,f"eff_{overtones}ov{v_str}",file_dupl.replace('.mod','_'+Cm0str+'.mod')),'w') as dupl_Cm0:
                         dupl_Cm0.writelines(flistCm)
 print('Also update "update.inc" please!')
 # from neuron import h

@@ -1030,14 +1030,22 @@ def FT_ov(flist,overtones):
     return flist
 
 
-def add_custom_pas(flist,overtones):
+def add_custom_pas(flist,overtones,cm,vbt=0):
     """copied from write_modl_overtones.py because different for passive mechanism (custom_pas)"""
     overtone_ASSIGNED = ''
-    overtone_NEURON = '    RANGE '
+    overtone_NEURON = ''
     for overtone in range(overtones):
         overtone_ASSIGNED += f'    q{overtone+1}  (nC/cm2)\n'
         overtone_ASSIGNED += f'    f{overtone+1}  (rad)\n'
-        overtone_NEURON += f'q{overtone+1}, f{overtone+1}'
+        overtone_NEURON += f'    RANGE q{overtone+1}, f{overtone+1}\n'
+
+    if vbt:
+        overtone_NEURON += '    POINTER V \n'
+        overtone_NEURON += f'    RANGE V_val : contains the specific value of LUT V for a specific segment \n'
+        overtone_ASSIGNED += f'    V_val (mV) \n'
+        for overtone in range(overtones):
+            if cm != 0.02:
+                overtone_NEURON += f'    POINTER A_V{overtone+1}, phi_V{overtone+1}\n'
 
     block = None
     for i,e in enumerate(flist):
@@ -1046,7 +1054,7 @@ def add_custom_pas(flist,overtones):
         if block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
             flist[i] = e + f'{overtone_ASSIGNED}'
         if block == "NEURON" and flist[i+1].startswith('}'): #add extra lines at the end of the NEURON block
-            flist[i] = e + f'{overtone_NEURON}\n'
+            flist[i] = e + f'{overtone_NEURON}'
     return flist
 
 
@@ -1568,6 +1576,47 @@ def minimize_ov(filename_0ov,filename_1ov):
     val0 = lookup_LUT(filename_0ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, 0.75])
     val1 = lookup_LUT(filename_1ov,lookups=[32*1e-9, 500*1e3, 600*1e3, -102*1e-5, 0,0, 0.75])
     print(val0,val1)
+
+
+def LUT_Jacob(filename):
+    """ adds the derivatives to a LUT and also adds A's and B's to the LUT
+        :filename: name of the LUT file"""
+    pkldict = read_pickle(filename,prints=1)
+    refs = pkldict['refs']
+    tables = pkldict['tables']
+    Jacob = pkldict['Jacobians'] = {}
+    ov = (len(refs) - 5)/2
+    assert ov == int(ov), f'{ov} cannot be the amount of overtones in this LUT'
+    ov = int(ov)
+    for i in range(ov): #iterate over the (output) overtones
+        amp = tables[f'A_V{i+1}']
+        phi = tables[f'phi_V{i+1}']
+        A =  amp*np.cos(phi)
+        B = -amp*np.sin(phi)
+        tables[f'A_{i+1}'] = A #create a A_Q,k table for every overtone k
+        tables[f'B_{i+1}'] = B #create a B_Q,k table for every overtone k
+        A_diff = [np.copy(A) for e in range(2*ov)] #list containing the output overtone derivaded to every possible input overtone dA_V,k/d_A/B_Q,k
+        B_diff = [np.copy(B) for e in range(2*ov)] #list containing the overtone B_V,k derivaded to all input overtones A/B_Q_k
+
+        for ia,_ in enumerate(refs['a']):
+            for i_f,_ in enumerate(refs['f']):
+                for iA,_ in enumerate(refs['A']):
+                    for iQ,_ in enumerate(refs['Q']):
+                        for ifs,_ in enumerate(refs['fs']):
+                            slicers = ([slice(None)])*2*ov #create 2*ov (input overtone) ':' slicers for indexing
+                            indexes = (ia,i_f,iA,iQ,*slicers,ifs) #index the LUT except for the input overtones
+                            A_diffs = np.gradient(A[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
+                            B_diffs = np.gradient(B[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
+
+                            for j in range(2*ov): #iterate over the input overtones
+                                A_diff[j][indexes] = A_diffs[j] #put the calculated gradients in a Jacobian list
+                                B_diff[j][indexes] = B_diffs[j] 
+        Jacob[f'A_diff_{i+1}'] = A_diff
+        Jacob[f'B_diff_{i+1}'] = B_diff
+
+    load_pickle(pkldict,filename.replace('.pkl','_Jac.pkl'))
+    read_pickle(filename.replace('.pkl','_Jac.pkl'),prints=1)
+
 
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
 def plt_transdistr(psource,grid_type):

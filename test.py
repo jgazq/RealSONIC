@@ -11,6 +11,21 @@ from neuron import h, numpy_element_ref
 import tempFunctions as tf
 import tempConstants as tc
 
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov_Jac.pkl")
+# #look if Jacobian is calculated well
+# Jac = pkldict['Jacobians']
+# for e in Jac.keys():
+#     for f in Jac[e]:
+#         print(f.shape)
+
+
+x = np.array([[1,2],[3,4]])
+a = np.sum(x, axis=0)
+print(1/np.inf)
+print(a)
+
+
+#tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",prints=1)
 
 #tf.minimize_ov(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups.pkl", r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl")
 

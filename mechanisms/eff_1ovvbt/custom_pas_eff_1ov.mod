@@ -10,7 +10,9 @@ NEURON {
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific
     RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
     RANGE q1, f1
-    RANGE q2, f2
+    POINTER V 
+    RANGE V_val : contains the specific value of LUT V for a specific segment 
+    POINTER A_V1, phi_V1
 }
 
 PARAMETER {
@@ -30,15 +32,10 @@ ASSIGNED {
     y
     q1  (nC/cm2)
     f1  (rad)
-    q2  (nC/cm2)
-    f2  (rad)
+    V_val (mV) 
 }
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
-FUNCTION_TABLE A_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 INCLUDE "update.inc"
 
