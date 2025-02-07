@@ -6,7 +6,7 @@ NEURON {
        USEION k READ ek WRITE ik
        USEION ca READ cai
        RANGE gSK_E2bar, gSK_E2, ik
-	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1, q2, f2 : section (even segment) specific
+	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1, a2, b2 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
@@ -36,18 +36,18 @@ ASSIGNED {
          gSK_E2	       (S/cm2)
 	A_t  (kPa)
 	y
-	q1  (nC/cm2)
-	f1  (rad)
-	q2  (nC/cm2)
-	f2  (rad)
+	a1  (nC/cm2)
+	b1  (rad)
+	a2  (nC/cm2)
+	b2  (rad)
 }
 
 INCLUDE "update.inc"
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE A_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
-FUNCTION_TABLE phi_V2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (mV)
+FUNCTION_TABLE A_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (mV)
+FUNCTION_TABLE A_2(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (mV)
+FUNCTION_TABLE B_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (rad)
+FUNCTION_TABLE B_2(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (rad)
 
 STATE {
       z   FROM 0 TO 1

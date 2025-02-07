@@ -6,7 +6,7 @@ NEURON {
        USEION k READ ek WRITE ik
        USEION ca READ cai
        RANGE gSK_E2bar, gSK_E2, ik
-	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1 : section (even segment) specific
+	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
@@ -36,14 +36,12 @@ ASSIGNED {
          gSK_E2	       (S/cm2)
 	A_t  (kPa)
 	y
-	q1  (nC/cm2)
-	f1  (rad)
+	a1  (nC/cm2)
+	b1  (rad)
 }
 
 INCLUDE "update.inc"
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (rad)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
 
 STATE {
       z   FROM 0 TO 1

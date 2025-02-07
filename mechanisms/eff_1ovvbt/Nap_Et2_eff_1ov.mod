@@ -5,7 +5,7 @@ NEURON	{
 	SUFFIX Nap_Et2
 	USEION na READ ena WRITE ina
 	RANGE gNap_Et2bar, gNap_Et2, ina
-	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1 : section (even segment) specific
+	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
@@ -40,19 +40,17 @@ ASSIGNED	{
 	hBeta
 	A_t  (kPa)
 	y
-	q1  (nC/cm2)
-	f1  (rad)
+	a1  (nC/cm2)
+	b1  (rad)
 }
 
 INCLUDE "update.inc"
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (rad)
-FUNCTION_TABLE alpham_NapEt2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
-FUNCTION_TABLE betam_NapEt2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
-FUNCTION_TABLE alphah_NapEt2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
-FUNCTION_TABLE betah_NapEt2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE alphah_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION_TABLE betah_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
 
 STATE	{
 	m
@@ -67,14 +65,14 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	m' = alpham_NapEt2(A_t, y, q1, f1) * (1 - m) - betam_NapEt2(A_t, y, q1, f1) * m
-	h' = alphah_NapEt2(A_t, y, q1, f1) * (1 - h) - betah_NapEt2(A_t, y, q1, f1) * h
+	m' = alpham_NapEt2(A_t, y) * (1 - m) - betam_NapEt2(A_t, y) * m
+	h' = alphah_NapEt2(A_t, y) * (1 - h) - betah_NapEt2(A_t, y) * h
 }
 
 INITIAL{
 	update()
-	m = alpham_NapEt2(A_t, y, q1, f1) / (alpham_NapEt2(A_t, y, q1, f1) + betam_NapEt2(A_t, y, q1, f1))
-	h = alphah_NapEt2(A_t, y, q1, f1) / (alphah_NapEt2(A_t, y, q1, f1) + betah_NapEt2(A_t, y, q1, f1))
+	m = alpham_NapEt2(A_t, y) / (alpham_NapEt2(A_t, y) + betam_NapEt2(A_t, y))
+	h = alphah_NapEt2(A_t, y) / (alphah_NapEt2(A_t, y) + betah_NapEt2(A_t, y))
 }
 
 INDEPENDENT {

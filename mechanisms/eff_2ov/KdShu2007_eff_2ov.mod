@@ -7,7 +7,7 @@ NEURON {
 	USEION k WRITE ik
 	RANGE  gkbar, ik, ek
 	GLOBAL minf, mtau, hinf, htau
-	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1, q2, f2 : section (even segment) specific
+	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1, a2, b2 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
@@ -44,21 +44,19 @@ ASSIGNED {
 	hinf 		htau (ms)	 	
 	A_t  (kPa)
 	y
-	q1  (nC/cm2)
-	f1  (rad)
-	q2  (nC/cm2)
-	f2  (rad)
+	a1  (nC/cm2)
+	b1  (rad)
+	a2  (nC/cm2)
+	b2  (rad)
 }
 
 INCLUDE "update.inc"
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (rad)
-FUNCTION_TABLE alpham_KdShu2007(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (/ms)
-FUNCTION_TABLE betam_KdShu2007(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (/ms)
-FUNCTION_TABLE alphah_KdShu2007(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (/ms)
-FUNCTION_TABLE betah_KdShu2007(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad), Q2(nC/cm2), phi2(rad)) (/ms)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_KdShu2007(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_KdShu2007(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (/ms)
+FUNCTION_TABLE alphah_KdShu2007(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (/ms)
+FUNCTION_TABLE betah_KdShu2007(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2), A2(nC/cm2), B2(nC/cm2)) (/ms)
  
 
 STATE {
@@ -72,13 +70,13 @@ BREAKPOINT {
 
 INITIAL {
 	update()
-	m= alpham_KdShu2007(A_t, y, q1, f1, q2, f2) / (alpham_KdShu2007(A_t, y, q1, f1, q2, f2) + betam_KdShu2007(A_t, y, q1, f1, q2, f2))
-	h= alphah_KdShu2007(A_t, y, q1, f1, q2, f2) / (alphah_KdShu2007(A_t, y, q1, f1, q2, f2) + betah_KdShu2007(A_t, y, q1, f1, q2, f2))
+	m= alpham_KdShu2007(A_t, y, a1, b1, a2, b2) / (alpham_KdShu2007(A_t, y, a1, b1, a2, b2) + betam_KdShu2007(A_t, y, a1, b1, a2, b2))
+	h= alphah_KdShu2007(A_t, y, a1, b1, a2, b2) / (alphah_KdShu2007(A_t, y, a1, b1, a2, b2) + betah_KdShu2007(A_t, y, a1, b1, a2, b2))
 }
 
 DERIVATIVE states {   
-        m' = alpham_KdShu2007(A_t, y, q1, f1, q2, f2) * (1 - m) - betam_KdShu2007(A_t, y, q1, f1, q2, f2) * m
-        h' = alphah_KdShu2007(A_t, y, q1, f1, q2, f2) * (1 - h) - betah_KdShu2007(A_t, y, q1, f1, q2, f2) * h
+        m' = alpham_KdShu2007(A_t, y, a1, b1, a2, b2) * (1 - m) - betam_KdShu2007(A_t, y, a1, b1, a2, b2) * m
+        h' = alphah_KdShu2007(A_t, y, a1, b1, a2, b2) * (1 - h) - betah_KdShu2007(A_t, y, a1, b1, a2, b2) * h
 }
 
 INDEPENDENT {

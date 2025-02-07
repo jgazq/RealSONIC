@@ -6,22 +6,19 @@ import os
 import csv
 import pprint
 from scipy.optimize import brentq, least_squares, fmin, minimize
+from scipy.linalg import block_diag
 
 from neuron import h, numpy_element_ref
 import tempFunctions as tf
 import tempConstants as tc
 
-# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov_Jac.pkl")
-# #look if Jacobian is calculated well
-# Jac = pkldict['Jacobians']
-# for e in Jac.keys():
-#     for f in Jac[e]:
-#         print(f.shape)
+# tf.LUT_Jacob(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl")
+# pkldict = tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov_Jac.pkl",prints=1)
+# print(pkldict['Jacobians'].keys())
+# for e in pkldict['Jacobians'].values():
+#     print(e.shape)
 
-
-x = np.array([[1,2],[3,4]])
-a = np.sum(x, axis=0)
-print(1/np.inf)
+a = [x for i in range(1, 10) for x in ((5,5),(2,2))]
 print(a)
 
 

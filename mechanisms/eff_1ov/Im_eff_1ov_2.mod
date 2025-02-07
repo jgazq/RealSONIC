@@ -3,7 +3,7 @@ NEURON	{
 	SUFFIX Im2
 	USEION k READ ek WRITE ik
 	RANGE gImbar, gIm, ik
-	RANGE Adrive, Vm, y, Fdrive, A_t, q1, f1 : section (even segment) specific
+	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 }
 
@@ -34,17 +34,17 @@ ASSIGNED	{
 	mBeta
 	A_t  (kPa)
 	y
-	q1  (nC/cm2)
-	f1  (rad)
+	a1  (nC/cm2)
+	b1  (rad)
 }
 
 INCLUDE "update.inc"
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE A_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (mV)
-FUNCTION_TABLE phi_V1(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (rad)
-FUNCTION_TABLE alpham_Im2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
-FUNCTION_TABLE betam_Im2(A(kPa), Q(nC/cm2), Q1(nC/cm2), phi1(rad)) (/ms)
+FUNCTION_TABLE V(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
+FUNCTION_TABLE alpham_Im2(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (/ms)
+FUNCTION_TABLE betam_Im2(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (/ms)
+FUNCTION_TABLE A_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
+FUNCTION_TABLE B_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
 
 STATE	{ 
 	m
@@ -58,12 +58,12 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	m' = alpham_Im2(A_t, y, q1, f1) * (1 - m) - betam_Im2(A_t, y, q1, f1) * m
+	m' = alpham_Im2(A_t, y, a1, b1) * (1 - m) - betam_Im2(A_t, y, a1, b1) * m
 }
 
 INITIAL{
 	update()
-	m = alpham_Im2(A_t, y, q1, f1) / (alpham_Im2(A_t, y, q1, f1) + betam_Im2(A_t, y, q1, f1))
+	m = alpham_Im2(A_t, y, a1, b1) / (alpham_Im2(A_t, y, a1, b1) + betam_Im2(A_t, y, a1, b1))
 }
 
 INDEPENDENT {

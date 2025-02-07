@@ -1020,8 +1020,8 @@ def FT_ov(flist,overtones):
     extra_args = ''
     FUNCTION_TABLES = ''
     for ov in range(overtones):
-        extra_args += f', Q{ov+1}(nC/cm2), phi{ov+1}(rad)'
-        FUNCTION_TABLES += f'FUNCTION_TABLE A_V{ov+1}(A(kPa), Q(nC/cm2)) (mV)\nFUNCTION_TABLE phi_V{ov+1}(A(kPa), Q(nC/cm2)) (rad)\n'
+        extra_args += f', A{ov+1}(nC/cm2), B{ov+1}(nC/cm2)'
+        FUNCTION_TABLES += f'FUNCTION_TABLE A_{ov+1}(A(kPa), Q(nC/cm2)) (mV)\nFUNCTION_TABLE B_{ov+1}(A(kPa), Q(nC/cm2)) (rad)\n'
     for i,e in enumerate(flist):
         if 'FUNCTION_TABLE' in e:
             flist[i] = e.replace('))',f'){extra_args})') 
@@ -1035,9 +1035,9 @@ def add_custom_pas(flist,overtones,cm,vbt=0):
     overtone_ASSIGNED = ''
     overtone_NEURON = ''
     for overtone in range(overtones):
-        overtone_ASSIGNED += f'    q{overtone+1}  (nC/cm2)\n'
-        overtone_ASSIGNED += f'    f{overtone+1}  (rad)\n'
-        overtone_NEURON += f'    RANGE q{overtone+1}, f{overtone+1}\n'
+        overtone_ASSIGNED += f'    a{overtone+1}  (nC/cm2)\n'
+        overtone_ASSIGNED += f'    b{overtone+1}  (nC/cm2)\n'
+        overtone_NEURON += f'    RANGE a{overtone+1}, b{overtone+1}\n'
 
     if vbt:
         overtone_NEURON += '    POINTER V \n'
@@ -1579,43 +1579,78 @@ def minimize_ov(filename_0ov,filename_1ov):
 
 
 def LUT_Jacob(filename):
-    """ adds the derivatives to a LUT and also adds A's and B's to the LUT
+    """ adds the derivatives to a LUT and also replaces the Q's and phi's by A's and B's in the LUT
         :filename: name of the LUT file"""
-    pkldict = read_pickle(filename,prints=1)
+    pkldict = read_pickle(filename)#,prints=1)
     refs = pkldict['refs']
     tables = pkldict['tables']
-    Jacob = pkldict['Jacobians'] = {}
     ov = (len(refs) - 5)/2
     assert ov == int(ov), f'{ov} cannot be the amount of overtones in this LUT'
     ov = int(ov)
+    #print(refs.keys());print(tables.keys()); quit()
+    Jacob = pkldict['Jacobians'] = {} 
+    argsortov = []
+
+    for i in range(ov): #change the input parameters: remove Q's and phi's and add A's and B's
+        amp_Q = refs[f'AQ{i+1}']
+        phi_Q = refs[f'phiQ{i+1}']
+        A_Q =  amp_Q*np.cos(phi_Q) #convert Q and phi to A and B
+        B_Q = -amp_Q*np.sin(phi_Q) 
+        argsortov.append(tuple([slice(None)]*4 + [slice(None)]*2*i + [np.argsort(A_Q)])) #we append an array slicer for every overtone as it needs to be reordered (for interpolation)
+        argsortov.append(tuple([slice(None)]*4 + [slice(None)]*(2*i+1) + [np.argsort(B_Q)])) #we do this because we cant order different dimensions in one time
+        refs[f'A_{i+1}'] = A_Q[argsortov[2*i][4+2*i]] #create a A_Q,k array for every overtone k
+        refs[f'B_{i+1}'] = B_Q[argsortov[2*i+1][4+(2*i+1)]] #create a B_Q,k array for every overtone k
+        del refs[f'AQ{i+1}'] #remove the old input refs
+        del refs[f'phiQ{i+1}']
+        refs['fs'] = refs.pop('fs') #put fs at the end
+
+    for e,f in tables.items():
+        if len(f.shape) < 4:
+            continue #skip Q_ext
+        for i in range(ov):
+            tables[e] = tables[e][argsortov[2*i]] #rearrange the order of the overtone dimensions
+            tables[e] = tables[e][argsortov[2*i+1]] #this is done because the ref arrays need to be monotone increasing (or decreasing)
+
     for i in range(ov): #iterate over the (output) overtones
-        amp = tables[f'A_V{i+1}']
-        phi = tables[f'phi_V{i+1}']
-        A =  amp*np.cos(phi)
-        B = -amp*np.sin(phi)
-        tables[f'A_{i+1}'] = A #create a A_Q,k table for every overtone k
-        tables[f'B_{i+1}'] = B #create a B_Q,k table for every overtone k
-        A_diff = [np.copy(A) for e in range(2*ov)] #list containing the output overtone derivaded to every possible input overtone dA_V,k/d_A/B_Q,k
-        B_diff = [np.copy(B) for e in range(2*ov)] #list containing the overtone B_V,k derivaded to all input overtones A/B_Q_k
 
-        for ia,_ in enumerate(refs['a']):
-            for i_f,_ in enumerate(refs['f']):
-                for iA,_ in enumerate(refs['A']):
-                    for iQ,_ in enumerate(refs['Q']):
-                        for ifs,_ in enumerate(refs['fs']):
-                            slicers = ([slice(None)])*2*ov #create 2*ov (input overtone) ':' slicers for indexing
-                            indexes = (ia,i_f,iA,iQ,*slicers,ifs) #index the LUT except for the input overtones
-                            A_diffs = np.gradient(A[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
-                            B_diffs = np.gradient(B[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
+        for Cm0 in ['','2']: # Cm0 = 0.01/0.02
 
-                            for j in range(2*ov): #iterate over the input overtones
-                                A_diff[j][indexes] = A_diffs[j] #put the calculated gradients in a Jacobian list
-                                B_diff[j][indexes] = B_diffs[j] 
-        Jacob[f'A_diff_{i+1}'] = A_diff
-        Jacob[f'B_diff_{i+1}'] = B_diff
+            amp_V = tables[f'A_V{i+1}{Cm0}']
+            phi_V = tables[f'phi_V{i+1}{Cm0}']
+            A_V =  amp_V*np.cos(phi_V)
+            B_V = -amp_V*np.sin(phi_V)
+            tables[f'A_{i+1}{Cm0}'] = A_V #create a A_V,k table for every overtone k
+            tables[f'B_{i+1}{Cm0}'] = B_V #create a B_V,k table for every overtone k
+            del tables[f'A_V{i+1}{Cm0}']
+            del tables[f'phi_V{i+1}{Cm0}']
+
+            #dxs = [f'{AB}_{i+1}{Cm0}' for AB in ['A','B'] for i in range(ov)]
+            #dA_Vdx = {dx : np.copy(A_V) for dx in dxs} #dict containing the output overtone derivaded to every possible input overtone dA_V,k/d_(A/B)_Q,k
+            #dB_Vdx = {dx : np.copy(B_V) for dx in dxs} #dict containing the overtone B_V,k derivaded to all input overtones (A/B)_Q_k
+            dVdQs = [f'd{ABV}V{i+1}{Cm0}_d{ABQ}Q{k+1}{Cm0}' for ABQ in ['A','B'] for ABV in ['A','B'] for k in range(ov)] #first change in Q_ov, then output var, then input var
+            Jacob.update({dVxdQy : np.copy(A_V) for dVxdQy in dVdQs}) #update the Jacobian dictionary with this specific output overtone (and its derivatives)
+            for ia,_ in enumerate(refs['a']):
+                for i_f,_ in enumerate(refs['f']):
+                    for iA,_ in enumerate(refs['A']):
+                        for iQ,_ in enumerate(refs['Q']):
+                            for ifs,_ in enumerate(refs['fs']):
+                                slicers = ([slice(None)])*2*ov #create 2*ov (input overtone) ':' slicers for indexing
+                                indexes = (ia,i_f,iA,iQ,*slicers,ifs) #index the LUT except for the input overtones
+                                dA_V = np.gradient(A_V[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
+                                dB_V = np.gradient(B_V[indexes]) #calculate the gradients for output overtone i in all input overtones 2ov
+                                for j, AB in enumerate(['A','B']):
+                                    for k in range(ov):
+                                        dx = np.gradient(refs[f'{AB}_{k+1}'])
+                                        #dA_Vdx[f'{AB}_{k+1}{Cm0}'][indexes] = dA_V[2*k+j]/dx #put the calculated gradients in a Jacobian dict
+                                        #dB_Vdx[f'{AB}_{k+1}{Cm0}'][indexes] = dB_V[2*k+j]/dx #put the calculated gradients in a Jacobian dict
+                                        Jacob[f'dAV{i+1}{Cm0}_d{AB}Q{k+1}{Cm0}'][indexes] = dA_V[2*k+j]/dx
+                                        Jacob[f'dBV{i+1}{Cm0}_d{AB}Q{k+1}{Cm0}'][indexes] = dB_V[2*k+j]/dx
+            #Jacob[f'dA_{i+1}{Cm0}_dx'] = dA_Vdx
+            #Jacob[f'dB_{i+1}{Cm0}_dx'] = dB_Vdx
+
 
     load_pickle(pkldict,filename.replace('.pkl','_Jac.pkl'))
-    read_pickle(filename.replace('.pkl','_Jac.pkl'),prints=1)
+    #read_pickle(filename.replace('.pkl','_Jac.pkl'),prints=1)
 
 
 """-----------------------------------------------------------------------------------PLOTTING-----------------------------------------------------------------------------------"""
