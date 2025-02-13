@@ -18,9 +18,10 @@ import tempConstants as tc
 # for e in pkldict['Jacobians'].values():
 #     print(e.shape)
 
-a = [x for i in range(1, 10) for x in ((5,5),(2,2))]
-print(a)
-
+a = 5
+a += 10 if True else 20
+a = [',a ', ",b "]
+print(a.replace(",",""))
 
 #tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",prints=1)
 
@@ -73,7 +74,7 @@ print(a)
 # tf.txt_to_titration(r"C:\Users\jgazquez\RealSONIC\titrate", r"C:\Users\jgazquez\RealSONIC\titrate.pkl", save=1)
 
 # tit = tf.read_pickle(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
-#pprint.pprint(tit)
+# pprint.pprint(tit)
 # tf.plot_titration_curves(r"C:\Users\jgazquez\RealSONIC\titrate.pkl")
 """"""
 

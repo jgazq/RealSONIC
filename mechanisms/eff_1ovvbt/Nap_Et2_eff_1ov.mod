@@ -7,6 +7,11 @@ NEURON	{
 	RANGE gNap_Et2bar, gNap_Et2, ina
 	RANGE Adrive, Vm, y, Fdrive, A_t, a1, b1 : section (even segment) specific
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
+
+	POINTER V_table, alpham_NapEt2_table, betam_NapEt2_table, alphah_NapEt2_table, betah_NapEt2_table, A_1_table, B_1_table
+	RANGE V_val, alpham_NapEt2_val, betam_NapEt2_val, alphah_NapEt2_val, betah_NapEt2_val, A_1_val, B_1_val
+	POINTER A_arr, Q_arr, A1_arr, B1_arr
+	RANGE A_s, Q_s, A1_s, B1_s
 }
 
 UNITS	{
@@ -42,15 +47,79 @@ ASSIGNED	{
 	y
 	a1  (nC/cm2)
 	b1  (rad)
+
+	V_table  alpham_NapEt2_table  betam_NapEt2_table  alphah_NapEt2_table  betah_NapEt2_table  A_1_table  B_1_table  
+	V_val (mV)  alpham_NapEt2_val (/ms)  betam_NapEt2_val (/ms)  alphah_NapEt2_val (/ms)  betah_NapEt2_val (/ms)  A_1_val (nC/cm2)  B_1_val (nC/cm2)  
+	A_arr  Q_arr  A1_arr    B1_arr
+	A_s  Q_s  A1_s  B1_s
 }
 
 INCLUDE "update.inc"
+INCLUDE "interp.inc"
 
-FUNCTION_TABLE V(A(kPa), Q(nC/cm2)) (mV)
-FUNCTION_TABLE alpham_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betam_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE alphah_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
-FUNCTION_TABLE betah_NapEt2(A(kPa), Q(nC/cm2)) (/ms)
+FUNCTION fV() { 
+VERBATIM
+	double V_value;
+	V_value = interp4D(_p_V_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(V_value);
+ENDVERBATIM
+	fV = V_value
+}
+
+FUNCTION falpham_NapEt2() { 
+VERBATIM
+	double alpham_NapEt2_value;
+	alpham_NapEt2_value = interp4D(_p_alpham_NapEt2_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(alpham_NapEt2_value);
+ENDVERBATIM
+	falpham_NapEt2 = alpham_NapEt2_value
+}
+
+FUNCTION fbetam_NapEt2() { 
+VERBATIM
+	double betam_NapEt2_value;
+	betam_NapEt2_value = interp4D(_p_betam_NapEt2_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(betam_NapEt2_value);
+ENDVERBATIM
+	fbetam_NapEt2 = betam_NapEt2_value
+}
+
+FUNCTION falphah_NapEt2() { 
+VERBATIM
+	double alphah_NapEt2_value;
+	alphah_NapEt2_value = interp4D(_p_alphah_NapEt2_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(alphah_NapEt2_value);
+ENDVERBATIM
+	falphah_NapEt2 = alphah_NapEt2_value
+}
+
+FUNCTION fbetah_NapEt2() { 
+VERBATIM
+	double betah_NapEt2_value;
+	betah_NapEt2_value = interp4D(_p_betah_NapEt2_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(betah_NapEt2_value);
+ENDVERBATIM
+	fbetah_NapEt2 = betah_NapEt2_value
+}
+
+FUNCTION fA_1() { 
+VERBATIM
+	double A_1_value;
+	A_1_value = interp4D(_p_A_1_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(A_1_value);
+ENDVERBATIM
+	fA_1 = A_1_value
+}
+
+FUNCTION fB_1() { 
+VERBATIM
+	double B_1_value;
+	B_1_value = interp4D(_p_B_1_table, _p_A_arr, _p_Q_arr, _p_A1_arr, _p_B1_arr, A_s, Q_s, A1_s, B1_s, A_t, v, a1, b1);
+	return(B_1_value);
+ENDVERBATIM
+	fB_1 = B_1_value
+}
+
 
 STATE	{
 	m
@@ -65,14 +134,14 @@ BREAKPOINT	{
 }
 
 DERIVATIVE states	{
-	m' = alpham_NapEt2(A_t, y) * (1 - m) - betam_NapEt2(A_t, y) * m
-	h' = alphah_NapEt2(A_t, y) * (1 - h) - betah_NapEt2(A_t, y) * h
+	m' = falpham_NapEt2() * (1 - m) - fbetam_NapEt2() * m
+	h' = falphah_NapEt2() * (1 - h) - fbetah_NapEt2() * h
 }
 
 INITIAL{
 	update()
-	m = alpham_NapEt2(A_t, y) / (alpham_NapEt2(A_t, y) + betam_NapEt2(A_t, y))
-	h = alphah_NapEt2(A_t, y) / (alphah_NapEt2(A_t, y) + betah_NapEt2(A_t, y))
+	m = falpham_NapEt2() / (falpham_NapEt2() + fbetam_NapEt2())
+	h = falphah_NapEt2() / (falphah_NapEt2() + fbetah_NapEt2())
 }
 
 INDEPENDENT {

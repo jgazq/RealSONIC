@@ -43,8 +43,8 @@ INCLUDE "update.inc"
 FUNCTION_TABLE V(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
 FUNCTION_TABLE alpham_SKv31(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (/ms)
 FUNCTION_TABLE betam_SKv31(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (/ms)
-FUNCTION_TABLE A_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
-FUNCTION_TABLE B_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (mV)
+FUNCTION_TABLE A_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (nC/cm2)
+FUNCTION_TABLE B_1(A(kPa), Q(nC/cm2), A1(nC/cm2), B1(nC/cm2)) (nC/cm2)
 
 STATE	{ 
 	m

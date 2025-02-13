@@ -10,8 +10,6 @@ NEURON {
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific
     RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
     RANGE a1, b1
-    POINTER V 
-    RANGE V_val : contains the specific value of LUT V for a specific segment 
 }
 
 PARAMETER {
@@ -31,7 +29,6 @@ ASSIGNED {
     y
     a1  (nC/cm2)
     b1  (nC/cm2)
-    V_val (mV) 
 }
 
 

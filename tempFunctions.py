@@ -1013,20 +1013,41 @@ def replace_str(flist,to_repl,repl_with):
     return flist
 
 
-def FT_ov(flist,overtones):
+def FT_ov(flist,overtones,vbt=0):
     """ adds the extra arguments to the FUNCTION_TABLES
         :flist: list containing the lines of the file that needs to be adapted
         :overtones: the number of overtones"""
     extra_args = ''
     FUNCTION_TABLES = ''
+    extra_args_vbt = ''
+    AB_LUT = []
+
+    p_arr = [f', _p_{AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+    #arr = [f', {AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+    size = [f', {AB}{i+1}_s' for AB in ['A','B'] for i in range(overtones)] #size arguments in verbatim overtones
+
     for ov in range(overtones):
         extra_args += f', A{ov+1}(nC/cm2), B{ov+1}(nC/cm2)'
         FUNCTION_TABLES += f'FUNCTION_TABLE A_{ov+1}(A(kPa), Q(nC/cm2)) (mV)\nFUNCTION_TABLE B_{ov+1}(A(kPa), Q(nC/cm2)) (rad)\n'
+        extra_args_vbt += f', a{ov+1}, b{ov+1}' #add 'qi, fi' for every overtone
+        AB_LUT += [f'A_{ov+1}']
+        AB_LUT += [f'B_{ov+1}']
+
     for i,e in enumerate(flist):
         if 'FUNCTION_TABLE' in e:
-            flist[i] = e.replace('))',f'){extra_args})') 
+            if not vbt:
+                flist[i] = e.replace('))',f'){extra_args})') 
+            else:
+                LUT = e.split('(')[0].split('FUNCTION_TABLE')[-1].strip()
+                args = f"_p_{LUT}_table, _p_A_arr, _p_Q_arr{''.join(p_arr)}, A_s, Q_s{''.join(size)}, A_t, v{extra_args_vbt}"
+                flist[i] = f'FUNCTION f{LUT}() {{ \nVERBATIM\n\tdouble {LUT}_value;\n\t{LUT}_value = interp{2+2*overtones}D({args});\n\treturn({LUT}_value);\nENDVERBATIM\n\tf{LUT} = {LUT}_value\n}}\n\n'
             if flist[i+1].strip() == '':
-                flist[i] += FUNCTION_TABLES.replace('))',f'){extra_args})') 
+                if not vbt:
+                    flist[i] += FUNCTION_TABLES.replace('))',f'){extra_args})') 
+                else:
+                    for LUT in AB_LUT:
+                        args = f"_p_{LUT}_table, _p_A_arr, _p_Q_arr{''.join(p_arr)}, A_s, Q_s{''.join(size)}, A_t, v{extra_args_vbt}"
+                        flist[i] += f'FUNCTION f{LUT}() {{ \nVERBATIM\n\tdouble {LUT}_value;\n\t{LUT}_value = interp{2+2*overtones}D({args});\n\treturn({LUT}_value);\nENDVERBATIM\n\tf{LUT} = {LUT}_value\n}}\n\n'
     return flist
 
 
@@ -1034,18 +1055,44 @@ def add_custom_pas(flist,overtones,cm,vbt=0):
     """copied from write_modl_overtones.py because different for passive mechanism (custom_pas)"""
     overtone_ASSIGNED = ''
     overtone_NEURON = ''
+
+    p_arr = [f', _p_{AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+    #arr = [f', {AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+    size = [f', {AB}{i+1}_s' for AB in ['A','B'] for i in range(overtones)] #size arguments in verbatim overtones
+    overtone_NEURONp = ''
+    overtone_NEURONv = ''
+    overtone_NEURONarr = ''
+    overtone_NEURONsize = ''
+    overtone_ASSIGNEDp = ''
+    overtone_ASSIGNEDv = ''
+    overtone_ASSIGNEDarr = ''
+    overtone_ASSIGNEDsize = ''
+
     for overtone in range(overtones):
         overtone_ASSIGNED += f'    a{overtone+1}  (nC/cm2)\n'
         overtone_ASSIGNED += f'    b{overtone+1}  (nC/cm2)\n'
         overtone_NEURON += f'    RANGE a{overtone+1}, b{overtone+1}\n'
 
-    if vbt:
-        overtone_NEURON += '    POINTER V \n'
-        overtone_NEURON += f'    RANGE V_val : contains the specific value of LUT V for a specific segment \n'
-        overtone_ASSIGNED += f'    V_val (mV) \n'
+    if vbt and cm != 0.02:
+        overtone_NEURONp += '    POINTER V_table'
+        overtone_NEURONv += f'    RANGE V_val'
+        overtone_NEURONarr += '    POINTER A_arr, Q_arr'
+        overtone_NEURONsize += f'    RANGE A_s, Q_s'
+        overtone_ASSIGNEDp += f'    V_table'
+        overtone_ASSIGNEDv += f'    V_val (mV)'
+        overtone_ASSIGNEDarr += f'    A_arr  Q_arr'
+        overtone_ASSIGNEDsize += f'    A_s  Q_s'
         for overtone in range(overtones):
-            if cm != 0.02:
-                overtone_NEURON += f'    POINTER A_V{overtone+1}, phi_V{overtone+1}\n'
+            overtone_NEURONp += f', A_{overtone+1}_table, B_{overtone+1}_table'
+            overtone_NEURONv += f', A_{overtone+1}_val, B_{overtone+1}_val'
+            overtone_NEURONarr += f', A{overtone+1}_arr, B{overtone+1}_arr'
+            overtone_NEURONsize += f', A{overtone+1}_s, B{overtone+1}_s'            
+            overtone_ASSIGNEDp += f'  A_{overtone+1}_table  B_{overtone+1}_table'
+            overtone_ASSIGNEDv += f'  A_{overtone+1}_val (nC/cm2)  B_{overtone+1}_val (nC/cm2)'
+            overtone_ASSIGNEDarr += f'  A{overtone+1}_arr  B{overtone+1}_arr'
+            overtone_ASSIGNEDsize += f'  A{overtone+1}_s  B{overtone+1}_s'   
+        overtone_NEURON += '\n' + overtone_NEURONp + '\n' + overtone_NEURONv + '\n' + overtone_NEURONarr + '\n' + overtone_NEURONsize + '\n' 
+        overtone_ASSIGNED += '\n' + overtone_ASSIGNEDp + '\n' + overtone_ASSIGNEDv + '\n' + overtone_ASSIGNEDarr + '\n' + overtone_ASSIGNEDsize + '\n' 
 
     block = None
     for i,e in enumerate(flist):
@@ -1053,8 +1100,13 @@ def add_custom_pas(flist,overtones,cm,vbt=0):
             block = re.search(tc.block_pattern,(re.search(tc.block_init_pattern,e).group(0))).group(0) #first look if we are in a BLOCK initiation line and then extract the actual block
         if block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
             flist[i] = e + f'{overtone_ASSIGNED}'
+            if cm != 0.02:
+                flist[i+1] = flist[i+1] + '\nINCLUDE "interp.inc"\n'
         if block == "NEURON" and flist[i+1].startswith('}'): #add extra lines at the end of the NEURON block
             flist[i] = e + f'{overtone_NEURON}'
+        # if 'update.inc' in e:
+        #     if vbt:
+        #         flist[i] = e.replace('\n','\nINCLUDE "interp.inc"\n')
     return flist
 
 

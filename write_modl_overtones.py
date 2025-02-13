@@ -52,8 +52,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             overtone_NEURON = ''
             overtone_ASSIGNED = ''
             overtone_FUNCTION_TABLE = ''
-            A_LUT = ['V']
-            B_LUT = []
+            V_LUT = ['V']
+            AB_LUT = []
             overtone_ARGUMENTS = ''
 
             for overtone in range(overtones):
@@ -61,8 +61,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 overtone_ASSIGNED += f'\ta{overtone+1}  (nC/cm2)\n'
                 overtone_ASSIGNED += f'\tb{overtone+1}  (rad)\n'
                 overtone_FUNCTION_TABLE += f', A{overtone+1}(nC/cm2), B{overtone+1}(nC/cm2)'
-                A_LUT += [f'A_{overtone+1}']
-                B_LUT += [f'B_{overtone+1}']
+                AB_LUT += [f'A_{overtone+1}']
+                AB_LUT += [f'B_{overtone+1}']
                 overtone_ARGUMENTS += f', a{overtone+1}, b{overtone+1}'
 
             # first we copy everything from .mod to _eff.mod without the PROCEDURE rates() block
@@ -186,24 +186,24 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                             dupl.write("\nINCLUDE \"update.inc\"\n")  #include this file
                             dupl.write("\n")
                             for e in func_tables: #check if it is an effective 'duplicate'
-                                A = (e in A_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
+                                V = (e in V_LUT)
+                                AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
                                 alphbet = e.endswith(file_repl)
-                                B = (e in B_LUT)
-                                if A or alphbet or B: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
+                                if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
                                                                                                 # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
                                     # then we append the FUNCTION TABLE lines/blocks
                                     dupl.write("FUNCTION_TABLE ")
                                     dupl.write(e)
-                                    dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (mV)\n") if (A or B) else dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (/ms)\n")
+                                    dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (mV)\n") if V else dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (/ms)\n") if alphbet else dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (nC/cm2)\n")
                         elif block == "ASSIGNED" and 'xtra' not in file_repl and voltage_gated:
                             dupl.write("\nINCLUDE \"update.inc\"") #_bis.inc\"\n")  #include this file
                             dupl.write("\n")
-                            for e in A_LUT:
+                            for e in V_LUT:
                                 dupl.write("FUNCTION_TABLE ")
                                 dupl.write(f"{e}(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (mV)\n") 
-                            for e in B_LUT:
+                            for e in AB_LUT:
                                 dupl.write("FUNCTION_TABLE ")
-                                dupl.write(f"{e}(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (rad)\n") 
+                                dupl.write(f"{e}(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (nC/cm2)\n") 
                         block = None
                 if no_indep:
                     dupl.write('INDEPENDENT {\n\tt FROM 0 TO 1 WITH 1 (ms)\n}')

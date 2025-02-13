@@ -4,7 +4,7 @@ INDEPENDENT {
 	t FROM 0 TO 1 WITH 1 (ms)
 }
 NEURON {
-    SUFFIX pas_eff
+    SUFFIX pas_eff2
     NONSPECIFIC_CURRENT i : passive leakage current
     RANGE g, e
     RANGE Adrive, Vm, y, Fdrive, A_t : section specific

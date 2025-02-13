@@ -91,7 +91,7 @@ def remove_dll(folder):
             if file.endswith(".o") or file.endswith(".c") or file.endswith(".tmp") or file.endswith(".dll"):
                 os.remove(file)
                 
-remove_dll(os.path.join(os.getcwd(),'mechanisms\eff_1ov'))
+remove_dll(os.path.join(os.getcwd(),'mechanisms\eff_1ovvbt'))
 #remove_dll(r'C:\Users\jgazquez\MorphoSONIC\MorphoSONIC\nmodl')           
                 
 

@@ -54,14 +54,15 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
             overtone_NEURON = ''
             overtone_ASSIGNED = ''
             overtone_FUNCTION_TABLE = ''
-            A_LUT = ['V']
-            B_LUT = []
-            overtone_ARGUMENTS = ''
+            V_LUT = ['V']
+            AB_LUT = []
 
             for overtone in range(overtones):
                 overtone_NEURON += f', a{overtone+1}, b{overtone+1}' #add 'qi, fi' for every overtone
                 overtone_ASSIGNED += f'\ta{overtone+1}  (nC/cm2)\n'
                 overtone_ASSIGNED += f'\tb{overtone+1}  (rad)\n'
+                AB_LUT += [f'A_{overtone+1}']
+                AB_LUT += [f'B_{overtone+1}']
 
             # first we copy everything from .mod to _eff.mod without the PROCEDURE rates() block
             block = None #block keeps track in which BLOCK the writer is at the moment
@@ -83,13 +84,13 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     #shutil.copy(root+file,root+f"eff_{overtones}ov\\"+file.replace(".mod",f"_eff_{overtones}ov.mod")) #DONT DO THIS IN MAC
                     with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace(".mod",f"_eff_{overtones}ov.mod")),'w') as dupl: 
                         flist = list(f)
-                        flist_ov = tf.add_custom_pas(flist,overtones,1,vbt=VERBATIM)
+                        flist_ov = tf.add_custom_pas(tf.FT_ov(flist,overtones, vbt=1),overtones,1,vbt=VERBATIM)
                         dupl.writelines(flist_ov)
                     "Cm0 = 2"
                     with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace(".mod",f"_eff_{overtones}ov.mod").replace('.mod','_2.mod')),'w') as dupl: 
                         flist = list(f)
                         flist2 = tf.SUFFIX_Cm0(flist,"2")
-                        flist2_ov = tf.add_custom_pas(flist2,overtones,2,vbt=VERBATIM)
+                        flist2_ov = tf.add_custom_pas(tf.FT_ov(flist2,overtones,vbt=1),overtones,2,vbt=VERBATIM)
                         dupl.writelines(flist2_ov)
                     "Cm0 = 0.02"
                     with open(os.path.join(root,file)) as f, open(os.path.join(root,f"eff_{overtones}ov{v_str}",file.replace('.mod','_0_02.mod')),'w') as dupl: 
@@ -110,6 +111,9 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                 flist = list(f)
                 voltage_gated = False #we wait for proof to assume the mechanism is voltage gated
                 no_indep = True #until we encounter an INDEPENDENT block, there is none
+                p_arr = [f', _p_{AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+                arr = [f', {AB}{i+1}_arr' for AB in ['A','B'] for i in range(overtones)] #array arguments in verbatim overtones
+                size = [f', {AB}{i+1}_s' for AB in ['A','B'] for i in range(overtones)] #size arguments in verbatim overtones
                 
                 for i, line in enumerate(flist):
                     if re.search(tc.onelineBLOCK_pattern,line):
@@ -135,8 +139,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     elif (block == "INITIAL" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
                         var = re.findall(tc.state_pattern,LHS)[0]
-                        alph = f"alpha{var}_{file_repl}(A_t, y{overtone_ARGUMENTS})"
-                        bet = f"beta{var}_{file_repl}(A_t, y{overtone_ARGUMENTS})"
+                        alph = f"falpha{var}_{file_repl}()"
+                        bet = f"fbeta{var}_{file_repl}()"
                         if DEBUG:
                             #dupl.write(f'printf("{file}: V = %g, alpha = %g, beta = %g\\n",V(A_t,y), {alph}, {bet})\n') #add line for debugging
                             dupl.write(f'printf("{file}: \\n")\n') #add line for debugging
@@ -149,8 +153,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     elif (block == "DERIVATIVE" and '=' in line) and mod_eff: #line/equations needs to be replaced
                         LHS,RHS = line.split('=') #split equation in LHS/RHS
                         var = re.findall(tc.stateder_pattern,LHS)[0][:-1] #here we remove the differential ' from the actual variable
-                        alph = f"alpha{var}_{file_repl}(A_t, y{overtone_ARGUMENTS})"
-                        bet = f"beta{var}_{file_repl}(A_t, y{overtone_ARGUMENTS})"
+                        alph = f"falpha{var}_{file_repl}()"
+                        bet = f"fbeta{var}_{file_repl}()"
                         dupl.write(f"{LHS}= {alph} * (1 - {var}) - {bet} * {var}\n") #all gating variables have the same type of formula # see PySONIC/neurons/real_neurons.py in derStates
                         continue
                     if re.search(tc.block_init_pattern,line): #do determine if we are in a specific block or not
@@ -161,12 +165,36 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     dupl.write(line) #copy line if all cases above are not the case
                     if block == "NEURON" and flist[i+1].startswith('}'): #put extra lines at the end of the NEURON block
                         dupl.write(f"\tRANGE Adrive, Vm, y, Fdrive, A_t{overtone_NEURON} : section (even segment) specific\n\tRANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)\n") #add specific lines
+                        pointers = ""
+                        values = ""
+                        for e in func_tables: #check if it is an effective 'duplicate'
+                            V = (e in V_LUT)
+                            AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
+                            alphbet = e.endswith(file_repl)
+                            if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
+                                                                                            # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
+                                pointers += f"{e}_table" if pointers == "" else  f", {e}_table"
+                                values +=  f"{e}_val" if values == "" else  f", {e}_val"
+                        dupl.write(f"\n\tPOINTER {pointers}\n\tRANGE {values}")
+                        dupl.write(f"\n\tPOINTER A_arr, Q_arr{''.join(arr)}\n\tRANGE A_s, Q_s{''.join(size)}\n")
                     if block == "UNITS" and flist[i+1].startswith('}'): #put extra lines at the end of the UNITS block
                         dupl.write("\tPI = (pi) (1) :in order to use the constant pi\n") #add specific lines
                     elif block == "PARAMETER" and flist[i].startswith("PARAMETER"): #put extra lines at the beginning of the PARAMETER block
                         dupl.write("\tstimon       : Stimulation state\n\tFdrive (kHz) : Stimulation frequency\n\tAdrive (kPa) : Stimulation amplitude\n\tdetailed     : Simulation type\n") #add specific lines
                     elif block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
                         dupl.write(f"\tA_t  (kPa)\n\ty\n{overtone_ASSIGNED}") #add specific lines
+                        pointers = ""
+                        values = ""
+                        for e in func_tables: #check if it is an effective 'duplicate'
+                            V = (e in V_LUT)
+                            AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
+                            alphbet = e.endswith(file_repl)
+                            if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
+                                                                                            # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
+                                pointers = pointers + f"{e}_table  " 
+                                values += f"{e}_val (mV)  " if V else f"{e}_val (nC/cm2)  " if AB else f"{e}_val (/ms)  "
+                        dupl.write(f"\n\t{pointers}\n\t{values}")
+                        dupl.write(f"\n\tA_arr  Q_arr{'  '.join([e.replace(',',' ') for e in arr])}\n\tA_s  Q_s{''.join([e.replace(',',' ') for e in size])}\n")
                     elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and voltage_gated: #and mod_eff: #add extra line at the beginning of these 2 blocks
                         if (block == "INITIAL" and flist[i].startswith("INITIAL")) and voltage_gated:
                             pass #in order to write v = init-value
@@ -182,26 +210,27 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     if line.startswith('}'):
                         if block == "ASSIGNED" and mod_eff and voltage_gated: #put the include and the FUNCTION TABLES after the assigned
                             dupl.write("\nINCLUDE \"update.inc\"\n")  #include this file
+                            dupl.write("INCLUDE \"interp.inc\"\n")  #include this file
                             dupl.write("\n")
                             for e in func_tables: #check if it is an effective 'duplicate'
-                                A = (e in A_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
+                                V = (e in V_LUT)
+                                AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
                                 alphbet = e.endswith(file_repl)
-                                B = (e in B_LUT)
-                                if A or alphbet or B: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
+                                if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
                                                                                                 # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
                                     # then we append the FUNCTION TABLE lines/blocks
-                                    dupl.write("FUNCTION_TABLE ")
-                                    dupl.write(e)
-                                    dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (mV)\n") if (A or B) else dupl.write(f"(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (/ms)\n")
+                                    args = f"_p_{e}_table, _p_A_arr, _p_Q_arr{''.join(p_arr)}, A_s, Q_s{''.join(size)}, A_t, v{overtone_NEURON}"
+                                    dupl.write(f'FUNCTION f{e}() {{ \nVERBATIM\n\tdouble {e}_value;\n\t{e}_value = interp{2+2*overtones}D({args});\n\treturn({e}_value);\nENDVERBATIM\n\tf{e} = {e}_value\n}}\n\n')
                         elif block == "ASSIGNED" and 'xtra' not in file_repl and voltage_gated:
-                            dupl.write("\nINCLUDE \"update.inc\"") #_bis.inc\"\n")  #include this file
+                            dupl.write("\nINCLUDE \"update.inc\"\n") #_bis.inc\"\n")  #include this file
+                            dupl.write("INCLUDE \"interp.inc\"\n")  #include this file
                             dupl.write("\n")
-                            for e in A_LUT:
-                                dupl.write("FUNCTION_TABLE ")
-                                dupl.write(f"{e}(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (mV)\n") 
-                            for e in B_LUT:
-                                dupl.write("FUNCTION_TABLE ")
-                                dupl.write(f"{e}(A(kPa), Q(nC/cm2){overtone_FUNCTION_TABLE}) (rad)\n") 
+                            for e in V_LUT:
+                                args = f"_p_{e}_table, _p_A_arr, _p_Q_arr{''.join(p_arr)}, A_s, Q_s{''.join(size)}, A_t, v{overtone_NEURON}"
+                                dupl.write(f'FUNCTION f{e}() {{ \nVERBATIM\n\tdouble {e}_value;\n\t{e}_value = interp{2+2*overtones}D({args});\n\treturn({e}_value);\nENDVERBATIM\n\tf{e} = {e}_value\n}}\n\n')
+                            for e in AB_LUT:
+                                args = f"_p_{e}_table, _p_A_arr, _p_Q_arr{''.join(p_arr)}, A_s, Q_s{''.join(size)}, A_t, v{overtone_NEURON}"
+                                dupl.write(f'FUNCTION f{e}() {{ \nVERBATIM\n\tdouble {e}_value;\n\t{e}_value = interp{2+2*overtones}D({args});\n\treturn({e}_value);\nENDVERBATIM\n\tf{e} = {e}_value\n}}\n\n')
                         block = None
                 if no_indep:
                     dupl.write('INDEPENDENT {\n\tt FROM 0 TO 1 WITH 1 (ms)\n}')
