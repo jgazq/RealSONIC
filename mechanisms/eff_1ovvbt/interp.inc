@@ -34,7 +34,7 @@ static double interp4D(double *table, double *A_vals, double *Q_vals, double *A1
                                     double v1100 = table[(i + 1) * Q_size * A1_size * B1_size + (j + 1) * A1_size * B1_size + k * B1_size + l];
                                     double v1101 = table[(i + 1) * Q_size * A1_size * B1_size + (j + 1) * A1_size * B1_size + k * B1_size + l + 1];
                                     double v1110 = table[(i + 1) * Q_size * A1_size * B1_size + (j + 1) * A1_size * B1_size + (k + 1) * B1_size + l];
-                                    double v1111 = table[(i + 1) * Q_size * A1_size * B1_size + (j + 1) * A1_size * B1_size + (k + 1) * B1_size + l + 1];
+                                    double v1111 = table[(i + 1) * Q_size * A1_size * B1_size + (j + 1) * A1_size * B1_size + (k + 1) * B1_size + l + 1];			
 
                                     return (1 - tA) * (1 - tQ) * (1 - tA1) * (1 - tB1) * v0000 +
                                            tA * (1 - tQ) * (1 - tA1) * (1 - tB1) * v1000 +
@@ -60,6 +60,7 @@ static double interp4D(double *table, double *A_vals, double *Q_vals, double *A1
             }
         }
     }
+    printf("interpolation out of range");
     return table[A_size * Q_size * A1_size * B1_size - 1];
 }
 ENDVERBATIM

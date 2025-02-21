@@ -10,7 +10,6 @@ NEURON	{
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 
 	POINTER V_table, alpham_KPst_table, betam_KPst_table, alphah_KPst_table, betah_KPst_table, A_1_table, B_1_table
-	RANGE V_val, alpham_KPst_val, betam_KPst_val, alphah_KPst_val, betah_KPst_val, A_1_val, B_1_val
 	POINTER A_arr, Q_arr, A1_arr, B1_arr
 	RANGE A_s, Q_s, A1_s, B1_s
 }
@@ -46,7 +45,6 @@ ASSIGNED	{
 	b1  (rad)
 
 	V_table  alpham_KPst_table  betam_KPst_table  alphah_KPst_table  betah_KPst_table  A_1_table  B_1_table  
-	V_val (mV)  alpham_KPst_val (/ms)  betam_KPst_val (/ms)  alphah_KPst_val (/ms)  betah_KPst_val (/ms)  A_1_val (nC/cm2)  B_1_val (nC/cm2)  
 	A_arr  Q_arr  A1_arr    B1_arr
 	A_s  Q_s  A1_s  B1_s
 }

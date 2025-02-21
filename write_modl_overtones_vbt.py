@@ -166,7 +166,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     if block == "NEURON" and flist[i+1].startswith('}'): #put extra lines at the end of the NEURON block
                         dupl.write(f"\tRANGE Adrive, Vm, y, Fdrive, A_t{overtone_NEURON} : section (even segment) specific\n\tRANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)\n") #add specific lines
                         pointers = ""
-                        values = ""
+                        #values = ""
                         for e in func_tables: #check if it is an effective 'duplicate'
                             V = (e in V_LUT)
                             AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
@@ -174,8 +174,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                             if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
                                                                                             # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
                                 pointers += f"{e}_table" if pointers == "" else  f", {e}_table"
-                                values +=  f"{e}_val" if values == "" else  f", {e}_val"
-                        dupl.write(f"\n\tPOINTER {pointers}\n\tRANGE {values}")
+                                #values +=  f"{e}_val" if values == "" else  f", {e}_val"
+                        dupl.write(f"\n\tPOINTER {pointers}")#\n\tRANGE {values}")
                         dupl.write(f"\n\tPOINTER A_arr, Q_arr{''.join(arr)}\n\tRANGE A_s, Q_s{''.join(size)}\n")
                     if block == "UNITS" and flist[i+1].startswith('}'): #put extra lines at the end of the UNITS block
                         dupl.write("\tPI = (pi) (1) :in order to use the constant pi\n") #add specific lines
@@ -184,7 +184,7 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                     elif block == "ASSIGNED" and flist[i+1].startswith('}'): #add extra lines at the end of the ASSIGNED block
                         dupl.write(f"\tA_t  (kPa)\n\ty\n{overtone_ASSIGNED}") #add specific lines
                         pointers = ""
-                        values = ""
+                        #values = ""
                         for e in func_tables: #check if it is an effective 'duplicate'
                             V = (e in V_LUT)
                             AB = (e in AB_LUT) #len(e) <= 2 #is it V or a LUT related to a variable of overtones
@@ -192,8 +192,8 @@ for root, dirs, files in os.walk(mech_folder): #go through all files in the mech
                             if AB or alphbet or V: # 'if len(e) <= 2' is used to always include V (which is only 1 char)
                                                                                             # if the mechanism is in the gating state kinetic, include it also as a FUNCTION TABLE
                                 pointers = pointers + f"{e}_table  " 
-                                values += f"{e}_val (mV)  " if V else f"{e}_val (nC/cm2)  " if AB else f"{e}_val (/ms)  "
-                        dupl.write(f"\n\t{pointers}\n\t{values}")
+                                #values += f"{e}_val (mV)  " if V else f"{e}_val (nC/cm2)  " if AB else f"{e}_val (/ms)  "
+                        dupl.write(f"\n\t{pointers}")#\n\t{values}")
                         dupl.write(f"\n\tA_arr  Q_arr{'  '.join([e.replace(',',' ') for e in arr])}\n\tA_s  Q_s{''.join([e.replace(',',' ') for e in size])}\n")
                     elif ((block == "BREAKPOINT" and flist[i].startswith("BREAKPOINT")) or (block == "INITIAL" and flist[i].startswith("INITIAL"))) and voltage_gated: #and mod_eff: #add extra line at the beginning of these 2 blocks
                         if (block == "INITIAL" and flist[i].startswith("INITIAL")) and voltage_gated:

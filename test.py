@@ -7,6 +7,7 @@ import csv
 import pprint
 from scipy.optimize import brentq, least_squares, fmin, minimize
 from scipy.linalg import block_diag
+from scipy.interpolate import interpn
 
 from neuron import h, numpy_element_ref
 import tempFunctions as tf
@@ -18,10 +19,9 @@ import tempConstants as tc
 # for e in pkldict['Jacobians'].values():
 #     print(e.shape)
 
-a = 5
-a += 10 if True else 20
-a = [',a ', ",b "]
-print(a.replace(",",""))
+tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\0ov\dump_75.0%_32.0nm_500.0kHz_103.984375kPa_100.0ms_10.0ms_1000.0Hz_0.53DC.csv")
+tf.plot_astim2(r"C:\Users\jgazquez\RealSONIC\pickledump\1ov\dump_75.0%_32.0nm_500.0kHz_103.984375kPa_100.0ms_10.0ms_1000.0Hz_0.53DC.csv")
+
 
 #tf.read_pickle(r"C:\Users\jgazquez\PySONIC\PySONIC\lookups\test_joa\realneuron_lookups_1ov.pkl",prints=1)
 

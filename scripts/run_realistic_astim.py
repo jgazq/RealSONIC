@@ -36,8 +36,8 @@ def main():
     #args['plot'] = True                                                                                            #default: None
     #args['pltscheme'] = {'Vm': ['Vm'], 'Cm': ['Cm'], 'Qm': ['Qm'], 'iax' : ['iax']} #plotting variables            #default: None
     #args['amp'] = [36.7*1e3]#[100*1e3]                                                                               #default: 100000. Pa
-    args['tstim'] = [0.1]                                                                                          #default: 0.0001 s
-    args['toffset'] = [0.01]                                                                                       #default: 0.003 s
+    args['tstim'] = [0.001]                                                                                          #default: 0.0001 s
+    args['toffset'] = [0.0001]                                                                                       #default: 0.003 s
     #args['neuron'] = ['realneuron'] #this is actually not the way to change the neuron type
                                      #but this is irrelevant as 
     #args['nbursts'] = [2] #this argument needs to be changed for burst-mode                                        #default: 1
@@ -111,11 +111,13 @@ def main():
     args['ref_loc'] = (refsec.x_xtra, refsec.y_xtra, refsec.z_xtra)
 
     tosave = output[0][0].data
-    outdir = r"C:\Users\jgazquez\RealSONIC\pickledump\pkldump\dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz" + \
+    outdir = r"C:\Users\jgazquez\RealSONIC\pickledump\0ov\dump_" + f"{args['fs'][0]*100}%_{args['radius'][0]*1e9}nm_{args['freq'][0]*1e-3}kHz" + \
         f"_{args['amp'][0]*1e-3}kPa_{args['tstim'][0]*1e3}ms_{args['toffset'][0]*1e3}ms_{args['PRF'][0]}Hz_{args['DC'][0]}DC" + ".pkl"
     if save_dumps:
         with open(outdir, 'wb') as fh:
             pickle.dump(tosave, fh)
+        data = tosave['soma0']
+        data.to_csv(outdir.replace('.pkl','.csv'))
 
     #analyze result
     section = 'soma0'

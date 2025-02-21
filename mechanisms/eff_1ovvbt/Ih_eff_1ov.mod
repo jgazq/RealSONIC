@@ -9,7 +9,6 @@ NEURON	{
 	RANGE stimon, detailed    : common to all sections (but set as RANGE to be accessible from caller)
 
 	POINTER V_table, alpham_Ih_table, betam_Ih_table, A_1_table, B_1_table
-	RANGE V_val, alpham_Ih_val, betam_Ih_val, A_1_val, B_1_val
 	POINTER A_arr, Q_arr, A1_arr, B1_arr
 	RANGE A_s, Q_s, A1_s, B1_s
 }
@@ -45,7 +44,6 @@ ASSIGNED	{
 	b1  (rad)
 
 	V_table  alpham_Ih_table  betam_Ih_table  A_1_table  B_1_table  
-	V_val (mV)  alpham_Ih_val (/ms)  betam_Ih_val (/ms)  A_1_val (nC/cm2)  B_1_val (nC/cm2)  
 	A_arr  Q_arr  A1_arr    B1_arr
 	A_s  Q_s  A1_s  B1_s
 }
